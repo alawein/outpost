@@ -1,6 +1,6 @@
-# ACK
+# Outpost
 
-ACK (AGI's Coding Kit) is a small internal kit that installs prompts for coding agents. This file is the short guide for work in this repo.
+Outpost is a small personal kit that installs prompts for coding agents. This file is the short guide for work in this repo.
 
 ## First checks
 

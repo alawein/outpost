@@ -3,13 +3,13 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "ack"
-version = "0.25.0"
-description = "A small internal kit that helps coding agents read a repo, plan, edit, test, review, prepare PRs, and hand off. Claude Code is the primary target; Codex, Cursor, and GitHub Copilot are adapters."
+name = "outpost"
+version = "0.1.0"
+description = "A small personal kit that helps coding agents read a repo, plan, edit, test, review, prepare PRs, and hand off. Claude Code is the primary target; Codex, Cursor, and GitHub Copilot are adapters."
 readme = "README.md"
 requires-python = ">=3.9"
-license = { text = "UNLICENSED" }
-authors = [{ name = "AGI engineering" }]
+license = { text = "MIT" }
+authors = [{ name = "alawein" }]
 dependencies = []
 
 [project.optional-dependencies]

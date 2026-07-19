@@ -1,6 +1,6 @@
 # Agent guide for ACK
 
-ACK (AGI's Coding Kit) installs coding-agent prompts for Claude, Codex, Cursor, and Copilot. The
+Outpost installs coding-agent prompts for Claude, Codex, Cursor, and Copilot. The
 working rules live in `CLAUDE.md`; read that first. This file adds the review guidelines an
 automated reviewer applies to a pull request.
 

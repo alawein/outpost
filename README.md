@@ -1,11 +1,11 @@
 <div align="center">
 
-# ACK
+# Outpost
 
-[![ci](https://github.com/agi-inc/ACK/actions/workflows/ci.yml/badge.svg)](https://github.com/agi-inc/ACK/actions/workflows/ci.yml)
+[![ci](https://github.com/alawein/outpost/actions/workflows/ci.yml/badge.svg)](https://github.com/alawein/outpost/actions/workflows/ci.yml)
 ![python](https://img.shields.io/badge/python-3.9%2B-2f81f7?style=flat-square)
 ![dependencies](https://img.shields.io/badge/dependencies-none-2ea043?style=flat-square)
-![license](https://img.shields.io/badge/license-internal-8b949e?style=flat-square)
+![license](https://img.shields.io/badge/license-MIT-2ea043?style=flat-square)
 
 ![Claude](https://img.shields.io/badge/Claude-D97757?style=for-the-badge)
 ![Codex](https://img.shields.io/badge/Codex-10A37F?style=for-the-badge)
@@ -14,11 +14,11 @@
 
 </div>
 
-**ACK (AGI's Coding Kit) is the AGI team's internal prompt pack for coding agents: read a repo, plan, build, test, review, ship, hand off.**
+**Outpost is a personal prompt pack for coding agents: read a repo, plan, build, test, review, ship, hand off.**
 
 The core prompts install under Claude Code, Codex, Cursor, and GitHub Copilot. Claude Code gets the fullest path: skills that load on their own and a safe settings merge. The other tools install the same core prompts as files, except `converge`, which ships to Claude only. One install gives each tool the same path, so the team works the same way and spends fewer tokens.
 
-Maintained by the handles in [.github/CODEOWNERS](.github/CODEOWNERS), and open to the team by branch.
+Maintained by the handle in [.github/CODEOWNERS](.github/CODEOWNERS).
 
 <div align="center">
 
@@ -30,8 +30,8 @@ Maintained by the handles in [.github/CODEOWNERS](.github/CODEOWNERS), and open 
 
 ```bash
 # clone the kit, then install into your repo (or --tool all)
-git clone https://github.com/agi-inc/ACK
-cd ACK
+git clone https://github.com/alawein/outpost
+cd outpost
 python install.py --tool claude --project /path/to/your/repo
 ```
 
@@ -69,13 +69,13 @@ For the full install path, see [docs/onboarding.md](docs/onboarding.md).
 
 The kit ships <!-- GENERATED:core-count-words -->twenty-four<!-- /GENERATED:core-count-words --> prompts, one per step from first repo read to handoff: start, plan, build, check, ship, with scrutiny and record around them.
 
-In Claude Code the common sequences are one command: `/ack:drive` to plan, build, and test, and `/ack:ship` to review and open the PR.
+In Claude Code the common sequences are one command: `/outpost:drive` to plan, build, and test, and `/outpost:ship` to review and open the PR.
 
 See [docs/workflow.md](docs/workflow.md) for the ordered path, the Claude Code shortcuts, and the full prompt list.
 
 ## Claude Code plugin commands
 
-Claude Code adds typed shortcuts: `/ack:drive`, `/ack:ship`, `/ack:stress`, `/ack:doctor`, and the review suite. See [docs/workflow.md](docs/workflow.md) for what each one runs.
+Claude Code adds typed shortcuts: `/outpost:drive`, `/outpost:ship`, `/outpost:stress`, `/outpost:doctor`, and the review suite. See [docs/workflow.md](docs/workflow.md) for what each one runs.
 
 ## Best practices
 
@@ -120,4 +120,4 @@ Run `python validate.py` before you claim a change to the kit is done. It proves
 - How often to commit, PR, and file tracker items: [docs/cadence.md](docs/cadence.md)
 - Where it is headed: [docs/ROADMAP.md](docs/ROADMAP.md)
 
-Internal to AGI. See [LICENSE](LICENSE).
+MIT licensed. See [LICENSE](LICENSE).
