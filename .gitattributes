@@ -1,0 +1,5 @@
+# Normalize line endings so the kit behaves the same on Windows, macOS, and Linux.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.gif binary
