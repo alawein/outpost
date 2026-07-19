@@ -6,4 +6,4 @@ validates the repo against it, `kit.installers` merges config safely, and `kit.a
 the kit into a target project per tool.
 """
 
-KIT_VERSION = "0.25.0"
+KIT_VERSION = "0.1.0"

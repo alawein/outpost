@@ -20,3 +20,5 @@ Start from `0000-template.md` when adding a record.
 - 0014: pack consolidation after the Phase 1 audit; seven owner rulings, two kept-pair negatives, `deassume` folded into `repo-review`, `converge` made Claude-only, `prove`, `panel`, and `write-doc` rewritten.
 - 0015: keep the prompt and plugin-skill copies; the plugin format mandates the nested skills tree, so the flat authored `prompts/core` stays the source and the mirror stays generated.
 - 0016: retire two dead installer paths (the `.agi-coding-kit` manifest migration and the v0.24 Cursor rename sweep); keep the records-less ownership fallback, which review showed is load-bearing for correctness.
+- 0017: the kit is Outpost, forking the internal ACK kit into a personal MIT-licensed open source
+  project (supersedes 0010).
