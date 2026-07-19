@@ -66,7 +66,7 @@ def build_plugin(kit_root: pathlib.Path) -> Dict[str, str]:
         "author": _AUTHOR,
         "homepage": _HOMEPAGE,
         "repository": _HOMEPAGE,
-        "license": "UNLICENSED",
+        "license": "MIT",
         "keywords": ["claude-code", "coding-agent", "outpost"],
     }
 

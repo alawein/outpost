@@ -16,7 +16,7 @@
 
 **Outpost is a personal prompt pack for coding agents: read a repo, plan, build, test, review, ship, hand off.**
 
-The core prompts install under Claude Code, Codex, Cursor, and GitHub Copilot. Claude Code gets the fullest path: skills that load on their own and a safe settings merge. The other tools install the same core prompts as files, except `converge`, which ships to Claude only. One install gives each tool the same path, so the team works the same way and spends fewer tokens.
+The core prompts install under Claude Code, Codex, Cursor, and GitHub Copilot. Claude Code gets the fullest path: skills that load on their own and a safe settings merge. The other tools install the same core prompts as files, except `converge`, which ships to Claude only. One install gives each tool the same path, so every tool works the same way and spends fewer tokens.
 
 Maintained by the handle in [.github/CODEOWNERS](.github/CODEOWNERS).
 
