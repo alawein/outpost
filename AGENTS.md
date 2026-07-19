@@ -1,4 +1,4 @@
-# Agent guide for ACK
+# Agent guide for Outpost
 
 Outpost installs coding-agent prompts for Claude, Codex, Cursor, and Copilot. The
 working rules live in `CLAUDE.md`; read that first. This file adds the review guidelines an
