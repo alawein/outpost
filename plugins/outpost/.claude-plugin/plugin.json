@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin.json",
+  "name": "outpost",
+  "version": "0.25.0",
+  "description": "Outpost: the core coding-discipline prompts as skills, plus the plugin commands, a review agent, a context hook, and the ledger-voice output style. Generated from the catalog.",
+  "author": {
+    "name": "alawein"
+  },
+  "homepage": "https://github.com/alawein/outpost",
+  "repository": "https://github.com/alawein/outpost",
+  "license": "UNLICENSED",
+  "keywords": [
+    "claude-code",
+    "coding-agent",
+    "outpost"
+  ]
+}
