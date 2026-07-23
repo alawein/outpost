@@ -99,7 +99,7 @@ def _sha256(target: pathlib.Path) -> str:
 
 def _hash_str(content: str) -> str:
     # matches _sha256's format; content is always written via .encode("utf-8") with no newline
-    # translation (install.py:568), so this equals _sha256(target) right after the write.
+    # translation (see the apply write), so this equals _sha256(target) right after the write.
     return "sha256:" + hashlib.sha256(content.encode("utf-8")).hexdigest()
 
 
@@ -255,7 +255,7 @@ def _check_manifest_names(manifest: dict, catalog_names) -> None:
         raise ValueError("manifest names prompt(s) not in this kit: " + ", ".join(sorted(unknown)))
 
 
-def _orphans(project_root: pathlib.Path, tool: str, select_set, terse: bool, cat,
+def _orphans(project_root: pathlib.Path, tool: str, select_set, terse: bool,
              user_owned=frozenset()) -> list[str]:
     """Kit-owned prompt files on disk that the manifest no longer selects. Narrowing an install
     (`--only`/`--exclude` after a broader one) leaves the de-selected prompt files behind, since the
@@ -310,7 +310,7 @@ def _remove_empty_parents(target: pathlib.Path, root: pathlib.Path) -> None:
         d = d.parent
 
 
-def prune_orphans(project_root: pathlib.Path, tools, manifest: dict, args_terse: bool, cat):
+def prune_orphans(project_root: pathlib.Path, tools, manifest: dict, args_terse: bool):
     """Delete orphan kit-owned prompt files (those the manifest no longer selects), so disk matches
     the recorded selection. Safe: only write-mode prompt files are touched, never a user-owned or
     merged file; an orphan whose content was hand-edited (not the kit version) is left in place and
@@ -386,8 +386,7 @@ def _is_kit_content(target: pathlib.Path, content: str) -> bool:
         return False
 
 
-def remove_for_tools(project_root: pathlib.Path, tools, manifest: dict, args_terse: bool,
-                     cat):
+def remove_for_tools(project_root: pathlib.Path, tools, manifest: dict, args_terse: bool):
     """Back a tool's kit-owned files out of a target: every prompt file (write) and the guide it
     created (create), but only when the file is still the kit version. An edited file is a possible
     customization, so it is left in place and reported. The settings merge is handled separately
@@ -445,8 +444,7 @@ def remove_for_tools(project_root: pathlib.Path, tools, manifest: dict, args_ter
     return removed, skipped, failed, retired
 
 
-def unmerge_kit_settings(project_root: pathlib.Path, tools, manifest: dict, args_terse: bool,
-                         cat):
+def unmerge_kit_settings(project_root: pathlib.Path, tools, manifest: dict, args_terse: bool):
     """Un-install the kit's settings merge for each tool: strip the kit deny rules, keeping every
     other key. Delete the file only when nothing of the user's remains and the manifest records
     the kit created it; a file recorded as pre-existing is the user's and is left in place (its
@@ -717,7 +715,7 @@ def main(argv: list[str] | None = None) -> int:
                 sel = _selection_for(manifest, t)
                 terse = _terse_for(manifest, t, args.terse)
                 actions.extend(plan_for(t, KIT_ROOT, project_root, terse=terse, select=sel))
-                orphans.extend(_orphans(project_root, t, sel, terse, cat, user_owned))
+                orphans.extend(_orphans(project_root, t, sel, terse, user_owned))
                 # a plan-derived check cannot see a kit-created file whose prompt no longer ships
                 # to this host; the manifest's file records surface it as a leftover
                 leftovers.extend(_retired_paths(project_root, t, manifest, terse))
@@ -785,7 +783,7 @@ def main(argv: list[str] | None = None) -> int:
             return 1
         try:
             removed, skipped, failed, retired = prune_orphans(
-                project_root, _tools_for(args.tool), manifest, args.terse, cat=cat)
+                project_root, _tools_for(args.tool), manifest, args.terse)
         except (ValueError, OSError) as e:
             # a corrupt config (the Claude settings file) can't be planned against; say so cleanly
             print(f"error: {e}", file=sys.stderr)
@@ -824,8 +822,8 @@ def main(argv: list[str] | None = None) -> int:
             print(f"warning: manifest unreadable, left as-is: {e}", file=sys.stderr)
             manifest = {}
         removed, skipped, failed, retired = remove_for_tools(project_root, tools, manifest,
-                                                             args.terse, cat=cat)
-        settings = unmerge_kit_settings(project_root, tools, manifest, args.terse, cat=cat)
+                                                             args.terse)
+        settings = unmerge_kit_settings(project_root, tools, manifest, args.terse)
         # forget the removed tools in the manifest; delete it if no tool is left
         if manifest.get("tools"):
             for t in tools:
