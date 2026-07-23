@@ -106,6 +106,20 @@ def test_parse_manifest_rejects_drive_relative_backslash_key():
                        '"files": {"\\\\evil.txt": {"existed": false}}}}}')
 
 
+def test_parse_manifest_rejects_embedded_drive_letter_key():
+    # pathlib re-anchors on an embedded "C:" even mid-path, dropping the root; ntpath.splitdrive
+    # only sees a drive at the start, so a colon anywhere must be rejected
+    with pytest.raises(ValueError):
+        parse_manifest('{"tools": {"codex": {"prompts": [], "selection": "full", '
+                       '"files": {"a/C:/Windows/x": {"existed": false}}}}}')
+
+
+def test_parse_manifest_rejects_alternate_data_stream_key():
+    with pytest.raises(ValueError):
+        parse_manifest('{"tools": {"codex": {"prompts": [], "selection": "full", '
+                       '"files": {"note:hidden": {"existed": false}}}}}')
+
+
 def test_parse_manifest_accepts_a_normal_relative_file_key():
     data = parse_manifest('{"tools": {"codex": {"prompts": [], "selection": "full", '
                           '"files": {".agents/prompts/grill.md": {"existed": false}}}}}')

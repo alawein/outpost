@@ -8,7 +8,6 @@ canonical JSON. Never drops another tool's entry; idempotent for the same instal
 from __future__ import annotations
 
 import json
-import ntpath
 import posixpath
 
 MANIFEST_PATH = ".outpost/manifest.json"
@@ -71,16 +70,15 @@ def parse_manifest(text: str) -> dict:
                     f"manifest file record for {tool!r} at {path!r} needs a boolean 'existed'")
             # A file key must be a plain project-relative POSIX path: prune/remove join it to the
             # project root and unlink it, so an absolute key or one that escapes upward would let a
-            # crafted manifest delete files outside the project. Check BOTH path languages, because
-            # pathlib on Windows honors "\", drive letters, and UNC prefixes as anchors that a
-            # posix-only guard misses: "sub\..\..\evil" and "\\server\share\x" look like opaque
-            # tokens to posixpath but escape the root when joined on Windows. Kit keys are always
-            # "/"-joined, so a backslash never belongs in one; reject it outright, then apply the
-            # posix collapse/anchor checks and an ntpath drive/UNC check for good measure.
-            if ("\\" in path
+            # crafted manifest delete files outside the project. A legit kit key is "/"-joined with
+            # no backslash and no colon, so reject either character: pathlib on Windows re-anchors
+            # on a backslash OR on a drive letter ANYWHERE in the path ("a/C:/x" -> drive "C:",
+            # root dropped), and a colon also opens an NTFS alternate-data-stream ("note:hidden").
+            # Then the posix checks catch "/"-absolute, a leading "..", and any embedded "/../"
+            # (normpath collapses it). A null byte can raise mid-join, so reject it too.
+            if ("\\" in path or ":" in path or "\x00" in path
                     or path.startswith("/") or path.startswith("..")
-                    or path != posixpath.normpath(path)
-                    or ntpath.splitdrive(path)[0] or ntpath.isabs(path)):
+                    or path != posixpath.normpath(path)):
                 raise ValueError(
                     f"manifest 'files' key for {tool!r} must be a project-relative path: {path!r}")
     return data
