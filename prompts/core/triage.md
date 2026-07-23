@@ -13,6 +13,7 @@ reject. Nothing is dropped silently; a rejected finding stays in the record with
 
 - After `repo-review` or `code-review` returns more findings than one sitting can fix.
 - When findings arrive from a teammate or a tool and their confidence is unknown.
+- Not for replying to review comments on your own change; that is `respond-to-review`.
 - Skip it for a list of one or two findings; just verify and fix them.
 
 ## Required inputs
@@ -48,6 +49,7 @@ reject. Nothing is dropped silently; a rejected finding stays in the record with
 
 ## Stop conditions
 
+- Rank and route only; do not fix here. This prompt produces the work list, the fixing happens after it, on the routed items.
 - Every input finding appears in exactly one bucket; none dropped silently.
 - No finding is confirmed on assertion alone; each was re-checked against the source.
 - Deferred items are marked for the debt log with their reason and trigger; recording them is `debt-log`'s job, not this prompt's.

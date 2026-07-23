@@ -13,6 +13,7 @@ you are being asked to trust.
 
 - A design, plan, or diff that is about to be trusted, merged, or shipped.
 - A claim that needs to hold under pressure, not only sound right.
+- For a claim that must be recomputed from a source of truth, use `prove`, the heavier sibling; grill argues, prove recomputes.
 - Skip it for a small, reversible change already covered by code-review.
 
 ## Required inputs
