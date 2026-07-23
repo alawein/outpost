@@ -7,8 +7,9 @@ import shutil
 import pytest
 
 from kit.adapters.base import Action
-from kit.checks import (adapters, catalog, command_lists, doc_truth, docs, plugin_orphans,
-                        prompts, registries, roadmap, structure, template_refs, templates, traces)
+from kit.checks import (adapters, banned_sync, catalog, command_lists, doc_truth, docs,
+                        plugin_orphans, prompts, registries, roadmap, structure, template_refs,
+                        templates, traces)
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 # .claude holds machine-local tool config (untracked, gitignored); exclude it so an untracked
@@ -23,6 +24,16 @@ def repo_copy(tmp_path):
     dst = tmp_path / "kit"
     shutil.copytree(ROOT, dst, ignore=IGNORE)
     return dst
+
+
+def test_banned_sync_catches_a_word_only_in_the_doc(repo_copy):
+    p = repo_copy / "docs" / "writing-standard.md"
+    text = p.read_text(encoding="utf-8").replace(
+        "furthermore, utilize.", "furthermore, utilize, newfangled.")
+    assert "newfangled" in text  # guard
+    p.write_text(text, encoding="utf-8")
+    ok, detail = banned_sync.run(repo_copy)
+    assert not ok and "newfangled" in detail
 
 
 def test_plugin_orphans_catches_a_stale_skill(repo_copy):

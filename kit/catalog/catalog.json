@@ -57,6 +57,7 @@
     { "name": "docs", "module": "kit.checks.docs", "summary": "The required docs exist and are not stubs." },
     { "name": "secrets", "module": "kit.checks.secrets", "summary": "No tracked secrets and no junk." },
     { "name": "voice", "module": "kit.checks.voice", "summary": "Markdown is plain ASCII (em and en-dashes named) with no banned register." },
+    { "name": "banned_sync", "module": "kit.checks.banned_sync", "summary": "The banned register in writing-standard.md matches the words the voice check enforces." },
     { "name": "template_refs", "module": "kit.checks.template_refs", "summary": "Every prompt a template names resolves to a catalog prompt." },
     { "name": "templates_sync", "module": "kit.checks.templates_sync", "summary": "The committed guide templates match the shared-core build." },
     { "name": "docs_sync", "module": "kit.checks.docs_sync", "summary": "The catalog-derived spans in README.md, docs/workflow.md, and docs/plugin.md match the generator." },
