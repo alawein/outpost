@@ -16,14 +16,19 @@ ADAPTERS = {
 TOOLS = tuple(ADAPTERS)
 
 
-def plan_for(tool: str, kit_root, project_root, terse: bool = False, select=None):
+def plan_for(tool: str, kit_root, project_root, terse: bool = False, select=None,
+             tolerant: bool = False):
     """Return the Action list for one tool, or for every tool when tool == 'all'. `select` (a set of
-    prompt names, or None for the full pack) is forwarded to each adapter."""
+    prompt names, or None for the full pack) is forwarded to each adapter. `tolerant=True` lets an
+    adapter degrade past a corrupt existing config (the Claude settings file) instead of raising,
+    for callers (prune, remove) that only need the prompt-file actions; install and verify leave it
+    False so a corrupt file fails loudly."""
     if tool == "all":
         actions = []
         for name in TOOLS:
-            actions.extend(ADAPTERS[name](kit_root, project_root, terse=terse, select=select))
+            actions.extend(ADAPTERS[name](kit_root, project_root, terse=terse, select=select,
+                                          tolerant=tolerant))
         return actions
     if tool not in ADAPTERS:
         raise ValueError(f"unknown tool {tool!r}; choose one of {TOOLS} or 'all'")
-    return ADAPTERS[tool](kit_root, project_root, terse=terse, select=select)
+    return ADAPTERS[tool](kit_root, project_root, terse=terse, select=select, tolerant=tolerant)

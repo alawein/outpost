@@ -12,7 +12,7 @@ from .base import Action, load_prompts, read_template
 
 
 def plan(kit_root: pathlib.Path, project_root: pathlib.Path, terse: bool = False,
-         select=None) -> list[Action]:
+         select=None, tolerant: bool = False) -> list[Action]:
     actions: list[Action] = []
 
     actions.append(Action(
