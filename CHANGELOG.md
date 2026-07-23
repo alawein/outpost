@@ -4,6 +4,8 @@ Format follows Keep a Changelog (https://keepachangelog.com). The kit uses SemVe
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-07-23
+
 ### Added
 
 - Three gate checks: `plugin_orphans` (a stale skill in the plugin tree that no longer maps to a
