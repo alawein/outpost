@@ -1,4 +1,4 @@
-# CodeRabbit automatic review is off for this repo. PR review is the CODEOWNERS maintainers.
+# CodeRabbit automatic review is off for this repo. PR review is the owner (see .github/CODEOWNERS).
 reviews:
   auto_review:
     enabled: false

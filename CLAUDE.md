@@ -20,7 +20,7 @@ Run `python validate.py` and `python -m pytest -q` from the repo root. A change 
   session ledgers). Both are gitignored; nothing under them is committed.
 - Commit one concern. Use an imperative subject under about 70 characters. Do not add emoji or a trailer line.
 - Squash merge PRs.
-- Merging `main` requires one maintainer approval; `.github/CODEOWNERS` names them and routes the request.
+- This is a solo repo (ADR-0018). An outside PR gets the owner's review before merge; the owner's own PRs merge on green CI (`python validate.py` and `pytest`) without a second approval. `.github/CODEOWNERS` names the owner and routes the review request.
 
 ## Documentation map
 

@@ -1,6 +1,6 @@
 # Token budget
 
-How to spend fewer tokens per unit of work, keep context lean, and cut hallucination. Team API cost runs high. Most of it is avoidable with habits and settings, not a new tool. Findings first: the five moves that save the most, then the full table, then what this kit already does for you.
+How to spend fewer tokens per unit of work, keep context lean, and cut hallucination. Agent API cost adds up. Most of it is avoidable with habits and settings, not a new tool. Findings first: the five moves that save the most, then the full table, then what this kit already does for you.
 
 Each claim is tagged verified (a primary source confirms it) or proposed (a reasonable practice we have not benchmarked). Sources are at the end.
 

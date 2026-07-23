@@ -54,6 +54,7 @@ committed span drifts from the generator.
 
 Run `python validate.py` and `pytest`, then follow `prepare-pr` to draft the commit and PR.
 
-`main` requires one maintainer approval to merge; `.github/CODEOWNERS` names the maintainers and
-routes the review request. On open, Codex reviews the PR against the guidelines in `AGENTS.md`;
-CodeRabbit is off for this repo (`.coderabbit.yaml`).
+This is a solo repo (ADR-0018). An outside PR gets the owner's review before merge; the owner's own
+PRs merge on green CI without a second approval, since GitHub allows no self-approval.
+`.github/CODEOWNERS` names the owner and routes the review request. No automated PR reviewer is
+wired for this repo, and CodeRabbit is off (`.coderabbit.yaml`).

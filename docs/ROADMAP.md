@@ -13,7 +13,7 @@ Current release: v0.1.0. The table is the live state.
 | Prompt pack | built | The core pack is <!-- GENERATED:core-count-words -->twenty-four<!-- /GENERATED:core-count-words --> prompts: one maps the repo, two plan, five build and test, five review and ship, one loops checks until clean, seven add scrutiny, two record decisions and debt, and one writes docs, widened by the review suite's `repo-review`, `simplify`, and `triage` (ADR-0011) |
 | Templates | built | `CLAUDE.md`, `AGENTS.md`, a Cursor repo rule, Copilot instructions |
 | Installer | built | `install.py`: per-tool or `all`, dry-run, repeatable, safe settings merge |
-| Team tailoring | built | `--only`/`--exclude` install a subset of the prompt pack. `.outpost/manifest.json` records the choice, `--verify` reads it, `--prune` removes orphan files left by a narrower re-install, and `--remove` uninstalls a tool. Full pack stays the default (ADR-0003) |
+| Subset install | built | `--only`/`--exclude` install a subset of the prompt pack. `.outpost/manifest.json` records the choice, `--verify` reads it, `--prune` removes orphan files left by a narrower re-install, and `--remove` uninstalls a tool. Full pack stays the default (ADR-0003) |
 | Adapters | built | Claude Code (primary), Codex, Cursor, GitHub Copilot; separate paths, coexist |
 | Catalog | built | `kit/catalog/catalog.json`; lists what ships |
 | Checks | built | `python validate.py`: <!-- GENERATED:checks-line -->seventeen checks (structure, catalog, prompts, templates, adapters, docs, secrets, voice, template_refs, templates_sync, docs_sync, doc_truth, plugin_sync, registries, roadmap, command_lists, traces)<!-- /GENERATED:checks-line --> |
