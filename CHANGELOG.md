@@ -4,6 +4,12 @@ Format follows Keep a Changelog (https://keepachangelog.com). The kit uses SemVe
 
 ## [Unreleased]
 
+### Added
+
+- ADR-0019, recording the installer path-safety invariant (manifest keys must be project-relative)
+  and the v0.2 refinement decisions, including the rejected byte-match ownership fix kept as a
+  negative.
+
 ## [0.2.1] - 2026-07-23
 
 ### Fixed
