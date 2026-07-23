@@ -4,6 +4,21 @@ Format follows Keep a Changelog (https://keepachangelog.com). The kit uses SemVe
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-07-23
+
+### Fixed
+
+- A parent-directory cleanup failure after a successful `unlink` no longer misreports a completed
+  delete as failed (which also skipped dropping the file's ownership record). Cleanup is now
+  best-effort.
+
+### Changed
+
+- Corrected the `tolerant`-flag comments (prune is fail-loud, not tolerant) and the stale
+  `prune_orphans`/`remove_for_tools` return-tuple docstrings.
+- Added tests for the `banned_sync` reverse branch, an edited orphan keeping its ownership record
+  on prune, and `--remove` leaving a corrupt settings file untouched.
+
 ## [0.2.0] - 2026-07-23
 
 ### Added

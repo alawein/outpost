@@ -303,10 +303,18 @@ def _retired_unedited(project_root: pathlib.Path, path: str, rec: dict) -> bool:
 
 
 def _remove_empty_parents(target: pathlib.Path, root: pathlib.Path) -> None:
-    """Remove now-empty parent dirs of a deleted file, up to but not including the project root."""
+    """Remove now-empty parent dirs of a deleted file, up to but not including the project root.
+    Best-effort: the file delete already succeeded, so a locked or racing parent must not raise
+    here. It would surface in the caller's unlink try/except and misreport a completed delete as a
+    failure (and skip the ownership-record pop). Stop the walk on any filesystem error instead."""
     d = target.parent
-    while d != root and d.is_dir() and not any(d.iterdir()):
-        d.rmdir()
+    while d != root:
+        try:
+            if not (d.is_dir() and not any(d.iterdir())):
+                break
+            d.rmdir()
+        except OSError:
+            break
         d = d.parent
 
 
@@ -314,7 +322,8 @@ def prune_orphans(project_root: pathlib.Path, tools, manifest: dict, args_terse:
     """Delete orphan kit-owned prompt files (those the manifest no longer selects), so disk matches
     the recorded selection. Safe: only write-mode prompt files are touched, never a user-owned or
     merged file; an orphan whose content was hand-edited (not the kit version) is left in place and
-    reported, so a customization is never silently lost. Returns (removed, skipped, failed) lists."""
+    reported, so a customization is never silently lost. Returns (removed, skipped, failed, retired)
+    lists."""
     removed: list[str] = []
     skipped: list[str] = []   # edited orphans, left in place on purpose
     failed: list[str] = []    # could not delete (locked, permission); one bad file must not abort
@@ -390,7 +399,7 @@ def remove_for_tools(project_root: pathlib.Path, tools, manifest: dict, args_ter
     """Back a tool's kit-owned files out of a target: every prompt file (write) and the guide it
     created (create), but only when the file is still the kit version. An edited file is a possible
     customization, so it is left in place and reported. The settings merge is handled separately
-    (it is un-merged, not deleted). Returns (removed, skipped, failed) path lists. Only files that
+    (it is un-merged, not deleted). Returns (removed, skipped, failed, retired) path lists. Only files that
     actually exist on disk and are still the kit version are removed."""
     removed: list[str] = []
     skipped: list[str] = []
