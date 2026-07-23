@@ -87,6 +87,25 @@ def test_parse_manifest_rejects_absolute_file_key():
                        '"files": {"/etc/passwd": {"existed": false}}}}}')
 
 
+def test_parse_manifest_rejects_backslash_traversal_key():
+    # Windows: pathlib honors "\" as a separator, so a posix-only guard misses this escape
+    with pytest.raises(ValueError):
+        parse_manifest('{"tools": {"codex": {"prompts": [], "selection": "full", '
+                       '"files": {"sub\\\\..\\\\..\\\\victim": {"existed": false}}}}}')
+
+
+def test_parse_manifest_rejects_unc_key():
+    with pytest.raises(ValueError):
+        parse_manifest('{"tools": {"codex": {"prompts": [], "selection": "full", '
+                       '"files": {"\\\\\\\\server\\\\share\\\\x": {"existed": false}}}}}')
+
+
+def test_parse_manifest_rejects_drive_relative_backslash_key():
+    with pytest.raises(ValueError):
+        parse_manifest('{"tools": {"codex": {"prompts": [], "selection": "full", '
+                       '"files": {"\\\\evil.txt": {"existed": false}}}}}')
+
+
 def test_parse_manifest_accepts_a_normal_relative_file_key():
     data = parse_manifest('{"tools": {"codex": {"prompts": [], "selection": "full", '
                           '"files": {".agents/prompts/grill.md": {"existed": false}}}}}')
