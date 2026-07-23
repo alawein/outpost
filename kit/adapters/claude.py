@@ -37,12 +37,13 @@ def plan(kit_root: pathlib.Path, project_root: pathlib.Path, terse: bool = False
     try:
         merged = merged_text(existing, output_style)
     except ValueError:
-        # A corrupt existing settings file cannot be merged. Install and verify want this to fail
-        # loudly, so they call with tolerant=False and the error propagates. Prune and remove only
-        # need the prompt-file actions and handle the settings file themselves, so they pass
-        # tolerant=True: degrade the merge content to the kit default (against no existing) rather
-        # than crash plan construction. apply never overwrites a user-owned file, and remove
-        # filters merge-mode actions out, so the degraded content is inert.
+        # A corrupt existing settings file cannot be merged. Install, verify, and prune want this to
+        # fail loudly, so they call with tolerant=False and the error propagates. Only the remove
+        # path passes tolerant=True: it needs the prompt-file actions and unmerges the settings file
+        # itself, so it degrades the merge content to the kit default (against no existing) rather
+        # than crash plan construction. The degraded content is never read: remove_for_tools skips
+        # merge-mode actions, and unmerge_kit_settings uses only the action's path (it reads the
+        # real file's bytes, never a.content), so nothing writes the degraded merge.
         if not tolerant:
             raise
         merged = merged_text(None, output_style)
