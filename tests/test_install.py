@@ -547,6 +547,19 @@ def test_prune_skips_a_modified_orphan(tmp_path, capsys):
     assert "skip" in out.lower() and "grill" in out
     # the user's edit is preserved, not silently deleted
     assert skill.read_text(encoding="utf-8") == "my own customized grill"
+    # and its ownership record must survive: the pop fires only on a real delete, so a skipped
+    # edited orphan keeps its record (locking the asymmetry against a regression that pops on skip)
+    assert ".claude/skills/grill/SKILL.md" in _manifest(tmp_path)["tools"]["claude"]["files"]
+
+
+def test_remove_leaves_a_corrupt_settings_file_untouched(tmp_path):
+    install.main(["--tool", "claude", "--project", str(tmp_path)])
+    settings = tmp_path / ".claude" / "settings.json"
+    settings.write_text("{ not json", encoding="utf-8")
+    install.main(["--tool", "claude", "--project", str(tmp_path), "--remove"])
+    # remove deletes the prompt files but must never rewrite or delete a settings file it cannot
+    # parse: a corrupt file is the user's to fix, left exactly as found
+    assert settings.read_text(encoding="utf-8") == "{ not json"
 
 
 def test_prune_removes_nothing_on_a_full_install(tmp_path, capsys):

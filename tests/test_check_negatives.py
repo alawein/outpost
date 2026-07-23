@@ -46,6 +46,16 @@ def test_banned_sync_catches_a_word_only_in_the_doc(repo_copy):
     assert not ok and "newfangled" in detail
 
 
+def test_banned_sync_catches_a_word_only_in_the_code(repo_copy):
+    # the other direction: a word enforced by BANNED but dropped from the doc
+    p = repo_copy / "docs" / "writing-standard.md"
+    text = p.read_text(encoding="utf-8").replace("furthermore, utilize.", "furthermore.")
+    assert "utilize" not in text.split("## Banned register", 1)[1]  # guard: dropped from the list
+    p.write_text(text, encoding="utf-8")
+    ok, detail = banned_sync.run(repo_copy)
+    assert not ok and "enforced but not in the doc" in detail and "utilize" in detail
+
+
 def test_plugin_orphans_catches_a_stale_skill(repo_copy):
     ghost = repo_copy / "plugins" / "outpost" / "skills" / "ghost"
     ghost.mkdir(parents=True)
