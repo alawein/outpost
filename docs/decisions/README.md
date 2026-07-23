@@ -24,3 +24,5 @@ Start from `0000-template.md` when adding a record.
   project (supersedes 0010).
 - 0018: solo review model, the owner reviews outside PRs and merges own PRs on green CI without a
   second approval (supersedes 0006).
+- 0019: installer path-safety (manifest keys must be project-relative) and the v0.2 refinement
+  decisions, including the rejected byte-match ownership fix kept as a negative.
