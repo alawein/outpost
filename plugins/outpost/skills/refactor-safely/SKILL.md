@@ -11,6 +11,7 @@ A refactor changes structure, not behavior. The proof is simple: the same tests 
 
 - A function doing three things, a duplicated branch, a leaky abstraction, or a file that grew too large.
 - Not when behavior should change; split that out first.
+- For folding duplication or waste in code you just changed, `simplify` is the lighter tool; refactor-safely is for reshaping existing code under its tests.
 
 ## Required inputs
 

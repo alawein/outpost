@@ -9,7 +9,7 @@ Start from `0000-template.md` when adding a record.
 - 0003: team tailoring by prompt subset (`--only`/`--exclude` and an install manifest).
 - 0004: package the kit as an added Claude Code plugin channel, generated from the catalog.
 - 0005: domain-group engine, Claude-only prompt packs (eval, guides, ops, device), opt-in with `--with-domain`.
-- 0006: require a maintainer review on the kit's own repo (CODEOWNERS and branch protection), reversing the no-CODEOWNERS rule for this repo only.
+- 0006: require a maintainer review on the kit's own repo (CODEOWNERS and branch protection), reversing the no-CODEOWNERS rule for this repo only. Superseded by 0018.
 - 0007: kit identity, lead with the tool-neutral core and wall off the Claude-only domain packs as a team extension (Option C).
 - 0008: eval front door, `kit.eval` as a quarantined leaf that reverses ADR-0001's "No eval, no judge" scope.
 - 0009: distill to a pure coding kit, remove the eval, guides, device, and ops domains and return the core to 21 cross-tool skills (supersedes 0005 and 0008).
@@ -22,3 +22,5 @@ Start from `0000-template.md` when adding a record.
 - 0016: retire two dead installer paths (the `.agi-coding-kit` manifest migration and the v0.24 Cursor rename sweep); keep the records-less ownership fallback, which review showed is load-bearing for correctness.
 - 0017: the kit is Outpost, forking the internal ACK kit into a personal MIT-licensed open source
   project (supersedes 0010).
+- 0018: solo review model, the owner reviews outside PRs and merges own PRs on green CI without a
+  second approval (supersedes 0006).

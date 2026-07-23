@@ -13,6 +13,7 @@ clear.
 
 - A reviewer (human or bot) has left comments on your change.
 - Not for reviewing someone else's change; that is code-review.
+- Not for ranking a raw findings list with no review loop to close; that is `triage`.
 
 ## Required inputs
 

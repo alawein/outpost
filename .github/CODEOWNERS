@@ -1,2 +1,3 @@
-# Every pull request needs one maintainer approval. See CLAUDE.md and docs/contributing.md.
+# Solo repo (ADR-0018): routes review to the owner. Outside PRs get the owner's review; the owner's
+# own PRs merge on green CI. See CLAUDE.md and docs/contributing.md.
 * @alawein

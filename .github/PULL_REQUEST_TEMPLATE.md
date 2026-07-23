@@ -18,4 +18,4 @@ Known caveats, out-of-scope work, follow-ups. "None" is a valid answer.
 ## Notes for reviewers
 
 Where to focus, the risky part, or anything a reviewer should know. "None" is a valid answer.
-Automated review runs on open (Codex reviews against `AGENTS.md`; CodeRabbit is off for this repo).
+This is a solo repo: no automated PR reviewer is wired and CodeRabbit is off (`.coderabbit.yaml`).

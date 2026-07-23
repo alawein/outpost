@@ -69,7 +69,7 @@ For the full install path, see [docs/onboarding.md](docs/onboarding.md).
 
 The kit ships <!-- GENERATED:core-count-words -->twenty-four<!-- /GENERATED:core-count-words --> prompts, one per step from first repo read to handoff: start, plan, build, check, ship, with scrutiny and record around them.
 
-In Claude Code the common sequences are one command: `/outpost:drive` to plan, build, and test, and `/outpost:ship` to review and open the PR.
+In Claude Code the common sequences are one command: `/outpost:drive` to plan, build, and test, and `/outpost:ship` to review and draft the PR (a human opens it).
 
 See [docs/workflow.md](docs/workflow.md) for the ordered path, the Claude Code shortcuts, and the full prompt list.
 

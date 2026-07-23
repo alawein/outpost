@@ -10,14 +10,9 @@ python install.py --tool claude --project /path/to/your/repo
 
 `--dry-run` previews the plan without writing. `--tool all` installs every tool. They can live in one repo.
 
-Install a subset with `--only plan-change,write-tests`, or everything but a few with `--exclude grill,premortem`. The full pack is the default. The installer records the choice in `.outpost/manifest.json`, so a re-install and `--verify` keep using that choice. If you narrow an existing install, `--verify` flags leftover prompt files and `--prune` removes them. It never touches your own or edited files. To uninstall a tool entirely, use `--remove`.
+Install a subset with `--only plan-change,write-tests`, or everything but a few with `--exclude grill,premortem`. The full pack is the default. The full flag reference (`--verify`, `--prune`, `--remove`, and how the `.outpost/manifest.json` record works) lives in [docs/adapters.md](adapters.md).
 
-| Tool | Writes |
-|---|---|
-| claude | `CLAUDE.md`, prompts as skills in `.claude/skills/`, secret-only deny rules in `.claude/settings.json` (restart Claude Code after) |
-| codex | `AGENTS.md`, prompts in `.agents/prompts/` |
-| cursor | a repo rule and prompts in `.cursor/rules/` |
-| copilot | `.github/copilot-instructions.md` and prompts in `.github/prompts/` |
+Each tool writes to its own paths, so they coexist in one repo; the per-tool list of what gets installed is in [docs/adapters.md](adapters.md).
 
 The installer writes only kit-owned files. It never overwrites your `CLAUDE.md`, `AGENTS.md`, Cursor rule, or Copilot instructions. It keeps yours and points you to `templates/` to copy any changes by hand.
 

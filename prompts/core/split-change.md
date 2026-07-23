@@ -23,9 +23,9 @@ change no longer fits in one sentence.
 
 1. List the concerns in the diff. Name each in a few words. If there is only one, stop and continue to `prepare-pr`.
 2. Decide the order. A behavior-preserving refactor or rename usually lands first, then the behavior change.
-3. Separate the diff parts. Stage and commit one concern at a time by explicit path or selected diff part, so each commit builds and tests on its own.
-4. When concerns should be separate PRs, move the later ones to their own branch off the first.
-5. Verify each split unit. It should build, pass its tests, and be revertible without touching the others.
+3. Separate the diff parts. For each concern, name the exact paths (or diff hunks) that belong to it, so each unit builds and tests on its own. Drafting only: staging and committing are the human's to run, not this prompt's.
+4. When concerns should be separate PRs, say which land together and which move to their own branch off the first.
+5. For each unit, give the check that confirms it stands alone: the test command to run once it is isolated, so the human can see it builds and passes without the others.
 
 ## Output format
 
@@ -35,6 +35,7 @@ change no longer fits in one sentence.
 
 ## Stop conditions
 
-- Stop when each unit is one concern, builds, and passes its tests on its own.
+- Stop when the plan names each unit's concern, its paths, the order, and how to verify it stands alone.
+- Draft only. Do not stage or commit; separating the diff into commits is the human's action, taken on the plan this prompt hands over.
 - If the concerns are genuinely entangled and cannot be split cleanly, say so and name what couples them, rather than forcing a split that breaks a build.
 - Do not split for its own sake; one coherent concern stays one change.

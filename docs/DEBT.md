@@ -6,6 +6,10 @@ Closed with the PR that closed it; never delete one.
 
 ## Open
 
+None.
+
+## Closed
+
 - 2026-07-11, four PRs admin-merged without a second human approval. #111, #113, #114, and this
   recording PR #115 were squash-merged with `--admin`, bypassing the branch-protection review
   requirement, because the author cannot approve their own PR and no maintainer review was
@@ -13,7 +17,10 @@ Closed with the PR that closed it; never delete one.
   and independently reviewed (Codex plus a review agent, which caught and fixed a real defect in
   #113 and #114 before merge). Cost: four changes reached `main` without the maintainer approval
   the rule requires, this entry among them. Close by routing future PRs through a maintainer
-  approval (Omkar or Carlos) rather than an admin bypass.
+  approval (Omkar or Carlos) rather than an admin bypass. Closed 2026-07-23: overtaken by the fork.
+  ADR-0017 moved the kit to a solo repo and ADR-0018 set the solo review model, so the close
+  condition (a second approver from the old team) no longer exists; the owner's direct merge on
+  green CI is now the sanctioned path, not a bypass.
 
 - 2026-07-13, repeat admin-merge without a maintainer approval. #124, #119, #122, #126, #127,
   #125, and this recording PR #128 were squash-merged with `--admin`, again bypassing the
@@ -24,8 +31,9 @@ Closed with the PR that closed it; never delete one.
   whole-branch review before merge. Cost: seven changes reached `main` without the required
   review, and the standing trigger went unenforced a second time. Close the same way: an actual
   maintainer approval lands on the next PR, breaking the pattern instead of re-documenting it.
-
-## Closed
+  Closed 2026-07-23: same resolution as the entry above, overtaken by ADR-0017 and ADR-0018. The
+  old team's second-approver pool is gone with the fork, so this pattern cannot recur under the
+  solo model, where the owner's direct merge on green CI is the sanctioned path.
 
 - 2026-07-11, doc_truth skips single-word prompt names. The `REF` regex resolves only hyphenated
   backtick tokens, so a single-word prompt name (`grill`, `prove`, `panel`, `triage`, `converge`,

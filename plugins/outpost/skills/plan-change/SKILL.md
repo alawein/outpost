@@ -13,6 +13,7 @@ and how you will verify it.
 
 - A feature, refactor, or fix that spans more than one file or is not obvious.
 - A request that is ambiguous, where naming the plan surfaces the missing decision.
+- When the request is too vague to plan at all, run `interrogate` first to surface the decisions, then return here.
 - Skip it for a one-line, reversible edit.
 
 ## Required inputs

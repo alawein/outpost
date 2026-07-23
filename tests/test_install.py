@@ -318,6 +318,42 @@ def test_only_install_records_the_subset(tmp_path):
     assert rec["kit_hash"].startswith("sha256:")
 
 
+def test_prune_of_a_deselected_orphan_ends_the_kit_ownership_claim(tmp_path):
+    # a de-selected orphan that prune deletes must also drop its manifest record, the same way a
+    # retired file does: otherwise a file the user creates at that path later is claimed by the
+    # stale record and overwritten by the next full reinstall
+    install.main(["--tool", "codex", "--project", str(tmp_path)])  # full: grill written + recorded
+    orphan = tmp_path / ".agents" / "prompts" / "grill.md"
+    assert orphan.exists()
+    install.main(["--tool", "codex", "--project", str(tmp_path), "--only", "plan-change"])  # narrow
+    install.main(["--tool", "codex", "--project", str(tmp_path), "--prune"])  # grill now orphaned
+    assert not orphan.exists()  # pruned
+    files = _manifest(tmp_path)["tools"]["codex"]["files"]
+    assert ".agents/prompts/grill.md" not in files  # record dropped, no lingering claim
+
+    orphan.write_text("my own grill notes", encoding="utf-8")
+    install.main(["--tool", "codex", "--project", str(tmp_path)])  # full reinstall
+    assert orphan.read_text(encoding="utf-8") == "my own grill notes"
+
+
+def test_verify_with_corrupt_settings_fails_clean_not_traceback(tmp_path, capsys):
+    install.main(["--tool", "claude", "--project", str(tmp_path)])
+    (tmp_path / ".claude" / "settings.json").write_text("{ not json", encoding="utf-8")
+    rc = install.main(["--tool", "claude", "--project", str(tmp_path), "--verify"])
+    out = capsys.readouterr()
+    assert rc == 1
+    assert "error:" in (out.out + out.err)
+
+
+def test_remove_with_corrupt_settings_still_deletes_prompts(tmp_path):
+    install.main(["--tool", "claude", "--project", str(tmp_path)])
+    skill = tmp_path / ".claude" / "skills" / "grill" / "SKILL.md"
+    assert skill.exists()
+    (tmp_path / ".claude" / "settings.json").write_text("{ not json", encoding="utf-8")
+    install.main(["--tool", "claude", "--project", str(tmp_path), "--remove"])
+    assert not skill.exists()  # prompt cleanup is not blocked by the corrupt settings file
+
+
 def test_installing_a_second_tool_accumulates_in_the_manifest(tmp_path):
     install.main(["--tool", "claude", "--project", str(tmp_path), "--only", "plan-change"])
     install.main(["--tool", "codex", "--project", str(tmp_path), "--only", "grill"])

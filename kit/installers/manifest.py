@@ -8,6 +8,7 @@ canonical JSON. Never drops another tool's entry; idempotent for the same instal
 from __future__ import annotations
 
 import json
+import posixpath
 
 MANIFEST_PATH = ".outpost/manifest.json"
 
@@ -67,6 +68,19 @@ def parse_manifest(text: str) -> dict:
             if not isinstance(rec, dict) or not isinstance(rec.get("existed"), bool):
                 raise ValueError(
                     f"manifest file record for {tool!r} at {path!r} needs a boolean 'existed'")
+            # A file key must be a plain project-relative POSIX path: prune/remove join it to the
+            # project root and unlink it, so an absolute key or one that escapes upward would let a
+            # crafted manifest delete files outside the project. A legit kit key is "/"-joined with
+            # no backslash and no colon, so reject either character: pathlib on Windows re-anchors
+            # on a backslash OR on a drive letter ANYWHERE in the path ("a/C:/x" -> drive "C:",
+            # root dropped), and a colon also opens an NTFS alternate-data-stream ("note:hidden").
+            # Then the posix checks catch "/"-absolute, a leading "..", and any embedded "/../"
+            # (normpath collapses it). A null byte can raise mid-join, so reject it too.
+            if ("\\" in path or ":" in path or "\x00" in path
+                    or path.startswith("/") or path.startswith("..")
+                    or path != posixpath.normpath(path)):
+                raise ValueError(
+                    f"manifest 'files' key for {tool!r} must be a project-relative path: {path!r}")
     return data
 
 

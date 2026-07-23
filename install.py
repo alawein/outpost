@@ -99,7 +99,7 @@ def _sha256(target: pathlib.Path) -> str:
 
 def _hash_str(content: str) -> str:
     # matches _sha256's format; content is always written via .encode("utf-8") with no newline
-    # translation (install.py:568), so this equals _sha256(target) right after the write.
+    # translation (see the apply write), so this equals _sha256(target) right after the write.
     return "sha256:" + hashlib.sha256(content.encode("utf-8")).hexdigest()
 
 
@@ -255,7 +255,7 @@ def _check_manifest_names(manifest: dict, catalog_names) -> None:
         raise ValueError("manifest names prompt(s) not in this kit: " + ", ".join(sorted(unknown)))
 
 
-def _orphans(project_root: pathlib.Path, tool: str, select_set, terse: bool, cat,
+def _orphans(project_root: pathlib.Path, tool: str, select_set, terse: bool,
              user_owned=frozenset()) -> list[str]:
     """Kit-owned prompt files on disk that the manifest no longer selects. Narrowing an install
     (`--only`/`--exclude` after a broader one) leaves the de-selected prompt files behind, since the
@@ -273,7 +273,8 @@ def _orphans(project_root: pathlib.Path, tool: str, select_set, terse: bool, cat
     return extras
 
 
-def _retired_paths(project_root: pathlib.Path, tool: str, manifest: dict, terse: bool) -> list[str]:
+def _retired_paths(project_root: pathlib.Path, tool: str, manifest: dict, terse: bool,
+                   tolerant: bool = False) -> list[str]:
     """Manifest-recorded, kit-created files that this tool's current full plan no longer derives:
     the leftovers of a prompt that stopped shipping to this host (decision 0014 retired converge
     from the manual hosts) or left the pack. The plan alone cannot see them, so verify, prune,
@@ -281,7 +282,8 @@ def _retired_paths(project_root: pathlib.Path, tool: str, manifest: dict, terse:
     record (existed false) qualifies; a pre-existing record is the user's file, never flagged or
     deleted. Returns the paths still on disk, sorted."""
     files = (manifest.get("tools", {}).get(tool) or {}).get("files") or {}
-    current = {a.path for a in plan_for(tool, KIT_ROOT, project_root, terse=terse, select=None)}
+    current = {a.path for a in plan_for(tool, KIT_ROOT, project_root, terse=terse, select=None,
+                                        tolerant=tolerant)}
     return [path for path, rec in sorted(files.items())
             if not rec.get("existed") and path not in current
             and (project_root / path).is_file()]
@@ -308,7 +310,7 @@ def _remove_empty_parents(target: pathlib.Path, root: pathlib.Path) -> None:
         d = d.parent
 
 
-def prune_orphans(project_root: pathlib.Path, tools, manifest: dict, args_terse: bool, cat):
+def prune_orphans(project_root: pathlib.Path, tools, manifest: dict, args_terse: bool):
     """Delete orphan kit-owned prompt files (those the manifest no longer selects), so disk matches
     the recorded selection. Safe: only write-mode prompt files are touched, never a user-owned or
     merged file; an orphan whose content was hand-edited (not the kit version) is left in place and
@@ -367,6 +369,11 @@ def prune_orphans(project_root: pathlib.Path, tools, manifest: dict, args_terse:
                 failed.append(a.path)  # report and keep going, do not abort the whole prune
             else:
                 removed.append(a.path)
+                # a completed delete ends the kit's ownership claim, the same as the retired loop
+                # above: the record must not linger and seize a file the user later creates here
+                files_map = (manifest.get("tools", {}).get(t) or {}).get("files")
+                if files_map:
+                    files_map.pop(a.path, None)
     return removed, skipped, failed, retired
 
 
@@ -379,8 +386,7 @@ def _is_kit_content(target: pathlib.Path, content: str) -> bool:
         return False
 
 
-def remove_for_tools(project_root: pathlib.Path, tools, manifest: dict, args_terse: bool,
-                     cat):
+def remove_for_tools(project_root: pathlib.Path, tools, manifest: dict, args_terse: bool):
     """Back a tool's kit-owned files out of a target: every prompt file (write) and the guide it
     created (create), but only when the file is still the kit version. An edited file is a possible
     customization, so it is left in place and reported. The settings merge is handled separately
@@ -396,7 +402,8 @@ def remove_for_tools(project_root: pathlib.Path, tools, manifest: dict, args_ter
         # but only when it still matches the hash recorded at install time; a hand edit since is
         # the user's, same as the byte-match guard just below for still-shipping paths.
         retired_files = (manifest.get("tools", {}).get(t) or {}).get("files") or {}
-        for path in _retired_paths(project_root, t, manifest, _terse_for(manifest, t, args_terse)):
+        for path in _retired_paths(project_root, t, manifest, _terse_for(manifest, t, args_terse),
+                                   tolerant=True):
             if not _retired_unedited(project_root, path, retired_files.get(path, {})):
                 skipped.append(path)  # edited retired file: a possible customization, never deleted
                 continue
@@ -410,7 +417,7 @@ def remove_for_tools(project_root: pathlib.Path, tools, manifest: dict, args_ter
                 retired.append(path)
         files = (manifest.get("tools", {}).get(t) or {}).get("files")
         for a in plan_for(t, KIT_ROOT, project_root, terse=_terse_for(manifest, t, args_terse),
-                          select=None):
+                          select=None, tolerant=True):
             if a.mode not in ("write", "create"):
                 continue  # the settings merge is un-installed by unmerge_kit_settings
             target = project_root / a.path
@@ -437,8 +444,7 @@ def remove_for_tools(project_root: pathlib.Path, tools, manifest: dict, args_ter
     return removed, skipped, failed, retired
 
 
-def unmerge_kit_settings(project_root: pathlib.Path, tools, manifest: dict, args_terse: bool,
-                         cat):
+def unmerge_kit_settings(project_root: pathlib.Path, tools, manifest: dict, args_terse: bool):
     """Un-install the kit's settings merge for each tool: strip the kit deny rules, keeping every
     other key. Delete the file only when nothing of the user's remains and the manifest records
     the kit created it; a file recorded as pre-existing is the user's and is left in place (its
@@ -449,7 +455,7 @@ def unmerge_kit_settings(project_root: pathlib.Path, tools, manifest: dict, args
     for t in tools:
         files = (manifest.get("tools", {}).get(t) or {}).get("files")
         for a in plan_for(t, KIT_ROOT, project_root, terse=_terse_for(manifest, t, args_terse),
-                          select=None):
+                          select=None, tolerant=True):
             if a.mode != "merge":
                 continue
             target = project_root / a.path
@@ -704,14 +710,19 @@ def main(argv: list[str] | None = None) -> int:
         orphans: list[str] = []
         leftovers: list[str] = []
         user_owned = _user_owned_paths(manifest, _tools_for(args.tool))
-        for t in _tools_for(args.tool):
-            sel = _selection_for(manifest, t)
-            terse = _terse_for(manifest, t, args.terse)
-            actions.extend(plan_for(t, KIT_ROOT, project_root, terse=terse, select=sel))
-            orphans.extend(_orphans(project_root, t, sel, terse, cat, user_owned))
-            # a plan-derived check cannot see a kit-created file whose prompt no longer ships
-            # to this host; the manifest's file records surface it as a leftover
-            leftovers.extend(_retired_paths(project_root, t, manifest, terse))
+        try:
+            for t in _tools_for(args.tool):
+                sel = _selection_for(manifest, t)
+                terse = _terse_for(manifest, t, args.terse)
+                actions.extend(plan_for(t, KIT_ROOT, project_root, terse=terse, select=sel))
+                orphans.extend(_orphans(project_root, t, sel, terse, user_owned))
+                # a plan-derived check cannot see a kit-created file whose prompt no longer ships
+                # to this host; the manifest's file records surface it as a leftover
+                leftovers.extend(_retired_paths(project_root, t, manifest, terse))
+        except (ValueError, OSError) as e:
+            # a corrupt config (the Claude settings file) can't be planned against; say so cleanly
+            print(f"error: {e}", file=sys.stderr)
+            return 1
         ok, lines = verify(actions, project_root, user_owned)
         for line in lines:
             print(line)
@@ -770,10 +781,16 @@ def main(argv: list[str] | None = None) -> int:
         except (ValueError, OSError) as e:
             print(f"error: {e}", file=sys.stderr)
             return 1
-        removed, skipped, failed, retired = prune_orphans(
-            project_root, _tools_for(args.tool), manifest, args.terse, cat=cat)
-        if retired:
-            # persist the ended ownership claims (prune_orphans dropped the file records)
+        try:
+            removed, skipped, failed, retired = prune_orphans(
+                project_root, _tools_for(args.tool), manifest, args.terse)
+        except (ValueError, OSError) as e:
+            # a corrupt config (the Claude settings file) can't be planned against; say so cleanly
+            print(f"error: {e}", file=sys.stderr)
+            return 1
+        if retired or removed:
+            # persist the ended ownership claims: prune_orphans dropped the file records for both
+            # retired files and de-selected orphans, so the manifest must be rewritten either way
             mpath = _existing_manifest_path(project_root) or (project_root / MANIFEST_PATH)
             try:
                 mpath.write_bytes(manifest_dumps(manifest).encode("utf-8"))
@@ -805,8 +822,8 @@ def main(argv: list[str] | None = None) -> int:
             print(f"warning: manifest unreadable, left as-is: {e}", file=sys.stderr)
             manifest = {}
         removed, skipped, failed, retired = remove_for_tools(project_root, tools, manifest,
-                                                             args.terse, cat=cat)
-        settings = unmerge_kit_settings(project_root, tools, manifest, args.terse, cat=cat)
+                                                             args.terse)
+        settings = unmerge_kit_settings(project_root, tools, manifest, args.terse)
         # forget the removed tools in the manifest; delete it if no tool is left
         if manifest.get("tools"):
             for t in tools:

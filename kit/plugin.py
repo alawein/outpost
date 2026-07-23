@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import json
 import pathlib
-from typing import Dict
 
 from .adapters.base import load_prompts
 from .catalog import load_catalog
@@ -23,7 +22,7 @@ _AUTHOR = {"name": "alawein"}
 _HOMEPAGE = "https://github.com/alawein/outpost"
 
 
-def build_plugin(kit_root: pathlib.Path) -> Dict[str, str]:
+def build_plugin(kit_root: pathlib.Path) -> dict[str, str]:
     """Return a map of repo-relative POSIX path -> file content for every generated plugin file.
 
     Keys produced:
@@ -70,7 +69,7 @@ def build_plugin(kit_root: pathlib.Path) -> Dict[str, str]:
         "keywords": ["claude-code", "coding-agent", "outpost"],
     }
 
-    files: Dict[str, str] = {}
+    files: dict[str, str] = {}
 
     files[".claude-plugin/marketplace.json"] = json.dumps(marketplace, indent=2) + "\n"
     files["plugins/outpost/.claude-plugin/plugin.json"] = (

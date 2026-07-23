@@ -72,3 +72,55 @@ def test_parse_manifest_rejects_tools_not_an_object():
 def test_parse_manifest_rejects_prompts_not_a_string_list():
     with pytest.raises(ValueError):
         parse_manifest('{"tools": {"claude": {"selection": "only", "prompts": "plan-change"}}}')
+
+
+def test_parse_manifest_rejects_parent_traversal_file_key():
+    # a crafted manifest in a cloned repo must not steer --prune/--remove outside the project
+    with pytest.raises(ValueError):
+        parse_manifest('{"tools": {"codex": {"prompts": [], "selection": "full", '
+                       '"files": {"../victim/.git/HEAD": {"existed": false}}}}}')
+
+
+def test_parse_manifest_rejects_absolute_file_key():
+    with pytest.raises(ValueError):
+        parse_manifest('{"tools": {"codex": {"prompts": [], "selection": "full", '
+                       '"files": {"/etc/passwd": {"existed": false}}}}}')
+
+
+def test_parse_manifest_rejects_backslash_traversal_key():
+    # Windows: pathlib honors "\" as a separator, so a posix-only guard misses this escape
+    with pytest.raises(ValueError):
+        parse_manifest('{"tools": {"codex": {"prompts": [], "selection": "full", '
+                       '"files": {"sub\\\\..\\\\..\\\\victim": {"existed": false}}}}}')
+
+
+def test_parse_manifest_rejects_unc_key():
+    with pytest.raises(ValueError):
+        parse_manifest('{"tools": {"codex": {"prompts": [], "selection": "full", '
+                       '"files": {"\\\\\\\\server\\\\share\\\\x": {"existed": false}}}}}')
+
+
+def test_parse_manifest_rejects_drive_relative_backslash_key():
+    with pytest.raises(ValueError):
+        parse_manifest('{"tools": {"codex": {"prompts": [], "selection": "full", '
+                       '"files": {"\\\\evil.txt": {"existed": false}}}}}')
+
+
+def test_parse_manifest_rejects_embedded_drive_letter_key():
+    # pathlib re-anchors on an embedded "C:" even mid-path, dropping the root; ntpath.splitdrive
+    # only sees a drive at the start, so a colon anywhere must be rejected
+    with pytest.raises(ValueError):
+        parse_manifest('{"tools": {"codex": {"prompts": [], "selection": "full", '
+                       '"files": {"a/C:/Windows/x": {"existed": false}}}}}')
+
+
+def test_parse_manifest_rejects_alternate_data_stream_key():
+    with pytest.raises(ValueError):
+        parse_manifest('{"tools": {"codex": {"prompts": [], "selection": "full", '
+                       '"files": {"note:hidden": {"existed": false}}}}}')
+
+
+def test_parse_manifest_accepts_a_normal_relative_file_key():
+    data = parse_manifest('{"tools": {"codex": {"prompts": [], "selection": "full", '
+                          '"files": {".agents/prompts/grill.md": {"existed": false}}}}}')
+    assert ".agents/prompts/grill.md" in data["tools"]["codex"]["files"]
