@@ -7,8 +7,8 @@ import shutil
 import pytest
 
 from kit.adapters.base import Action
-from kit.checks import (adapters, catalog, command_lists, doc_truth, docs, prompts,
-                        registries, roadmap, structure, template_refs, templates, traces)
+from kit.checks import (adapters, catalog, command_lists, doc_truth, docs, plugin_orphans,
+                        prompts, registries, roadmap, structure, template_refs, templates, traces)
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 # .claude holds machine-local tool config (untracked, gitignored); exclude it so an untracked
@@ -23,6 +23,14 @@ def repo_copy(tmp_path):
     dst = tmp_path / "kit"
     shutil.copytree(ROOT, dst, ignore=IGNORE)
     return dst
+
+
+def test_plugin_orphans_catches_a_stale_skill(repo_copy):
+    ghost = repo_copy / "plugins" / "outpost" / "skills" / "ghost"
+    ghost.mkdir(parents=True)
+    (ghost / "SKILL.md").write_text("---\nname: ghost\n---\nx\n", encoding="utf-8")
+    ok, detail = plugin_orphans.run(repo_copy)
+    assert not ok and "ghost" in detail
 
 
 def test_catalog_catches_unlisted_prompt(repo_copy):
@@ -201,10 +209,10 @@ def test_docs_sync_catches_a_stripped_required_marker(repo_copy):
 def test_docs_sync_catches_a_hand_edited_roadmap_checks_line(repo_copy):
     from kit.checks import docs_sync
     p = repo_copy / "docs" / "ROADMAP.md"
-    text = p.read_text(encoding="utf-8").replace(
-        "<!-- GENERATED:checks-line -->seventeen checks",
-        "<!-- GENERATED:checks-line -->eighteen checks")
-    assert "eighteen checks" in text  # guard: the corruption must exist
+    # corrupt whatever number-word the generator wrote, so the test does not pin the check count
+    text, n = re.subn(r"(<!-- GENERATED:checks-line -->)\w+ checks",
+                      r"\1zero checks", p.read_text(encoding="utf-8"))
+    assert n == 1 and "zero checks" in text  # guard: the corruption must exist
     p.write_text(text, encoding="utf-8")
     ok, detail = docs_sync.run(repo_copy)
     assert not ok

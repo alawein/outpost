@@ -62,6 +62,7 @@
     { "name": "docs_sync", "module": "kit.checks.docs_sync", "summary": "The catalog-derived spans in README.md, docs/workflow.md, and docs/plugin.md match the generator." },
     { "name": "doc_truth", "module": "kit.checks.doc_truth", "summary": "The docs name the same tools and prompts the catalog ships, both ways." },
     { "name": "plugin_sync", "module": "kit.checks.plugin_sync", "summary": "The committed plugin tree matches the generator output and names only real catalog prompts." },
+    { "name": "plugin_orphans", "module": "kit.checks.plugin_orphans", "summary": "No stale skill ships in the plugin tree; every skill directory resolves to a catalog prompt." },
     { "name": "registries", "module": "kit.checks.registries", "summary": "The adapter and check registries match the code on disk." },
     { "name": "roadmap", "module": "kit.checks.roadmap", "summary": "The ROADMAP current-release line matches the kit version." },
     { "name": "command_lists", "module": "kit.checks.command_lists", "summary": "Every plugin command is named in docs/workflow.md." },
