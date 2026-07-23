@@ -26,6 +26,16 @@ def repo_copy(tmp_path):
     return dst
 
 
+def test_doc_truth_catches_a_dangling_prompt_ref_in_onboarding(repo_copy):
+    # a prompt-shaped backtick token in an instruction doc that resolves to no catalog prompt
+    # (a rename or typo left it dangling) must fail, not just in workflow.md
+    p = repo_copy / "docs" / "onboarding.md"
+    p.write_text(p.read_text(encoding="utf-8") + "\n\nRun `plan-changge` first.\n",
+                 encoding="utf-8")
+    ok, detail = doc_truth.run(repo_copy)
+    assert not ok and "plan-changge" in detail
+
+
 def test_banned_sync_catches_a_word_only_in_the_doc(repo_copy):
     p = repo_copy / "docs" / "writing-standard.md"
     text = p.read_text(encoding="utf-8").replace(
