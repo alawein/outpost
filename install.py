@@ -367,6 +367,11 @@ def prune_orphans(project_root: pathlib.Path, tools, manifest: dict, args_terse:
                 failed.append(a.path)  # report and keep going, do not abort the whole prune
             else:
                 removed.append(a.path)
+                # a completed delete ends the kit's ownership claim, the same as the retired loop
+                # above: the record must not linger and seize a file the user later creates here
+                files_map = (manifest.get("tools", {}).get(t) or {}).get("files")
+                if files_map:
+                    files_map.pop(a.path, None)
     return removed, skipped, failed, retired
 
 
@@ -772,8 +777,9 @@ def main(argv: list[str] | None = None) -> int:
             return 1
         removed, skipped, failed, retired = prune_orphans(
             project_root, _tools_for(args.tool), manifest, args.terse, cat=cat)
-        if retired:
-            # persist the ended ownership claims (prune_orphans dropped the file records)
+        if retired or removed:
+            # persist the ended ownership claims: prune_orphans dropped the file records for both
+            # retired files and de-selected orphans, so the manifest must be rewritten either way
             mpath = _existing_manifest_path(project_root) or (project_root / MANIFEST_PATH)
             try:
                 mpath.write_bytes(manifest_dumps(manifest).encode("utf-8"))
