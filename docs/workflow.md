@@ -1,3 +1,11 @@
+---
+type: canonical
+source: none
+sync: none
+sla: none
+last_updated: 2026-07-26
+---
+
 # Workflow: from idea to PR
 
 Outpost is one path from first repo read to handoff, with the same prompts across every tool. This page is that path: the ordered steps, the Claude Code shortcuts that bundle them, and the full prompt list. In Claude the prompts load by description; in the other tools you point at the matching file.

@@ -12,6 +12,6 @@ concurrency:
 
 jobs:
   doctrine:
-    uses: alawein/alawein/.github/workflows/doctrine-reusable.yml@6cddc4b496c17fd0708054e23d34c21d9833f93a
+    uses: alawein/alawein/.github/workflows/doctrine-reusable.yml@07c7ec7dfed454e30f3cf2c217171e1270736850
     with:
-      strict: "false"
+      strict: "true"

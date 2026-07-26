@@ -1,3 +1,11 @@
+---
+type: canonical
+source: none
+sync: none
+sla: none
+last_updated: 2026-07-26
+---
+
 # Adapters
 
 One prompt pack, four tools. The core prompts live in `prompts/core/`. Each adapter turns them into the files one tool expects.

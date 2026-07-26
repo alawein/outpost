@@ -1,3 +1,11 @@
+---
+type: canonical
+source: none
+sync: none
+sla: none
+last_updated: 2026-07-26
+---
+
 # Security policy
 
 Outpost is a personal, standard-library-only kit that installs prompt files and runs local checks.

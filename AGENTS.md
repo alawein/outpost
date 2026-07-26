@@ -1,3 +1,11 @@
+---
+type: canonical
+source: none
+sync: none
+sla: none
+last_updated: 2026-07-26
+---
+
 # Agent guide for Outpost
 
 Outpost installs coding-agent prompts for Claude, Codex, Cursor, and Copilot. The

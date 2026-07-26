@@ -1,3 +1,11 @@
+---
+type: canonical
+source: none
+sync: none
+sla: none
+last_updated: 2026-07-26
+---
+
 # Roadmap
 
 What exists now, what comes next. `CHANGELOG.md` records what shipped; this file records intent.

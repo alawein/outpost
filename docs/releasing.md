@@ -1,3 +1,11 @@
+---
+type: canonical
+source: none
+sync: none
+sla: none
+last_updated: 2026-07-26
+---
+
 # Releasing
 
 A clean release has one version, one changelog entry, one tag, and passing checks.

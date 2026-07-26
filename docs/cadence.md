@@ -1,3 +1,11 @@
+---
+type: canonical
+source: none
+sync: none
+sla: none
+last_updated: 2026-07-26
+---
+
 # Contribution cadence
 
 How often to commit, open PRs, and file tracker items, and what a good contributor looks like.

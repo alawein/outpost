@@ -1,3 +1,11 @@
+---
+type: canonical
+source: none
+sync: none
+sla: none
+last_updated: 2026-07-26
+---
+
 # Dogfooding ledger
 
 Findings from using the kit's own prompts on real work in this repo. Append-only: one row per

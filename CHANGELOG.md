@@ -1,3 +1,11 @@
+---
+type: canonical
+source: none
+sync: none
+sla: none
+last_updated: 2026-07-26
+---
+
 # Changelog
 
 Format follows Keep a Changelog (https://keepachangelog.com). The kit uses SemVer.

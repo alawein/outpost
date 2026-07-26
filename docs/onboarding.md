@@ -1,3 +1,11 @@
+---
+type: canonical
+source: none
+sync: none
+sla: none
+last_updated: 2026-07-26
+---
+
 # Onboarding
 
 Clone to a working setup in minutes. Python 3.9 or newer, standard library only.

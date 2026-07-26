@@ -1,3 +1,11 @@
+---
+type: canonical
+source: none
+sync: none
+sla: none
+last_updated: 2026-07-26
+---
+
 # Claude Code plugin
 
 A second install path for Claude Code users. It packages the catalog as plugin skills: <!-- GENERATED:core-count-words -->twenty-four<!-- /GENERATED:core-count-words --> core prompts, one skill each. `install.py` remains the cross-tool path.
