@@ -1,3 +1,11 @@
+---
+type: canonical
+source: none
+sync: none
+sla: none
+last_updated: 2026-07-26
+---
+
 # Debt
 
 Deliberate shortcuts and known limitations, tracked here so they are not silently accrued.

@@ -1,3 +1,11 @@
+---
+type: canonical
+source: none
+sync: none
+sla: none
+last_updated: 2026-07-26
+---
+
 # Outpost
 
 Outpost is a small personal kit that installs prompts for coding agents. This file is the short guide for work in this repo.

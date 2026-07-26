@@ -1,3 +1,11 @@
+---
+type: canonical
+source: none
+sync: none
+sla: none
+last_updated: 2026-07-26
+---
+
 # Contributing
 
 How to add to the kit without breaking it. The catalog lists what ships, and `python validate.py` enforces that list.

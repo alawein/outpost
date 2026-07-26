@@ -1,3 +1,11 @@
+---
+type: canonical
+source: none
+sync: none
+sla: none
+last_updated: 2026-07-26
+---
+
 # Writing standard
 
 How the kit writes prose: prompts, docs, comments, commits, PRs. Write so a reader sees the point first and never has to trust assertion alone.

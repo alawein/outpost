@@ -1,3 +1,11 @@
+---
+type: canonical
+source: none
+sync: none
+sla: none
+last_updated: 2026-07-26
+---
+
 # Token budget
 
 How to spend fewer tokens per unit of work, keep context lean, and cut hallucination. Agent API cost adds up. Most of it is avoidable with habits and settings, not a new tool. Findings first: the five moves that save the most, then the full table, then what this kit already does for you.
