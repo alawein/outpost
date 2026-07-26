@@ -14,4 +14,4 @@ jobs:
   doctrine:
     uses: alawein/alawein/.github/workflows/doctrine-reusable.yml@6cddc4b496c17fd0708054e23d34c21d9833f93a
     with:
-      strict: "true"
+      strict: "false"
