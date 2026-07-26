@@ -14,6 +14,15 @@
 
 </div>
 
+Status:      active
+Category:    tools
+Owner:       alawein
+Visibility:  public
+Purpose:     Personal kit that installs coding-agent prompts across Claude, Codex, Cursor, and Copilot.
+Next action: continue
+
+## Purpose
+
 **Outpost is a personal prompt pack for coding agents: read a repo, plan, build, test, review, ship, hand off.**
 
 The core prompts install under Claude Code, Codex, Cursor, and GitHub Copilot. Claude Code gets the fullest path: skills that load on their own and a safe settings merge. The other tools install the same core prompts as files, except `converge`, which ships to Claude only. One install gives each tool the same path, so every tool works the same way and spends fewer tokens.
@@ -26,13 +35,28 @@ Maintained by the handle in [.github/CODEOWNERS](.github/CODEOWNERS).
 
 </div>
 
-## Quick start
+## Install
 
 ```bash
 # clone the kit, then install into your repo (or --tool all)
 git clone https://github.com/alawein/outpost
 cd outpost
 python install.py --tool claude --project /path/to/your/repo
+```
+
+Use `--tool codex`, `--tool cursor`, `--tool copilot`, or `--tool all`. `--dry-run` previews without writing.
+
+Install a subset with `--only plan-change,write-tests` or `--exclude grill`. The full pack is the default. The installer records the choice. `--verify` checks that install, `--prune` removes prompt files left by a narrower re-install, and `--remove` uninstalls a tool.
+
+For the full install path, see [docs/onboarding.md](docs/onboarding.md).
+
+## Commands
+
+```bash
+python install.py --tool claude --project /path/to/your/repo
+python install.py --tool claude --project /path/to/your/repo --verify
+python validate.py   # proves the kit source tree itself, not an install
+pytest
 ```
 
 Use the prompt that matches the next step. In Claude, prompts load by description. In the other tools, point at the matching file.
@@ -49,37 +73,17 @@ triage             # rank findings: fix now, defer, or reject
 prepare-pr         # commit, PR body, pre-merge checks
 ```
 
-Confirm the install from the kit checkout:
+In Claude Code the common sequences are one command: `/outpost:drive` to plan, build, and test, and `/outpost:ship` to review and draft the PR (a human opens it). Claude also adds `/outpost:stress`, `/outpost:doctor`, and the review suite. See [docs/workflow.md](docs/workflow.md).
 
-```bash
-python install.py --tool claude --project /path/to/your/repo --verify
-```
+## Architecture
 
-`python validate.py` (run from the kit checkout) proves the kit source tree itself, not an install.
+Full layout map: [docs/architecture/topology.md](docs/architecture/topology.md).
 
-## Install options
+Top-level surfaces: `install.py` and `validate.py` at the root; `kit/` (catalog, adapters, installers, checks); `prompts/` (core and per-tool overlays); `plugins/outpost/` (Claude Code plugin); `templates/`; `docs/`; `tests/`.
 
-Use `--tool codex`, `--tool cursor`, `--tool copilot`, or `--tool all`. `--dry-run` previews without writing.
-
-Install a subset with `--only plan-change,write-tests` or `--exclude grill`. The full pack is the default. The installer records the choice. `--verify` checks that install, `--prune` removes prompt files left by a narrower re-install, and `--remove` uninstalls a tool.
-
-For the full install path, see [docs/onboarding.md](docs/onboarding.md).
-
-## The prompt pack
-
-The kit ships <!-- GENERATED:core-count-words -->twenty-four<!-- /GENERATED:core-count-words --> prompts, one per step from first repo read to handoff: start, plan, build, check, ship, with scrutiny and record around them.
-
-In Claude Code the common sequences are one command: `/outpost:drive` to plan, build, and test, and `/outpost:ship` to review and draft the PR (a human opens it).
-
-See [docs/workflow.md](docs/workflow.md) for the ordered path, the Claude Code shortcuts, and the full prompt list.
-
-## Claude Code plugin commands
-
-Claude Code adds typed shortcuts: `/outpost:drive`, `/outpost:ship`, `/outpost:stress`, `/outpost:doctor`, and the review suite. See [docs/workflow.md](docs/workflow.md) for what each one runs.
+The kit ships <!-- GENERATED:core-count-words -->twenty-four<!-- /GENERATED:core-count-words --> prompts, one per step from first repo read to handoff: start, plan, build, check, ship, with scrutiny and record around them. See [docs/workflow.md](docs/workflow.md) for the ordered path and the full prompt list.
 
 ## Best practices
-
-Use the kit and the model with fewer tokens and fewer dead ends.
 
 Spend fewer tokens:
 - Install only what you need: `--only` for a focused pack, `--exclude` to drop what you will not use.
@@ -109,15 +113,31 @@ Work in parallel:
 
 Each tool writes to its own paths, so they can live in one project. The installer never overwrites a file you own.
 
-## Checks and docs
+## Docs map
 
-Run `python validate.py` before you claim a change to the kit is done. It proves the kit source tree: files, counts, prompts, docs, coexistence, secrets, and house voice. It does not check a consumer repo; verify an install there with `python install.py --tool <tool> --project <target> --verify` from the kit checkout. Run `pytest` for the test suite. CI runs both on Linux and Windows.
+- [docs/onboarding.md](docs/onboarding.md)
+- [docs/workflow.md](docs/workflow.md)
+- [docs/architecture/topology.md](docs/architecture/topology.md)
+- [docs/contributing.md](docs/contributing.md)
+- [docs/releasing.md](docs/releasing.md)
+- [docs/cadence.md](docs/cadence.md)
+- [docs/ROADMAP.md](docs/ROADMAP.md)
+- [docs/adapters.md](docs/adapters.md)
+- [docs/plugin.md](docs/plugin.md)
+- [AGENTS.md](AGENTS.md)
+- [CLAUDE.md](CLAUDE.md)
 
-- New here: [docs/onboarding.md](docs/onboarding.md)
-- A change end to end: [docs/workflow.md](docs/workflow.md)
-- Choosing a prompt: [docs/workflow.md](docs/workflow.md)
-- Add a prompt, tool, or check: [docs/contributing.md](docs/contributing.md)
-- How often to commit, PR, and file tracker items: [docs/cadence.md](docs/cadence.md)
-- Where it is headed: [docs/ROADMAP.md](docs/ROADMAP.md)
+Run `python validate.py` before you claim a change to the kit is done. It proves the kit source tree: files, counts, prompts, docs, coexistence, secrets, and house voice. It does not check a consumer repo; verify an install there with `python install.py --tool <tool> --project <target> --verify` from the kit checkout. CI runs `validate.py` and `pytest` on Linux and Windows.
+
+## Consumers
+
+- Personal and team coding-agent workflows that need one prompt pack across Claude, Codex, Cursor, and Copilot
+- Alawein fleet operators installing Outpost into product and tooling repos
+
+## Release and versioning
+
+- Version source: `pyproject.toml` (must agree with `kit/catalog/catalog.json` and `kit/__init__.py`)
+- Publish mode: public GitHub repo; consumers clone and run `install.py`
+- Release process: [docs/releasing.md](docs/releasing.md)
 
 MIT licensed. See [LICENSE](LICENSE).
