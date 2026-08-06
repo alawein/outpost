@@ -14,6 +14,8 @@ Format follows Keep a Changelog (https://keepachangelog.com). The kit uses SemVe
 
 ### Added
 
+- `repo-hygiene-sweep`, an ordered multi-repo inventory, evidence triage, and gated cleanup
+  prompt, with ADR-0020 and its first dogfood run.
 - ADR-0019, recording the installer path-safety invariant (manifest keys must be project-relative)
   and the v0.2 refinement decisions, including the rejected byte-match ownership fix kept as a
   negative.

@@ -29,11 +29,12 @@ REQUIRED_MARKERS = {
     "README.md": {"core-count-words"},
     "docs/workflow.md": {"skills-table", "core-count-digits"},
     "docs/plugin.md": {"core-count-words"},
-    "docs/ROADMAP.md": {"core-count-words", "checks-line"},
+    "docs/ROADMAP.md": {"core-count-words", "stage-counts", "checks-line"},
 }
 
 _WORDS = {
-    1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six", 7: "seven", 8: "eight",
+    0: "zero", 1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six",
+    7: "seven", 8: "eight",
     9: "nine", 10: "ten", 11: "eleven", 12: "twelve", 13: "thirteen", 14: "fourteen",
     15: "fifteen", 16: "sixteen", 17: "seventeen", 18: "eighteen", 19: "nineteen",
     20: "twenty", 21: "twenty-one", 22: "twenty-two", 23: "twenty-three", 24: "twenty-four",
@@ -78,6 +79,16 @@ def _render_core_count_digits(cat) -> str:
     return str(len(cat.prompts))
 
 
+def _render_stage_counts(cat) -> str:
+    parts = []
+    for stage in cat.stages:
+        count = sum(p["stage"] == stage["name"] for p in cat.prompts)
+        parts.append(f"{_word(count)} {stage['name'].lower()}")
+    if len(parts) < 2:
+        return "".join(parts)
+    return ", ".join(parts[:-1]) + f", and {parts[-1]}"
+
+
 def _render_checks_line(cat) -> str:
     names = ", ".join(c["name"] for c in cat.checks)
     return f"{_word(len(cat.checks))} checks ({names})"
@@ -120,6 +131,7 @@ def build_docs(root: pathlib.Path) -> dict[str, str]:
         "skills-table": lambda: _render_skills_table(cat),
         "core-count-words": lambda: _render_core_count_words(cat),
         "core-count-digits": lambda: _render_core_count_digits(cat),
+        "stage-counts": lambda: _render_stage_counts(cat),
         "checks-line": lambda: _render_checks_line(cat),
     }
     out: dict[str, str] = {}
