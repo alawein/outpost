@@ -1,6 +1,6 @@
 # Claude Code plugin
 
-A second install path for Claude Code users. It packages the catalog as plugin skills: <!-- GENERATED:core-count-words -->twenty-four<!-- /GENERATED:core-count-words --> core prompts, one skill each. `install.py` remains the cross-tool path.
+A second install path for Claude Code users. It packages the catalog as plugin skills: <!-- GENERATED:core-count-words -->twenty-five<!-- /GENERATED:core-count-words --> core prompts, one skill each. `install.py` remains the cross-tool path.
 
 ## Install
 
@@ -22,7 +22,7 @@ Skills and commands surface namespaced under the plugin name, as `/outpost:<name
 
 ## What it adds
 
-- <!-- GENERATED:core-count-words -->twenty-four<!-- /GENERATED:core-count-words --> skills, one per core prompt. They load by description, the same way the installer loads them.
+- <!-- GENERATED:core-count-words -->twenty-five<!-- /GENERATED:core-count-words --> skills, one per core prompt. They load by description, the same way the installer loads them.
 - Nine commands that chain those prompts into typed shortcuts. See [workflow.md](workflow.md) for what each one runs.
 
 ## Hooks

@@ -10,7 +10,7 @@ Current release: v0.2.1. The table is the live state.
 
 | Area | State | What is in it |
 |---|---|---|
-| Prompt pack | built | The core pack is <!-- GENERATED:core-count-words -->twenty-four<!-- /GENERATED:core-count-words --> prompts: one maps the repo, two plan, five build and test, five review and ship, one loops checks until clean, seven add scrutiny, two record decisions and debt, and one writes docs, widened by the review suite's `repo-review`, `simplify`, and `triage` (ADR-0011) |
+| Prompt pack | built | The core pack is <!-- GENERATED:core-count-words -->twenty-five<!-- /GENERATED:core-count-words --> prompts: one maps the repo, two plan, five build and test, five review and ship, one loops checks until clean, seven add scrutiny, two record decisions and debt, and one writes docs, widened by the review suite's `repo-review`, `simplify`, and `triage` (ADR-0011) |
 | Templates | built | `CLAUDE.md`, `AGENTS.md`, a Cursor repo rule, Copilot instructions |
 | Installer | built | `install.py`: per-tool or `all`, dry-run, repeatable, safe settings merge |
 | Subset install | built | `--only`/`--exclude` install a subset of the prompt pack. `.outpost/manifest.json` records the choice, `--verify` reads it, `--prune` removes orphan files left by a narrower re-install, and `--remove` uninstalls a tool. Full pack stays the default (ADR-0003) |

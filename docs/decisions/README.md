@@ -26,3 +26,4 @@ Start from `0000-template.md` when adding a record.
   second approval (supersedes 0006).
 - 0019: installer path-safety (manifest keys must be project-relative) and the v0.2 refinement
   decisions, including the rejected byte-match ownership fix kept as a negative.
+- 0020: admit `repo-hygiene-sweep` for ordered fleet review and gated cleanup.
