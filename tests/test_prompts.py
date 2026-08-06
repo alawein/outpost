@@ -23,19 +23,34 @@ def test_every_prompt_lints_clean():
 def test_repo_hygiene_sweep_binds_evidence_before_mutation():
     text = (CORE / "repo-hygiene-sweep.md").read_text(encoding="utf-8").lower()
 
-    for term in (
-        "read-only inventory",
-        "dirty repo",
-        "source evidence",
-        "confidence",
-        "route",
-        "verification command copied from the target repo",
-        "repo-defined commands",
-        "evidence gate",
-        "triage",
-        "baseline gate",
-        "final gate",
-        "refactor test parity",
-        "explicit authority",
-    ):
-        assert term in text
+    assert "read-only inventory" in text
+    assert "dirty target" in text
+    assert "archived target" in text
+    assert "generated target" in text
+    assert "vendored target" in text
+    assert "untested target" in text
+    assert "source evidence" in text
+    assert "confidence" in text
+    assert "route" in text
+    assert "verification command copied from the target repo" in text
+    assert "repo-defined commands" in text
+    assert "inspect each copied command's effects before execution" in text
+    assert "read-only local checks may run" in text
+    assert "move requires explicit authority" in text
+    assert "delete requires explicit authority" in text
+    assert "archive requires explicit authority" in text
+    assert "commit requires explicit authority" in text
+    assert "push requires explicit authority" in text
+    assert "dependency change requires explicit authority" in text
+    assert "external action requires explicit authority" in text
+    assert "evidence gate" in text
+    assert "triage" in text
+    assert "baseline gate" in text
+    assert "final gate" in text
+    assert "refactor test parity" in text
+    assert "explicit authority" in text
+
+    assert text.index("topology and catalog optimization") < text.index("workflow triage")
+    assert text.index("workflow triage") < text.index("simplification")
+    assert text.index("simplification") < text.index("technical debt reduction")
+    assert text.index("technical debt reduction") < text.index("behavior-preserving refactoring")

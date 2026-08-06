@@ -20,23 +20,33 @@ claim with evidence, not a reason to edit.
 
 - The fleet roots and the scope of the sweep.
 - Read access to each target and its git state, when it has git metadata.
-- Explicit authority for any action beyond reading, running copied repo commands, or reporting.
+- Explicit authority for any mutation or external action beyond reading and approved local checks.
 
 ## Steps
 
 1. Fleet inventory. Build a read-only inventory of every target. Record its root, git state,
    branch when present, and visible ownership or archive markers. Do not edit during inventory.
 2. Topology classification. Classify each target as active, dirty, archived, generated, vendored,
-   or untested. Dirty repo protection means do not edit a dirty, archived, generated, vendored, or
-   untested target.
+   or untested. Dirty repo protection means:
+   - Do not edit a dirty target.
+   - Do not edit an archived target.
+   - Do not edit a generated target.
+   - Do not edit a vendored target.
+   - Do not edit an untested target.
 3. Workflow gate discovery. Read each target's contributor rules, CI, scripts, and test setup.
    Use only repo-defined commands. Copy its baseline and final gate commands from the target repo.
-   Each copied command is an evidence gate. Do not invent a command.
+   Inspect each copied command's effects before execution. Read-only local checks may run. A
+   repo-defined command is not automatically safe. Commands that install or update dependencies,
+   write outside an approved state directory, access external systems, or otherwise mutate state
+   require explicit authority. Each copied command is an evidence gate. Do not invent a command.
 4. Repo review. Review only active, clean targets. Inspect structure, docs, tests, stale files,
    traces, and declared dependencies without changing them. Capture source evidence for every
    finding as a path and line, command output, or other source location.
 5. Triage. Give every finding a confidence tag and a route: fix now, defer, reject, or investigate.
    Include a verification command copied from the target repo for the routed work.
+   For routed work, topology and catalog optimization comes first, workflow triage comes second,
+   then simplification, technical debt reduction, and behavior-preserving refactoring. This order
+   routes work only; it does not authorize a change.
 6. Clean-target baseline. Before a small change, run the copied baseline gate on the clean target.
    A red baseline is a finding and stops mutation until the route or authority says otherwise.
 7. Small changes. Make only the approved smallest change on a clean target. Keep the change tied
@@ -61,6 +71,11 @@ claim with evidence, not a reason to edit.
 - Stop before mutation when a target is dirty, archived, generated, vendored, or untested.
 - Stop when a finding lacks source evidence, confidence, a route, or a verification command copied
   from the target repo.
-- Stop and ask for explicit authority before a move, delete, archive, commit, push, dependency
-  change, or external action.
+- A move requires explicit authority.
+- A delete requires explicit authority.
+- An archive requires explicit authority.
+- A commit requires explicit authority.
+- A push requires explicit authority.
+- A dependency change requires explicit authority.
+- An external action requires explicit authority.
 - Stop after the final fleet report. Do not turn a sweep into unapproved repair work.
