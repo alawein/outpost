@@ -18,3 +18,24 @@ def test_every_prompt_lints_clean():
     for p in sorted(CORE.glob("*.md")):
         errors = lint_prompt(p.read_text(encoding="utf-8"), p.stem)
         assert errors == [], (p.stem, errors)
+
+
+def test_repo_hygiene_sweep_binds_evidence_before_mutation():
+    text = (CORE / "repo-hygiene-sweep.md").read_text(encoding="utf-8").lower()
+
+    for term in (
+        "read-only inventory",
+        "dirty repo",
+        "source evidence",
+        "confidence",
+        "route",
+        "verification command copied from the target repo",
+        "repo-defined commands",
+        "evidence gate",
+        "triage",
+        "baseline gate",
+        "final gate",
+        "refactor test parity",
+        "explicit authority",
+    ):
+        assert term in text
