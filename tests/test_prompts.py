@@ -24,11 +24,11 @@ def test_repo_hygiene_sweep_binds_evidence_before_mutation():
     text = (CORE / "repo-hygiene-sweep.md").read_text(encoding="utf-8").lower()
 
     assert "read-only inventory" in text
-    assert "dirty target" in text
-    assert "archived target" in text
-    assert "generated target" in text
-    assert "vendored target" in text
-    assert "untested target" in text
+    assert "do not edit a dirty target" in text
+    assert "do not edit an archived target" in text
+    assert "do not edit a generated target" in text
+    assert "do not edit a vendored target" in text
+    assert "do not edit an untested target" in text
     assert "source evidence" in text
     assert "confidence" in text
     assert "route" in text
