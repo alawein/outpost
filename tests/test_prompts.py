@@ -29,6 +29,7 @@ def test_repo_hygiene_sweep_binds_evidence_before_mutation():
     assert "do not edit a generated target" in text
     assert "do not edit a vendored target" in text
     assert "do not edit an untested target" in text
+    assert "do not edit an unreadable target" in text
     assert "source evidence" in text
     assert "confidence" in text
     assert "route" in text

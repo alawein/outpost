@@ -12,8 +12,8 @@ claim with evidence, not a reason to edit.
 ## When to use
 
 - A group of repositories needs a hygiene review before a repair, handoff, or ownership change.
-- You need one report that distinguishes safe work from dirty, archived, generated, vendored, or
-  untested targets.
+- You need one report that distinguishes safe work from dirty, archived, generated, vendored,
+  untested, or unreadable targets.
 - You need findings routed for later action, not a batch of unapproved edits.
 
 ## Required inputs
@@ -27,12 +27,13 @@ claim with evidence, not a reason to edit.
 1. Fleet inventory. Build a read-only inventory of every target. Record its root, git state,
    branch when present, and visible ownership or archive markers. Do not edit during inventory.
 2. Topology classification. Classify each target as active, dirty, archived, generated, vendored,
-   or untested. Dirty repo protection means:
+   untested, or unreadable. Protected target rules mean:
    - Do not edit a dirty target.
    - Do not edit an archived target.
    - Do not edit a generated target.
    - Do not edit a vendored target.
    - Do not edit an untested target.
+   - Do not edit an unreadable target.
 3. Workflow gate discovery. Read each target's contributor rules, CI, scripts, and test setup.
    Use only repo-defined commands. Copy its baseline and final gate commands from the target repo.
    Inspect each copied command's effects before execution. Read-only local checks may run. A
@@ -68,7 +69,8 @@ claim with evidence, not a reason to edit.
 
 ## Stop conditions
 
-- Stop before mutation when a target is dirty, archived, generated, vendored, or untested.
+- Stop before mutation when a target is dirty, archived, generated, vendored, untested, or
+  unreadable.
 - Stop when a finding lacks source evidence, confidence, a route, or a verification command copied
   from the target repo.
 - A move requires explicit authority.
