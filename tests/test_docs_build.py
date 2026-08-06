@@ -148,3 +148,32 @@ def test_checks_line_renderer_emits_count_word_and_names():
                        {"name": "catalog", "module": "m", "summary": "s"},
                        {"name": "roadmap", "module": "m", "summary": "s"}])
     assert _render_checks_line(cat) == "three checks (structure, catalog, roadmap)"
+
+
+def test_roadmap_stage_counts_follow_catalog_order():
+    import kit.docs_build as docs_build
+    assert hasattr(docs_build, "_render_stage_counts"), "stage-counts renderer is missing"
+    cat = _cat(
+        stages=[
+            {"name": "Build", "summary": "build"},
+            {"name": "Start", "summary": "start"},
+            {"name": "Scrutiny", "summary": "check"},
+            {"name": "Archive", "summary": "archive"},
+        ],
+        prompts=[
+            {"name": "build-a", "path": "prompts/core/build-a.md", "summary": "a",
+             "stage": "Build"},
+            {"name": "start-a", "path": "prompts/core/start-a.md", "summary": "a",
+             "stage": "Start"},
+            {"name": "build-b", "path": "prompts/core/build-b.md", "summary": "b",
+             "stage": "Build"},
+            {"name": "check-a", "path": "prompts/core/check-a.md", "summary": "a",
+             "stage": "Scrutiny"},
+            {"name": "check-b", "path": "prompts/core/check-b.md", "summary": "b",
+             "stage": "Scrutiny"},
+        ],
+    )
+    assert docs_build._render_stage_counts(cat) == (
+        "two build, one start, two scrutiny, and zero archive"
+    )
+    assert "stage-counts" in docs_build.REQUIRED_MARKERS["docs/ROADMAP.md"]
