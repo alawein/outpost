@@ -47,7 +47,7 @@ In Claude Code the common sequences are one typed command. Three bundle several 
 
 ## All the prompts
 
-The kit ships <!-- GENERATED:core-count-digits -->25<!-- /GENERATED:core-count-digits --> prompts, grouped by stage.
+The kit ships <!-- GENERATED:core-count-digits -->26<!-- /GENERATED:core-count-digits --> prompts, grouped by stage.
 
 <!-- GENERATED:skills-table -->
 | Stage | Prompts | Use them to |
@@ -55,7 +55,7 @@ The kit ships <!-- GENERATED:core-count-digits -->25<!-- /GENERATED:core-count-d
 | Start | `orient-repo` `interrogate` | map an unfamiliar repo; surface hidden assumptions before you build |
 | Plan | `plan-change` `split-change` `premortem` | scope the work, split it if it is too big, check it survives failure before you commit |
 | Build | `implement-change` `write-tests` `debug-failure` `refactor-safely` `simplify` | edit, test, debug, and reshape without changing behavior |
-| Review and ship | `code-review` `prepare-pr` `respond-to-review` `triage` `handoff-session` | review, draft the PR, answer feedback, hand off |
+| Review and ship | `check-intent` `code-review` `prepare-pr` `respond-to-review` `triage` `handoff-session` | review, draft the PR, answer feedback, hand off |
 | Converge | `converge` | drive an artifact to clean over lint, tests, review, and scrutiny rounds |
 | Scrutiny | `self-refute` `grill` `prove` `panel` `repo-review` `repo-hygiene-sweep` | challenge your own fresh output, a design, plan, or diff, or claims that must survive scrutiny; convene expert lenses for a wide decision |
 | Record | `record-decision` `debt-log` | capture an architecture decision, or log a shortcut with its reason, cost, and revisit trigger |

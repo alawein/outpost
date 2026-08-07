@@ -93,7 +93,7 @@ def test_scrutiny_prompt_installs_under_every_tool(tmp_path):
 
 def test_load_prompts_none_returns_all():
     names = {n for n, _ in load_prompts(ROOT, "claude", select=None)}
-    assert "plan-change" in names and len(names) == 25
+    assert "plan-change" in names and len(names) == 26
 
 
 def test_converge_ships_to_claude_only(tmp_path):
@@ -103,7 +103,7 @@ def test_converge_ships_to_claude_only(tmp_path):
     for tool in ("codex", "cursor", "copilot"):
         names = {n for n, _ in load_prompts(ROOT, tool)}
         assert "converge" not in names, tool
-        assert len(names) == 24, tool
+        assert len(names) == 25, tool
         selected = {n for n, _ in load_prompts(ROOT, tool, select={"converge", "grill"})}
         assert selected == {"grill"}, tool
     install.main(["--tool", "all", "--project", str(tmp_path)])

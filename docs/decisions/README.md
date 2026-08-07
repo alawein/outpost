@@ -31,3 +31,4 @@ Start from `0000-template.md` when adding a record.
   the one real ADR ledger.
 - 0022: namespaced label governance (`type`, `area`, `priority`, `status`, `release`,
   `provenance`), migrating from the GitHub defaults without deleting them.
+- 0023: admit `check-intent`, a structured plan-to-diff reconciliation before `code-review`.
