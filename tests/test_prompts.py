@@ -63,6 +63,8 @@ def test_check_intent_blocks_on_a_missing_or_unexplained_extra():
     assert "done, missing, or changed-approach" in text
     assert "the diff touches that traces" in text
     assert "no plan item, mark it extra" in text
+    assert "is accounted for" in text and "by that item; it is not extra" in text
+    assert "do not fold \"and tests for it\"" in text
     assert "stop before `code-review` when a missing item or an unexplained extra remains open" in text
     assert "not a blocker" in text
     assert "do not fix anything here" in text

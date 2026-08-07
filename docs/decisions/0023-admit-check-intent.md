@@ -21,8 +21,12 @@ abstract description and from Outpost's own contract style; a follow-up read-onl
 against ACK's real file (after the draft existed) found the two diverge on philosophy (ACK is
 explicitly non-blocking and defers to a documented deviation; the Outpost draft blocks on an
 unexplained gap and now, after that comparison, also defers to an already-documented deviation,
-adopted as a general practice, not copied wording) and output shape (a status table here, a
-verdict-plus-findings there). Verdict: CLEAN-ROOM.
+adopted as a general practice, not copied wording), pipeline position (ACK sits before its
+PR-drafting step; Outpost sits before `code-review`), and output shape (a status table here, a
+verdict-plus-findings there). The one real convergence: both use a three-way mismatch taxonomy
+with two shared category words (a plan item is "missing" or an untraceable file is "extra"),
+which is the obvious framing for reconciling two sets and not evidence of copying on its own.
+Verdict: CLEAN-ROOM.
 
 ## Decision
 
@@ -30,21 +34,22 @@ Admit `check-intent` to the Review and ship stage, positioned right before `code
 
 - Distinct job: reconcile a diff against the plan or ask that produced it, item by item, marking
   each Done, Missing, Changed-approach, or (for an untraceable file) Extra.
-- Nearest sibling: `code-review`, whose step 1 checks intent as one of six dimensions in a
-  broader correctness pass. `check-intent` does only the plan-to-diff reconciliation, as a
-  structured table, not folded into a wider review.
+- Nearest sibling: `code-review`, whose step 3 reviews "whether the change matches its intent and
+  the contract it touches" as one of six review dimensions. `check-intent` narrows that to an
+  enumerated reconciliation: every plan item gets a status, every diff file traces to one or is
+  flagged, which step 3 has no mechanism or completeness guarantee for.
 - Unsafe default: an agent finishes implementing, the code looks right and tests pass, and it
-  goes straight to `code-review` or `prepare-pr`. `code-review`'s intent check is soft ("infer it
-  ... say so"), not a hard enumeration against the original plan, so a dropped plan item or a
-  stray unrelated edit ships unnoticed.
+  goes straight to `code-review` or `prepare-pr`. `code-review`'s intent check has no enumeration
+  requirement and no way to notice a file that traces to nothing, so a dropped plan item or a
+  stray unrelated edit can ship unnoticed.
 - Binding mechanism: the stop conditions block continuing to `code-review` while a Missing item
   or an unexplained Extra file remains open; a Changed-approach that is still correct, or already
   explained in the diff or its commit messages, is not a blocker.
 - Dogfood case: the 2026-08-07 run recorded in `docs/dogfooding.md`, applying the prompt's own
   steps to this admitting change's diff.
-- Deletion condition: remove this prompt if two recorded sessions show `code-review`'s existing
-  intent check alone catches every drift case `check-intent`'s structured table would have
-  caught, so the dedicated pass adds no finding a folded-in check would have missed.
+- Deletion condition: remove this prompt if two recorded sessions show it returning clean on a
+  diff where `code-review` then finds a real intent gap it missed, or two sessions where callers
+  route around it entirely with nothing lost.
 
 ## Alternatives
 
@@ -58,8 +63,11 @@ Admit `check-intent` to the Review and ship stage, positioned right before `code
   reused; the contract here was drafted independently and verified CLEAN-ROOM against the real
   file only after the draft existed.
 - Do nothing; treat the gap as acceptable. Rejected: the unsafe default (a silently dropped plan
-  item or an unrelated file shipping unnoticed) is real and the evidence a structured
-  reconciliation catches it that a folded-in check does not, per the dogfood run.
+  item or an unrelated file shipping unnoticed) is real on its own terms (see Context); the
+  dogfood run did not itself catch a drift case (its first pass traced every item Done and missed
+  the real gap, which `pytest` caught instead), so it is not offered as proof the structured pass
+  outperforms the folded-in one. Its value was exposing that plan-item grain determines whether
+  the pass works at all, which is now bound directly into step 1 rather than left open.
 
 ## Consequences
 

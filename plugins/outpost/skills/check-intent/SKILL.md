@@ -22,10 +22,15 @@ during a long implementation session more often than it is deliberately changed.
 
 ## Steps
 
-1. List every distinct item the plan or ask called for, one line each.
+1. List every distinct item the plan or ask called for, one line each, at the grain the plan
+   itself used: a step in a written plan, a bullet in an ask, or (with no separate plan) the
+   change's own stated outcome. Do not fold "and tests for it" or a downstream fixup a change of
+   this kind always needs into one line with the change itself; a grain too coarse to check
+   against the diff reads as Done while the real work underneath it goes unverified.
 2. Walk the diff file by file. For each plan item, mark it Done, Missing, or Changed-approach (the
    diff solves it a different way than the plan named). For each file the diff touches that traces
-   to no plan item, mark it Extra.
+   to no plan item, mark it Extra. A file that implements a Changed-approach item is accounted for
+   by that item; it is not Extra.
 3. For a Changed-approach item, check first whether the diff, its commit messages, or the PR body
    already explains the switch; if so, record that it is accounted for rather than re-litigating
    it. Otherwise state whether the new approach is still correct and complete, not just different.
