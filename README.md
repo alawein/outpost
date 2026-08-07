@@ -35,6 +35,11 @@ Maintained by the handle in [.github/CODEOWNERS](.github/CODEOWNERS).
 
 </div>
 
+The image above is a hand-drawn hero, not a generated artifact: it names the workflow's phase
+words only (no prompt count, no prompt name), so it has nothing left for a check to read or
+drift against (`docs/DEBT.md`'s 2026-07-09 entry). For the reviewable, GitHub-rendered version of
+the same path, see the Mermaid diagram in [docs/workflow.md](docs/workflow.md#the-path).
+
 ## Install
 
 ```bash

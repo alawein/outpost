@@ -14,6 +14,12 @@ Format follows Keep a Changelog (https://keepachangelog.com). The kit uses SemVe
 
 ### Added
 
+- Three GitHub-rendered Mermaid diagrams: the workflow path in `docs/workflow.md`, the artifact
+  dependency flow in `docs/architecture/topology.md`, and the PR/release state machine in
+  `docs/releasing.md`. `docs/brand/flow.svg` stays as the README hero image; a note there records
+  why it carries no drift risk (no generated counts) and points to the workflow diagram as the
+  reviewable equivalent.
+
 - Five GitHub issue forms under `.github/ISSUE_TEMPLATE/` (bug, feature, prompt proposal,
   hygiene finding, and a config that disables blank issues and links security reports and
   usage questions elsewhere); the four content forms each set a `type:*` label from the
