@@ -55,3 +55,22 @@ def test_repo_hygiene_sweep_binds_evidence_before_mutation():
     assert text.index("workflow triage") < text.index("simplification")
     assert text.index("simplification") < text.index("technical debt reduction")
     assert text.index("technical debt reduction") < text.index("behavior-preserving refactoring")
+
+
+def test_check_intent_blocks_on_a_missing_or_unexplained_extra():
+    text = (CORE / "check-intent.md").read_text(encoding="utf-8").lower()
+
+    assert "done, missing, or changed-approach" in text
+    assert "the diff touches that traces" in text
+    assert "no plan item, mark it extra" in text
+    assert "is accounted for" in text and "by that item; it is not extra" in text
+    assert "do not fold \"and tests for it\"" in text
+    assert "stop before `code-review` when a missing item or an unexplained extra remains open" in text
+    assert "not a blocker" in text
+    assert "do not fix anything here" in text
+    assert "accounted for. do not re-review" in text
+    assert "code quality; that is `code-review`'s job" in text
+
+    # the reconciliation order: enumerate the plan, then walk the diff against it
+    assert text.index("list every distinct item the plan or ask called for") < text.index(
+        "walk the diff file by file")

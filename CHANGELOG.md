@@ -12,6 +12,13 @@ Format follows Keep a Changelog (https://keepachangelog.com). The kit uses SemVe
 
 ## [Unreleased]
 
+### Added
+
+- `check-intent`, a structured plan-to-diff reconciliation that runs right before `code-review`:
+  marks every plan item Done, Missing, or Changed-approach, and every untraceable file Extra.
+  ADR-0023 records the admission (independently designed; verified CLEAN-ROOM against ACK's
+  equivalent capability after the draft existed) and its first dogfood run.
+
 ## [0.3.0] - 2026-08-07
 
 ### Added

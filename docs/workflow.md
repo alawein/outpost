@@ -23,7 +23,7 @@ flowchart LR
 1. Start. `orient-repo` maps an unfamiliar repo before you touch it; `interrogate` hardens a vague ask into a defined one before you plan.
 2. Plan. `plan-change` scopes a non-trivial change against the real repo. `split-change` breaks an over-scoped change into revertible units. `premortem` assumes a costly plan failed and prevents the top causes.
 3. Build. `implement-change` makes the smallest correct edits with the tree runnable. `write-tests` covers the behavior and the contract. `debug-failure` reproduces then root-causes a break. `refactor-safely` changes shape, not behavior. `simplify` folds duplication out of changed code.
-4. Check. `self-refute` red-teams your own fresh output; `grill` stress-tests a design, plan, or diff. `code-review` is the structured correctness pass. `prove` recomputes a claim that must survive stakeholders; `panel` convenes expert lenses for a wide decision. For a whole repo, `repo-review` audits it and `triage` ranks the findings.
+4. Check. `self-refute` red-teams your own fresh output; `grill` stress-tests a design, plan, or diff. `check-intent` reconciles the diff against the plan before `code-review` runs. `code-review` is the structured correctness pass. `prove` recomputes a claim that must survive stakeholders; `panel` convenes expert lenses for a wide decision. For a whole repo, `repo-review` audits it and `triage` ranks the findings.
 5. Ship. `prepare-pr` drafts the commit and PR and runs the pre-merge checks. `respond-to-review` acts on feedback. `handoff-session` hands off cleanly mid-work. A human opens and merges the PR.
 6. Record. `record-decision` captures an architecture decision; `debt-log` records a shortcut with its reason, cost, and revisit trigger. `write-doc` writes a README, findings note, or report.
 
@@ -47,7 +47,7 @@ In Claude Code the common sequences are one typed command. Three bundle several 
 
 ## All the prompts
 
-The kit ships <!-- GENERATED:core-count-digits -->25<!-- /GENERATED:core-count-digits --> prompts, grouped by stage.
+The kit ships <!-- GENERATED:core-count-digits -->26<!-- /GENERATED:core-count-digits --> prompts, grouped by stage.
 
 <!-- GENERATED:skills-table -->
 | Stage | Prompts | Use them to |
@@ -55,7 +55,7 @@ The kit ships <!-- GENERATED:core-count-digits -->25<!-- /GENERATED:core-count-d
 | Start | `orient-repo` `interrogate` | map an unfamiliar repo; surface hidden assumptions before you build |
 | Plan | `plan-change` `split-change` `premortem` | scope the work, split it if it is too big, check it survives failure before you commit |
 | Build | `implement-change` `write-tests` `debug-failure` `refactor-safely` `simplify` | edit, test, debug, and reshape without changing behavior |
-| Review and ship | `code-review` `prepare-pr` `respond-to-review` `triage` `handoff-session` | review, draft the PR, answer feedback, hand off |
+| Review and ship | `check-intent` `code-review` `prepare-pr` `respond-to-review` `triage` `handoff-session` | review, draft the PR, answer feedback, hand off |
 | Converge | `converge` | drive an artifact to clean over lint, tests, review, and scrutiny rounds |
 | Scrutiny | `self-refute` `grill` `prove` `panel` `repo-review` `repo-hygiene-sweep` | challenge your own fresh output, a design, plan, or diff, or claims that must survive scrutiny; convene expert lenses for a wide decision |
 | Record | `record-decision` `debt-log` | capture an architecture decision, or log a shortcut with its reason, cost, and revisit trigger |
