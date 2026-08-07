@@ -223,8 +223,19 @@ def test_voice_reports_a_dash_only_file_as_a_dash_not_generic_non_ascii(tmp_path
     assert not ok and "dash" in detail and "non-ascii" not in detail
 
 
-def test_label_refs_passes_with_no_issue_forms_yet():
+def test_label_refs_passes_on_the_real_repo():
     ok, detail = label_refs.run(ROOT)
+    assert ok, detail
+
+
+def test_label_refs_passes_with_nothing_to_check(tmp_path):
+    # no .github/ISSUE_TEMPLATE and no .github/labeler.yml: the check must not fail closed
+    (tmp_path / "kit" / "labels").mkdir(parents=True)
+    (tmp_path / "kit" / "labels" / "registry.json").write_text(
+        (pathlib.Path(__file__).resolve().parents[1] / "kit" / "labels" / "registry.json")
+        .read_text(encoding="utf-8"),
+        encoding="utf-8")
+    ok, detail = label_refs.run(tmp_path)
     assert ok and "nothing to check" in detail
 
 

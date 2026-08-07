@@ -14,6 +14,12 @@ Format follows Keep a Changelog (https://keepachangelog.com). The kit uses SemVe
 
 ### Added
 
+- Five GitHub issue forms under `.github/ISSUE_TEMPLATE/` (bug, feature, prompt proposal,
+  hygiene finding, and a config that disables blank issues and links security reports and
+  usage questions elsewhere), each labeled from the registry. Rewrote
+  `.github/PULL_REQUEST_TEMPLATE.md` to request outcome, intent trace, an evidence table,
+  provenance, release impact, and generated-file status, alongside the existing what-changed and
+  reviewer-notes sections.
 - A namespaced label registry (`kit/labels/registry.json`): `type:*`, `area:*`, `priority:*`,
   `status:*`, `release:*`, and `provenance:*`, replacing the flat GitHub defaults. A dry-run-first
   sync tool (`tools/sync_labels.py --apply`) applies it without ever deleting or renaming a label.

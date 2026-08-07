@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/alawein/outpost/security/advisories/new
+    about: Report privately through GitHub's advisory flow. See SECURITY.md. Do not open a public issue for a vulnerability.
+  - name: Usage question
+    url: https://github.com/alawein/outpost#docs-map
+    about: Check the docs map first. Outpost has no discussion board; if the docs do not answer it, a bug or feature form is still the right place.

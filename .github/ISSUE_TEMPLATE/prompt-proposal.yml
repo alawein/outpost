@@ -1,0 +1,65 @@
+name: Prompt proposal
+description: Propose a new core prompt. Must clear the ADR-0013 admission bar.
+title: "[prompt] "
+labels: ["type:feature", "area:prompts"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A new prompt enters the pack only with an admission record (see
+        [ADR-0013](../../docs/decisions/0013-prompt-admission.md)). Fill in every field below;
+        a proposal missing one will not be admitted.
+  - type: textarea
+    id: recurring_task
+    attributes:
+      label: Recurring task
+      description: The job this prompt would own, that no shipped prompt owns.
+    validations:
+      required: true
+  - type: input
+    id: nearest_sibling
+    attributes:
+      label: Nearest existing prompt
+      description: The closest shipped prompt, and what this one does that it does not.
+    validations:
+      required: true
+  - type: textarea
+    id: unsafe_default
+    attributes:
+      label: Unsafe default
+      description: The wrong behavior an agent falls into without this prompt. No unsafe default, no entry.
+    validations:
+      required: true
+  - type: textarea
+    id: binding_mechanism
+    attributes:
+      label: Binding mechanism
+      description: The contract line (an input, step, or stop condition) that blocks the unsafe default.
+    validations:
+      required: true
+  - type: textarea
+    id: dogfood_plan
+    attributes:
+      label: Dogfood plan
+      description: The real run in this repo that will prove it, recorded in docs/dogfooding.md.
+    validations:
+      required: true
+  - type: textarea
+    id: deletion_condition
+    attributes:
+      label: Deletion condition
+      description: The observation that would remove this prompt later.
+    validations:
+      required: true
+  - type: dropdown
+    id: provenance
+    attributes:
+      label: Provenance
+      description: Where this idea comes from.
+      options:
+        - OUTPOST-ORIGIN (reused or refactored from existing Outpost work)
+        - CLEAN-ROOM (independently implemented from an abstract capability observed elsewhere)
+        - GENERAL-PRACTICE (independent implementation of a normal practice)
+        - UNKNOWN (not yet determined; do not implement until this is resolved)
+    validations:
+      required: true
