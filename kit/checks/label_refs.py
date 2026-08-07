@@ -16,6 +16,22 @@ _LABELS_KEY = re.compile(r"^(?P<indent>[ \t]*)labels:[ \t]*(?P<inline>.*)$")
 _LIST_ITEM = re.compile(r"^(?P<indent>[ \t]*)-[ \t]*(?P<value>.+?)[ \t]*$")
 
 
+def _strip_comment(line: str) -> str:
+    """Drop a trailing ` #comment`, honoring quotes so a `#` inside a quoted label name (not
+    that one would ever contain one, but a stray one should not corrupt parsing) is not mistaken
+    for one."""
+    in_quote = None
+    for i, ch in enumerate(line):
+        if in_quote:
+            if ch == in_quote:
+                in_quote = None
+        elif ch in "\"'":
+            in_quote = ch
+        elif ch == "#" and (i == 0 or line[i - 1] in " \t"):
+            return line[:i]
+    return line
+
+
 def _unquote(token: str) -> str:
     token = token.strip()
     if len(token) >= 2 and token[0] == token[-1] and token[0] in "\"'":
@@ -34,8 +50,10 @@ def _parse_inline_list(inline: str) -> list[str]:
 
 def extract_label_refs(text: str) -> list[str]:
     """Every label name a `labels:` key names in the text, flow-list (`labels: [a, b]`) or
-    block-list (`labels:\\n  - a\\n  - b`) style."""
-    lines = text.splitlines()
+    block-list (`labels:\\n  - a\\n  - b`, indented under the key or flush with it) style. A
+    trailing `# comment` is dropped; a blank or comment-only line inside a block list does not
+    end it."""
+    lines = [_strip_comment(line) for line in text.splitlines()]
     refs: list[str] = []
     i = 0
     while i < len(lines):
@@ -51,8 +69,11 @@ def extract_label_refs(text: str) -> list[str]:
         base_indent = len(m.group("indent"))
         i += 1
         while i < len(lines):
+            if not lines[i].strip():
+                i += 1
+                continue
             item = _LIST_ITEM.match(lines[i])
-            if not item or len(item.group("indent")) <= base_indent:
+            if not item or len(item.group("indent")) < base_indent:
                 break
             refs.append(_unquote(item.group("value")))
             i += 1

@@ -3,6 +3,13 @@ description: A finding from a repo-hygiene-sweep run that needs routing.
 title: "[hygiene] "
 labels: ["type:maintenance"]
 body:
+  - type: textarea
+    id: finding
+    attributes:
+      label: Finding
+      description: What is wrong, as a claim, in one or two sentences.
+    validations:
+      required: true
   - type: input
     id: target
     attributes:
@@ -55,9 +62,10 @@ body:
     id: verification
     attributes:
       label: Verification command
-      description: Copied from the target repo, for the routed work.
+      description: Copied from the target repo, for the routed work. repo-hygiene-sweep's own
+        stop conditions block a finding that lacks one.
     validations:
-      required: false
+      required: true
   - type: textarea
     id: authority
     attributes:

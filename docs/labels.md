@@ -24,11 +24,34 @@ labels. Rationale and rejected alternatives: [ADR-0022](decisions/0022-label-gov
 
 ## Rules
 
-- Every issue and every PR gets exactly one `type:*` and one `area:*`.
+- Every issue and every PR gets exactly one `type:*`.
+- Every PR gets one `area:*`. An issue gets one `area:*` too when the form itself makes the area
+  unambiguous at filing time (a prompt proposal is always `area:prompts`); when it is not (a bug
+  or a feature can touch anything), the issue form applies `type:*` only and `area:*` is added at
+  triage.
 - An issue may get one `priority:*`.
 - Never apply two labels from the same family.
 - A user-visible PR gets one `release:*` label.
 - Work independently designed from an external capability comparison gets `provenance:clean-room`.
+
+## Provenance verdicts
+
+One vocabulary, used in two places: the `provenance:*` label pair above (a live GitHub state) and
+the fuller verdict a PR body or an ADR records (a written justification). Every PR that adapts an
+idea observed outside Outpost records one of the first four; a PR records nothing here if it did
+not adapt an external idea.
+
+- `OUTPOST-ORIGIN`: reused or refactored from existing, already-MIT-licensed Outpost work.
+- `CLEAN-ROOM`: independently implemented from an abstract capability observed elsewhere, with no
+  source material copied. Gets the `provenance:clean-room` label.
+- `GENERAL-PRACTICE`: an independent implementation of a normal, unoriginal practice (a config
+  file format, a common CI pattern) that is not really "from" anywhere in particular.
+- `UNKNOWN`: insufficient evidence to classify yet. Gets the `provenance:needs-review` label; do
+  not implement further until this resolves to one of the other three.
+- `REJECTED-PROPRIETARY` / `REJECTED-FIT`: an idea considered and turned down (not legally
+  transferable, or valid elsewhere but wrong for Outpost). These describe a decision, not a
+  merged change, so they appear in a decision record or a comparison note, never as a live label
+  or a PR-template value: a PR that reached `main` did not get rejected.
 
 ## Migration from the GitHub defaults
 

@@ -14,7 +14,13 @@ Closed with the PR that closed it; never delete one.
 
 ## Open
 
-None.
+- 2026-08-07, no structural check on issue-form YAML. `kit/checks/label_refs.py` validates only
+  `labels:` references in `.github/ISSUE_TEMPLATE/*.yml`; nothing checks GitHub's actual
+  issue-form schema (a duplicate `id:` within one form, a dropdown missing `options:`). GitHub
+  only surfaces that error in the browser at "New issue," not in `validate.py`/CI. Taken because
+  it is out of scope for the PR that first added real issue forms (#10) and today's five forms
+  are all hand-verified clean. Close by adding a check in the same regex-line-scan style as
+  `label_refs.py` that flags a duplicate `id:` per file, the next time a form is added or edited.
 
 ## Closed
 

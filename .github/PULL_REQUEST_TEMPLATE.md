@@ -25,13 +25,17 @@ The reasoning a reviewer cannot infer from the diff. State what this deliberatel
 
 ## Provenance
 
-`OUTPOST-ORIGIN` / `CLEAN-ROOM` / `GENERAL-PRACTICE` / `REJECTED-PROPRIETARY` / `REJECTED-FIT` /
-`UNKNOWN`, only if this PR adapts an idea observed outside Outpost. "N/A" otherwise.
+`OUTPOST-ORIGIN` / `CLEAN-ROOM` / `GENERAL-PRACTICE` / `UNKNOWN`, only if this PR adapts an idea
+observed outside Outpost (definitions: [docs/labels.md](../docs/labels.md#provenance-verdicts)).
+"N/A" otherwise. A rejected idea does not belong here; it goes in a decision record instead.
 
 ## Release impact
 
-- [ ] User-visible: `CHANGELOG.md`'s `[Unreleased]` section updated, one `release:*` label applied.
-- [ ] Not user-visible.
+- [ ] User-visible with a version bump: `CHANGELOG.md`'s `[Unreleased]` section updated, one
+      `release:*` label applied.
+- [ ] User-visible, no version bump (governance, process, docs): `CHANGELOG.md` updated, no
+      `release:*` label.
+- [ ] Not user-visible: no changelog entry needed.
 
 ## Generated files
 

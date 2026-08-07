@@ -6,9 +6,10 @@ body:
   - type: markdown
     attributes:
       value: |
-        A new prompt enters the pack only with an admission record (see
-        [ADR-0013](../../docs/decisions/0013-prompt-admission.md)). Fill in every field below;
-        a proposal missing one will not be admitted.
+        A new prompt is expected to clear the admission bar in
+        [ADR-0013](https://github.com/alawein/outpost/blob/main/docs/decisions/0013-prompt-admission.md)
+        before it enters the pack. Fill in every field below; a proposal missing one will not be
+        admitted.
   - type: textarea
     id: recurring_task
     attributes:
@@ -16,7 +17,7 @@ body:
       description: The job this prompt would own, that no shipped prompt owns.
     validations:
       required: true
-  - type: input
+  - type: textarea
     id: nearest_sibling
     attributes:
       label: Nearest existing prompt

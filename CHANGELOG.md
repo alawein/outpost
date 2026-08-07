@@ -16,10 +16,8 @@ Format follows Keep a Changelog (https://keepachangelog.com). The kit uses SemVe
 
 - Five GitHub issue forms under `.github/ISSUE_TEMPLATE/` (bug, feature, prompt proposal,
   hygiene finding, and a config that disables blank issues and links security reports and
-  usage questions elsewhere), each labeled from the registry. Rewrote
-  `.github/PULL_REQUEST_TEMPLATE.md` to request outcome, intent trace, an evidence table,
-  provenance, release impact, and generated-file status, alongside the existing what-changed and
-  reviewer-notes sections.
+  usage questions elsewhere); the four content forms each set a `type:*` label from the
+  registry.
 - A namespaced label registry (`kit/labels/registry.json`): `type:*`, `area:*`, `priority:*`,
   `status:*`, `release:*`, and `provenance:*`, replacing the flat GitHub defaults. A dry-run-first
   sync tool (`tools/sync_labels.py --apply`) applies it without ever deleting or renaming a label.
@@ -30,6 +28,12 @@ Format follows Keep a Changelog (https://keepachangelog.com). The kit uses SemVe
 - ADR-0019, recording the installer path-safety invariant (manifest keys must be project-relative)
   and the v0.2 refinement decisions, including the rejected byte-match ownership fix kept as a
   negative.
+
+### Changed
+
+- Rewrote `.github/PULL_REQUEST_TEMPLATE.md` to request outcome, an intent trace, an evidence
+  table, provenance, release impact, and generated-file status, alongside the existing
+  what-changed and reviewer-notes sections.
 
 ### Fixed
 

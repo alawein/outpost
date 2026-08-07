@@ -58,6 +58,12 @@ committed span drifts from the generator.
 3. Regenerate the ROADMAP's checks line with `python tools/build.py docs`; `docs_sync` fails while the committed line lags the catalog.
 4. Add a test that it passes on a clean tree and fails on a seeded violation.
 
+## Report a bug or propose work
+
+Open an issue from one of the forms under `.github/ISSUE_TEMPLATE/`: bug report, feature
+request, prompt proposal (must clear `docs/decisions/0013-prompt-admission.md`), or a
+repo-hygiene finding. See `docs/labels.md` for how labels route them.
+
 ## Before a PR
 
 Run `python validate.py` and `pytest`, then follow `prepare-pr` to draft the commit and PR.
