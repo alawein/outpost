@@ -14,6 +14,9 @@ Format follows Keep a Changelog (https://keepachangelog.com). The kit uses SemVe
 
 ### Added
 
+- A house-voice rule in `docs/writing-standard.md`: cite evidence a reader can check, never a
+  gitignored scratch path as if it were a verifiable source. Naming the scratch convention itself
+  stays fine; citing its content as proof does not.
 - `prose_length`, a gate check that fails a markdown paragraph over 100 words (measured against
   the tracked tree; nothing needed a rewrite to adopt it), exempt for the append-only historical
   records (`docs/decisions/`, `docs/DEBT.md`, `docs/dogfooding.md`, `docs/audit/`). ADR-0024.
