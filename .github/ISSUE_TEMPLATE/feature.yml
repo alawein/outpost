@@ -1,0 +1,49 @@
+name: Feature request
+description: Propose a new capability or a change to how the kit behaves.
+title: "[feature] "
+labels: ["type:feature"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: User problem
+      description: What is hard or impossible today, and for whom.
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Desired outcome
+    validations:
+      required: true
+  - type: textarea
+    id: non_goals
+    attributes:
+      label: Non-goals
+      description: What this explicitly does not try to solve.
+    validations:
+      required: false
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+    validations:
+      required: false
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: How to tell the feature is done.
+    validations:
+      required: true
+  - type: dropdown
+    id: release_impact
+    attributes:
+      label: Release impact
+      options:
+        - Not sure yet
+        - Patch (no behavior visible to a user)
+        - Minor (new, backward-compatible capability)
+        - Major (breaking change)
+    validations:
+      required: true

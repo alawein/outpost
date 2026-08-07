@@ -223,8 +223,42 @@ def test_voice_reports_a_dash_only_file_as_a_dash_not_generic_non_ascii(tmp_path
     assert not ok and "dash" in detail and "non-ascii" not in detail
 
 
-def test_label_refs_passes_with_no_issue_forms_yet():
+def test_label_refs_extracts_and_validates_every_real_issue_form():
+    # a plain ok-True would also pass under a "never fails" regression; pin the scanned file
+    # count too (the 5 files under .github/ISSUE_TEMPLATE/, including config.yml, which carries
+    # no labels: key but is still scanned), so a form silently disappearing from the glob fails
     ok, detail = label_refs.run(ROOT)
+    assert ok and "5 file(s)" in detail, detail
+
+
+def test_extract_label_refs_handles_a_zero_indent_block_list():
+    text = "labels:\n- type:bug\n- area:docs\n"
+    assert label_refs.extract_label_refs(text) == ["type:bug", "area:docs"]
+
+
+def test_extract_label_refs_skips_a_comment_inside_a_block_list():
+    text = "labels:\n  - type:bug\n  # a note\n  - area:docs\n"
+    assert label_refs.extract_label_refs(text) == ["type:bug", "area:docs"]
+
+
+def test_extract_label_refs_strips_a_trailing_comment_on_a_flow_list():
+    text = 'labels: ["type:bug", "area:docs"]  # keep in sync with the registry\n'
+    assert label_refs.extract_label_refs(text) == ["type:bug", "area:docs"]
+
+
+def test_extract_label_refs_zero_indent_block_list_stops_at_a_sibling_key():
+    text = "labels:\n- type:bug\nbody:\n- type: markdown\n"
+    assert label_refs.extract_label_refs(text) == ["type:bug"]
+
+
+def test_label_refs_passes_with_nothing_to_check(tmp_path):
+    # no .github/ISSUE_TEMPLATE and no .github/labeler.yml: the check must not fail closed
+    (tmp_path / "kit" / "labels").mkdir(parents=True)
+    (tmp_path / "kit" / "labels" / "registry.json").write_text(
+        (pathlib.Path(__file__).resolve().parents[1] / "kit" / "labels" / "registry.json")
+        .read_text(encoding="utf-8"),
+        encoding="utf-8")
+    ok, detail = label_refs.run(tmp_path)
     assert ok and "nothing to check" in detail
 
 
