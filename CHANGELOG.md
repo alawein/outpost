@@ -14,6 +14,11 @@ Format follows Keep a Changelog (https://keepachangelog.com). The kit uses SemVe
 
 ### Added
 
+- A namespaced label registry (`kit/labels/registry.json`): `type:*`, `area:*`, `priority:*`,
+  `status:*`, `release:*`, and `provenance:*`, replacing the flat GitHub defaults. A dry-run-first
+  sync tool (`tools/sync_labels.py --apply`) applies it without ever deleting or renaming a label.
+  A new `label_refs` check proves issue forms and labeler config name only registered labels.
+  Documented in `docs/labels.md`.
 - `repo-hygiene-sweep`, an ordered multi-repo inventory, evidence triage, and gated cleanup
   prompt, with ADR-0020 and its first dogfood run.
 - ADR-0019, recording the installer path-safety invariant (manifest keys must be project-relative)
