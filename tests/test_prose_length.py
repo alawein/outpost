@@ -46,11 +46,67 @@ def test_paragraphs_skips_fenced_code_blocks():
     assert prose_length.paragraphs(body) == ["Real prose.", "More real prose."]
 
 
+def test_paragraphs_skips_tilde_fenced_code_blocks():
+    body = "Real prose.\n\n~~~\nnot prose inside a tilde fence\n~~~\n\nMore real prose.\n"
+    assert prose_length.paragraphs(body) == ["Real prose.", "More real prose."]
+
+
+def test_paragraphs_recognizes_every_heading_level():
+    # a regression guard: a fix for the structural-marker false match below must not stop
+    # recognizing "##" or deeper as a heading
+    body = "# H1\n## H2\n### H3\n#### H4\n\nReal prose after every heading level.\n"
+    assert prose_length.paragraphs(body) == ["Real prose after every heading level."]
+
+
+def test_paragraphs_does_not_treat_bold_or_a_flag_as_a_structural_marker():
+    # "**bold**" and "--force" start with characters the structural markers use, but are not
+    # a heading, list item, or table row; a wrapped line starting with either must still count
+    body = "A paragraph that wraps onto\n**a bold-started line** with more words after it.\n"
+    assert prose_length.paragraphs(body) == [
+        "A paragraph that wraps onto **a bold-started line** with more words after it."
+    ]
+    body2 = "Run the command, then check\n--force was not silently dropped from the count.\n"
+    assert prose_length.paragraphs(body2) == [
+        "Run the command, then check --force was not silently dropped from the count."
+    ]
+
+
+def test_paragraphs_plus_marker_is_a_list_item():
+    body = "+ item one\n+ item two\n\nReal prose.\n"
+    assert prose_length.paragraphs(body) == ["Real prose."]
+
+
+def test_paragraphs_swallows_a_wrapped_list_item_continuation():
+    # a list item's own length is not measured, including a continuation line wrapped onto the
+    # next source line with no list marker of its own
+    body = (
+        "- an item that starts here\n"
+        "  and continues wrapped on this unmarked line with more words\n\n"
+        "Real paragraph after the list.\n"
+    )
+    assert prose_length.paragraphs(body) == ["Real paragraph after the list."]
+
+
+def test_paragraphs_list_item_continuation_ends_at_a_heading_with_no_blank_line():
+    body = "- a list item\n## A heading right after, no blank line\nReal paragraph text.\n"
+    assert prose_length.paragraphs(body) == ["Real paragraph text."]
+
+
 def test_run_flags_a_paragraph_over_the_ceiling(tmp_path):
     long_para = " ".join(["word"] * (prose_length.MAX_PARAGRAPH_WORDS + 1))
     (tmp_path / "doc.md").write_text(f"# Doc\n\n{long_para}\n", encoding="utf-8")
     ok, detail = prose_length.run(tmp_path)
     assert not ok and "paragraph too long" in detail and "doc.md" in detail
+
+
+def test_run_catches_a_long_paragraph_wrapped_across_a_bold_started_line(tmp_path):
+    # the under-counting failure mode: a wrapped line starting "**bold**" or "--flag" must not
+    # let a genuinely-too-long paragraph slip through as two short, separately-measured pieces
+    half = " ".join(["word"] * 75)
+    text = f"# Doc\n\n{half}\n**bold** {half}\n"
+    (tmp_path / "doc.md").write_text(text, encoding="utf-8")
+    ok, detail = prose_length.run(tmp_path)
+    assert not ok and "paragraph too long" in detail
 
 
 def test_run_passes_a_paragraph_at_exactly_the_ceiling(tmp_path):

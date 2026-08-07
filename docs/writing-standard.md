@@ -36,11 +36,13 @@ If a passage is operational, conditional, tabular, or a safety or verification i
 ## Paragraph length
 
 Lead with the answer (above) keeps most paragraphs well under this on its own. The
-`prose_length` check enforces a mechanical ceiling of 100 words per paragraph across the kit's
-markdown, so sprawl fails the gate instead of resting on editorial judgment alone. Exempt: the
-append-only historical records (`docs/decisions/`, `docs/DEBT.md`, `docs/dogfooding.md`,
-`docs/audit/`), where an old entry cannot be rewritten to comply without breaking the record's
-own append-only rule.
+`prose_length` check enforces a mechanical ceiling of 100 words on a narrative paragraph in the
+kit's markdown, so sprawl fails the gate instead of resting on editorial judgment alone. It
+measures prose only: a heading, a list item (wrapped or not), a table row, a blockquote, and a
+fenced code block are not paragraphs and stay unmeasured. Exempt entirely: the append-only
+historical records (`docs/decisions/`, `docs/DEBT.md`, `docs/dogfooding.md`, `docs/audit/`),
+where an old entry cannot be rewritten to comply without breaking the record's own append-only
+rule.
 
 ## Banned register
 

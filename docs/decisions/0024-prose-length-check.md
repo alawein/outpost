@@ -12,12 +12,14 @@ editorial judgment only. The ACK capability comparison
 gate as a capability worth considering (a common lint pattern, GENERAL-PRACTICE: the same idea
 appears in Vale, proselint, and other prose linters; not something specific to ACK).
 
-Before adding a fixed threshold, the tracked markdown was measured directly (972 paragraphs
-across every tracked `.md` file). Outside four append-only historical paths
-(`docs/decisions/`, `docs/DEBT.md`, `docs/dogfooding.md`, `docs/audit/`), the longest existing
-paragraph is 84 words and the 99th percentile is 71; inside those four paths, several ADR
-Context sections and debt entries run well past 100 words, because they were written to record a
-real decision or incident once and are not meant to be rewritten later.
+Before adding a fixed threshold, the tracked markdown was measured directly with the check's own
+paragraph splitter (431 paragraphs across every tracked `.md` file; a paragraph excludes a list
+item and its wrapped continuation lines, so a long bulleted list does not inflate the count).
+Outside four append-only historical paths (`docs/decisions/`, `docs/DEBT.md`,
+`docs/dogfooding.md`, `docs/audit/`), 264 paragraphs remain: the longest is 84 words and the 99th
+percentile is 78. Inside those four paths, several ADR Context sections and debt entries run
+well past 100 words, because they were written to record a real decision or incident once and
+are not meant to be rewritten later.
 
 ## Decision
 
@@ -31,9 +33,10 @@ bounding future sprawl. Documented in `docs/writing-standard.md`.
 
 ## Alternatives
 
-- A lower ceiling closer to the p95 (57-72 words). Rejected: would fail several existing,
-  already-accepted paragraphs on day one, forcing either an editorial rewrite pass unrelated to
-  this change's scope or a temporary grandfather list; 100 admits the real corpus cleanly.
+- A lower ceiling closer to the p95-p99 range (62-78 words). Rejected: would fail several
+  existing, already-accepted paragraphs on day one, forcing either an editorial rewrite pass
+  unrelated to this change's scope or a temporary grandfather list; 100 admits the real corpus
+  cleanly.
 - Copy ACK's specific threshold value. Rejected: not evaluated, since no ACK prompt or config
   text was read while designing this check, only the abstract idea that such a gate exists; the
   number here comes from measuring this repo's own tracked markdown.
