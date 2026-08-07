@@ -37,7 +37,8 @@ outpost/
 - `kit/adapters/` owns per-tool install paths; consumer overlays stay under `prompts/<tool>/`.
 - `plugins/outpost/` is generated; regenerate with `python tools/build.py plugin` instead of hand-editing skills.
 - `validate.py` / `kit/checks/` prove kit truth; they do not validate a consumer install (use `--verify`).
-- `docs/decisions/` is append-only ADR history.
+- `docs/decisions/` is append-only ADR history. `docs/adr/` is a compliance stub for the alawein
+  org's doctrine gate (ADR-0021); it holds no real records.
 
 ## Related
 

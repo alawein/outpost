@@ -20,6 +20,12 @@ Format follows Keep a Changelog (https://keepachangelog.com). The kit uses SemVe
   and the v0.2 refinement decisions, including the rejected byte-match ownership fix kept as a
   negative.
 
+### Fixed
+
+- `docs/adr/0001-repo-architecture.md` no longer contradicts `docs/decisions/`, Outpost's real
+  ADR ledger; it is now an explicit compliance stub for the alawein org's doctrine gate. Recorded
+  in ADR-0021.
+
 ## [0.2.1] - 2026-07-23
 
 ### Fixed
