@@ -8,8 +8,8 @@ import pytest
 
 from kit.adapters.base import Action
 from kit.checks import (adapters, banned_sync, catalog, command_lists, doc_truth, docs,
-                        label_refs, plugin_orphans, prompts, registries, roadmap, structure,
-                        template_refs, templates, traces)
+                        label_refs, plugin_orphans, prompts, prose_length, registries, roadmap,
+                        structure, template_refs, templates, traces)
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 # .claude holds machine-local tool config (untracked, gitignored); exclude it so an untracked
@@ -241,7 +241,8 @@ def test_docs_sync_catches_a_hand_edited_roadmap_checks_line(repo_copy):
     from kit.checks import docs_sync
     p = repo_copy / "docs" / "ROADMAP.md"
     # corrupt whatever number-word the generator wrote, so the test does not pin the check count
-    text, n = re.subn(r"(<!-- GENERATED:checks-line -->)\w+ checks",
+    # (the word can be hyphenated, e.g. "twenty-one", once the count crosses 20)
+    text, n = re.subn(r"(<!-- GENERATED:checks-line -->)[\w-]+ checks",
                       r"\1zero checks", p.read_text(encoding="utf-8"))
     assert n == 1 and "zero checks" in text  # guard: the corruption must exist
     p.write_text(text, encoding="utf-8")
@@ -392,3 +393,11 @@ def test_label_refs_passes_with_only_registered_and_retained_labels(repo_copy):
         encoding="utf-8")
     ok, detail = label_refs.run(repo_copy)
     assert ok, detail
+
+
+def test_prose_length_catches_a_sprawling_paragraph_in_a_real_doc(repo_copy):
+    p = repo_copy / "docs" / "contributing.md"
+    long_para = " ".join(["word"] * (prose_length.MAX_PARAGRAPH_WORDS + 1))
+    p.write_text(p.read_text(encoding="utf-8") + f"\n\n{long_para}\n", encoding="utf-8")
+    ok, detail = prose_length.run(repo_copy)
+    assert not ok and "docs/contributing.md" in detail and "paragraph too long" in detail
