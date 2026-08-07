@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "outpost"
-version = "0.2.1"
+version = "0.3.0"
 description = "A small personal kit that helps coding agents read a repo, plan, edit, test, review, prepare PRs, and hand off. Claude Code is the primary target; Codex, Cursor, and GitHub Copilot are adapters."
 readme = "README.md"
 requires-python = ">=3.9"

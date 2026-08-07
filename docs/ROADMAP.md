@@ -14,7 +14,7 @@ The kit helps a coding agent read a repo, plan a change, edit, test, review, dra
 
 ## Where it stands
 
-Current release: v0.2.1. The table is the live state.
+Current release: v0.3.0. The table is the live state.
 
 | Area | State | What is in it |
 |---|---|---|
