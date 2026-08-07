@@ -1,0 +1,42 @@
+{
+  "labels": [
+    { "name": "type:bug", "color": "1d76db", "description": "A defect: something does not work as intended." },
+    { "name": "type:feature", "color": "1d76db", "description": "A new capability or enhancement." },
+    { "name": "type:docs", "color": "1d76db", "description": "Documentation only, no behavior change." },
+    { "name": "type:refactor", "color": "1d76db", "description": "Reshapes code without changing behavior." },
+    { "name": "type:maintenance", "color": "1d76db", "description": "Upkeep: dependencies, CI, cleanup." },
+    { "name": "type:security", "color": "1d76db", "description": "A security fix or hardening." },
+
+    { "name": "area:prompts", "color": "0e8a16", "description": "The prompt pack under prompts/core/." },
+    { "name": "area:adapters", "color": "0e8a16", "description": "Per-tool install paths under kit/adapters/." },
+    { "name": "area:installer", "color": "0e8a16", "description": "install.py and kit/installers/." },
+    { "name": "area:plugin", "color": "0e8a16", "description": "The generated Claude Code plugin under plugins/outpost/." },
+    { "name": "area:docs", "color": "0e8a16", "description": "Documentation under docs/." },
+    { "name": "area:governance", "color": "0e8a16", "description": "Labels, templates, CODEOWNERS, and repo process." },
+    { "name": "area:release", "color": "0e8a16", "description": "Versioning, changelog, and the release flow." },
+
+    { "name": "priority:p0", "color": "b60205", "description": "Drop everything: a broken gate or a release blocker." },
+    { "name": "priority:p1", "color": "d93f0b", "description": "Next up: real user impact, no workaround." },
+    { "name": "priority:p2", "color": "fbca04", "description": "Normal priority: schedule it." },
+    { "name": "priority:p3", "color": "c5def5", "description": "Low priority: nice to have." },
+
+    { "name": "status:blocked", "color": "5319e7", "description": "Cannot proceed until a named blocker clears." },
+    { "name": "status:needs-decision", "color": "5319e7", "description": "Waiting on an ADR or an owner call." },
+    { "name": "status:ready", "color": "5319e7", "description": "Unblocked and ready to pick up." },
+
+    { "name": "release:major", "color": "b60205", "description": "Ships in a breaking (major) release." },
+    { "name": "release:minor", "color": "fbca04", "description": "Ships in a backward-compatible (minor) release." },
+    { "name": "release:patch", "color": "0e8a16", "description": "Ships in a patch release." },
+
+    { "name": "provenance:clean-room", "color": "cfd3d7", "description": "Independently designed from an abstract capability, not copied." },
+    { "name": "provenance:needs-review", "color": "cfd3d7", "description": "Provenance not yet confirmed; needs a verdict before merge." }
+  ],
+  "migration": {
+    "bug": ["type:bug"],
+    "enhancement": ["type:feature"],
+    "documentation": ["type:docs"]
+  },
+  "retained_defaults": [
+    "duplicate", "good first issue", "help wanted", "invalid", "question", "wontfix"
+  ]
+}

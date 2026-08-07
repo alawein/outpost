@@ -29,3 +29,5 @@ Start from `0000-template.md` when adding a record.
 - 0020: admit `repo-hygiene-sweep` for ordered fleet review and gated cleanup.
 - 0021: `docs/adr/` is a compliance stub for the alawein doctrine gate; `docs/decisions/` stays
   the one real ADR ledger.
+- 0022: namespaced label governance (`type`, `area`, `priority`, `status`, `release`,
+  `provenance`), migrating from the GitHub defaults without deleting them.

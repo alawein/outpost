@@ -20,6 +20,7 @@ REQUIRED_DOCS = {
     "docs/token-budget.md": 200,
     "docs/dogfooding.md": 120,
     "docs/DEBT.md": 60,
+    "docs/labels.md": 120,
 }
 
 

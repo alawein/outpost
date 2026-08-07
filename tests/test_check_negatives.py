@@ -8,8 +8,8 @@ import pytest
 
 from kit.adapters.base import Action
 from kit.checks import (adapters, banned_sync, catalog, command_lists, doc_truth, docs,
-                        plugin_orphans, prompts, registries, roadmap, structure, template_refs,
-                        templates, traces)
+                        label_refs, plugin_orphans, prompts, registries, roadmap, structure,
+                        template_refs, templates, traces)
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 # .claude holds machine-local tool config (untracked, gitignored); exclude it so an untracked
@@ -361,3 +361,34 @@ def test_traces_catches_a_seeded_sync_estate_path(repo_copy):
     (repo_copy / "docs" / "example.md").write_text(f"cloned from {marker}\n", encoding="utf-8")
     ok, detail = traces.run(repo_copy)
     assert not ok and "sync estate path" in detail
+
+
+def test_label_refs_catches_an_unregistered_label_in_a_flow_list(repo_copy):
+    forms = repo_copy / ".github" / "ISSUE_TEMPLATE"
+    forms.mkdir(parents=True, exist_ok=True)
+    (forms / "bug.yml").write_text(
+        'name: Bug report\ndescription: x\nlabels: ["type:bug", "needs-triage"]\nbody: []\n',
+        encoding="utf-8")
+    ok, detail = label_refs.run(repo_copy)
+    assert not ok and "needs-triage" in detail
+
+
+def test_label_refs_catches_an_unregistered_label_in_a_block_list(repo_copy):
+    forms = repo_copy / ".github" / "ISSUE_TEMPLATE"
+    forms.mkdir(parents=True, exist_ok=True)
+    (forms / "feature.yml").write_text(
+        "name: Feature request\ndescription: x\nlabels:\n  - type:feature\n  - stale-label\nbody: []\n",
+        encoding="utf-8")
+    ok, detail = label_refs.run(repo_copy)
+    assert not ok and "stale-label" in detail
+
+
+def test_label_refs_passes_with_only_registered_and_retained_labels(repo_copy):
+    forms = repo_copy / ".github" / "ISSUE_TEMPLATE"
+    forms.mkdir(parents=True, exist_ok=True)
+    (forms / "bug.yml").write_text(
+        'name: Bug report\ndescription: x\nlabels: ["type:bug", "area:prompts", "good first issue"]\n'
+        "body: []\n",
+        encoding="utf-8")
+    ok, detail = label_refs.run(repo_copy)
+    assert ok, detail

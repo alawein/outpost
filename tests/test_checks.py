@@ -3,7 +3,7 @@ import pathlib
 import re
 import subprocess
 
-from kit.checks import prompts, secrets, voice
+from kit.checks import label_refs, prompts, secrets, voice
 from kit.checks.run import run_all
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -221,6 +221,30 @@ def test_voice_reports_a_dash_only_file_as_a_dash_not_generic_non_ascii(tmp_path
     (tmp_path / "dash.md").write_text(dashed, encoding="utf-8")
     ok, detail = voice.run(tmp_path)
     assert not ok and "dash" in detail and "non-ascii" not in detail
+
+
+def test_label_refs_passes_with_no_issue_forms_yet():
+    ok, detail = label_refs.run(ROOT)
+    assert ok and "nothing to check" in detail
+
+
+def test_extract_label_refs_flow_list():
+    text = 'labels: ["type:bug", "area:docs"]\n'
+    assert label_refs.extract_label_refs(text) == ["type:bug", "area:docs"]
+
+
+def test_extract_label_refs_block_list():
+    text = "labels:\n  - type:bug\n  - area:docs\nbody: []\n"
+    assert label_refs.extract_label_refs(text) == ["type:bug", "area:docs"]
+
+
+def test_extract_label_refs_stops_at_lower_indentation():
+    text = "labels:\n  - type:bug\nbody:\n  - type: markdown\n"
+    assert label_refs.extract_label_refs(text) == ["type:bug"]
+
+
+def test_extract_label_refs_ignores_text_with_no_labels_key():
+    assert label_refs.extract_label_refs("name: Bug\ndescription: x\n") == []
 
 
 def test_voice_flags_banned_register_but_exempts_the_standard(tmp_path):

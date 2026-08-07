@@ -124,6 +124,7 @@ Each tool writes to its own paths, so they can live in one project. The installe
 - [docs/ROADMAP.md](docs/ROADMAP.md)
 - [docs/adapters.md](docs/adapters.md)
 - [docs/plugin.md](docs/plugin.md)
+- [docs/labels.md](docs/labels.md)
 - [AGENTS.md](AGENTS.md)
 - [CLAUDE.md](CLAUDE.md)
 

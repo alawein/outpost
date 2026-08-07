@@ -20,7 +20,7 @@ dev = ["pytest>=7"]
 # (docs/ROADMAP.md), not a v0.1.0 promise.
 
 [tool.setuptools]
-packages = ["kit", "kit.catalog", "kit.checks", "kit.installers", "kit.adapters"]
+packages = ["kit", "kit.catalog", "kit.checks", "kit.installers", "kit.adapters", "kit.labels"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
