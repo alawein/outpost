@@ -14,6 +14,20 @@ Closed with the PR that closed it; never delete one.
 
 ## Open
 
+- 2026-08-07, `plugins/outpost/` is not listed in a Claude Code marketplace. Anthropic runs two
+  public marketplaces: `claude-plugins-official` (curated at Anthropic's sole discretion; no
+  application process; the submission form does not add plugins there) and
+  `claude-plugins-community` (public, Apache-2.0, a read-only mirror; submission is documented at
+  code.claude.com/docs/en/plugins under "submit your plugin to the official marketplace" and
+  reached via the short link clau.de/plugin-directory-submission, verified 2026-08-07 by
+  following the redirect; approved plugins are pinned to a commit SHA and the public catalog
+  syncs nightly). Neither is automatic from the plugin's own manifest. Taken because listing
+  Outpost anywhere third parties would see it is an outbound send gated separately from this
+  research task, and the community-marketplace path needs a submission, a review outcome, and a
+  sync delay this session cannot complete or predict. Close by reading the current submission
+  docs at that URL, following them for `plugins/outpost`, and confirming the entry appears in
+  https://github.com/anthropics/claude-plugins-community/blob/main/.claude-plugin/marketplace.json.
+
 - 2026-08-07, no structural check on issue-form YAML. `kit/checks/label_refs.py` validates only
   `labels:` references in `.github/ISSUE_TEMPLATE/*.yml`; nothing checks GitHub's actual
   issue-form schema (a duplicate `id:` within one form, a dropdown missing `options:`). GitHub
