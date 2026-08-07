@@ -12,6 +12,8 @@ Format follows Keep a Changelog (https://keepachangelog.com). The kit uses SemVe
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-08-07
+
 ### Added
 
 - Three GitHub-rendered Mermaid diagrams: the workflow path in `docs/workflow.md`, the artifact
