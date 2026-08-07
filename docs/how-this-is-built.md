@@ -19,9 +19,10 @@ differently, a real unsafe default it prevents, the exact contract line that blo
 dogfood run, and a stated condition that would justify deleting it later. A prompt that cannot
 state all six does not enter the pack.
 
-[ADR-0023](decisions/0023-admit-check-intent.md) and
-[ADR-0024](decisions/0024-prose-length-check.md) are recent, real examples: both name their
-distinct job, their nearest sibling, and their unsafe default before either shipped.
+[ADR-0023](decisions/0023-admit-check-intent.md) is a recent, real example: it names its
+distinct job, its nearest sibling, and its unsafe default before it shipped.
+[ADR-0024](decisions/0024-prose-length-check.md) holds a different kind of check on itself: before
+picking the 100-word ceiling below, it measured the real corpus rather than asserting a number.
 
 ## The dogfooding ledger is honest, not curated
 
@@ -32,8 +33,10 @@ stays, unedited, because the point of the ledger is to be checkable, not to look
 
 ## The gate is the gate
 
-`python validate.py` runs 21 checks on every change: the catalog matches the prompt files, the
-generated plugin matches the catalog, no personal trace or secret is tracked, and (since
-[ADR-0024](decisions/0024-prose-length-check.md)) no paragraph in the tracked docs sprawls past
-100 words. The same gate that blocks a stranger's pull request blocked every change that built
-this page.
+`python validate.py` runs the kit's full check suite on every change: the catalog matches the
+prompt files, the generated plugin matches the catalog, no personal trace or secret is tracked,
+and (since [ADR-0024](decisions/0024-prose-length-check.md)) no paragraph in the tracked docs,
+outside the append-only records that ADR-0024 itself exempts, sprawls past 100 words. The exact
+check count lives in [docs/ROADMAP.md](ROADMAP.md), generated from the catalog so it can't drift
+here. The same gate that blocks a stranger's pull request blocked every change that built this
+page.
