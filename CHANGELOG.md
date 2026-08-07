@@ -14,6 +14,9 @@ Format follows Keep a Changelog (https://keepachangelog.com). The kit uses SemVe
 
 ### Added
 
+- `prose_length`, a gate check that fails a markdown paragraph over 100 words (measured against
+  the tracked tree; nothing needed a rewrite to adopt it), exempt for the append-only historical
+  records (`docs/decisions/`, `docs/DEBT.md`, `docs/dogfooding.md`, `docs/audit/`). ADR-0024.
 - `check-intent`, a structured plan-to-diff reconciliation that runs right before `code-review`:
   marks every plan item Done, Missing, or Changed-approach, and every untraceable file Extra.
   ADR-0023 records the admission (independently designed; verified CLEAN-ROOM against ACK's

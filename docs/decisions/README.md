@@ -32,3 +32,5 @@ Start from `0000-template.md` when adding a record.
 - 0022: namespaced label governance (`type`, `area`, `priority`, `status`, `release`,
   `provenance`), migrating from the GitHub defaults without deleting them.
 - 0023: admit `check-intent`, a structured plan-to-diff reconciliation before `code-review`.
+- 0024: a mechanical 100-word paragraph-length ceiling (`prose_length`), exempt for the
+  append-only historical records.
