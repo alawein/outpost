@@ -57,6 +57,10 @@ The `voice` check enforces this list across the kit's markdown (this file is exe
 - Write for the next reader action: install, run, inspect, extend, debug, or release.
 - Show the next useful layer first. Link to deeper detail instead of front-loading it.
 - Preserve real content when simplifying: merge before deleting.
+- Cite evidence a reader can actually check. A gitignored scratch path (`.superpowers/`,
+  `docs/superpowers/`) is not a source; state the finding directly instead of pointing at
+  something unreachable. Naming the scratch convention itself (what it is, that a design lived
+  there before this record) is fine; citing its content as proof of a claim is not.
 
 ## Sources
 
