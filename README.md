@@ -139,6 +139,7 @@ Each tool writes to its own paths, so they can live in one project. The installe
 - [docs/cadence.md](docs/cadence.md)
 - [docs/ROADMAP.md](docs/ROADMAP.md)
 - [docs/adapters.md](docs/adapters.md)
+- [docs/how-this-is-built.md](docs/how-this-is-built.md)
 - [docs/plugin.md](docs/plugin.md)
 - [docs/labels.md](docs/labels.md)
 - [AGENTS.md](AGENTS.md)
