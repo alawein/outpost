@@ -10,6 +10,23 @@ last_updated: 2026-07-26
 
 A clean release has one version, one changelog entry, one tag, and passing checks.
 
+A release PR is a regular PR that keeps going: same draft-to-squash-merge path
+(`docs/decisions/0018-solo-review-model.md`), then a tag and a GitHub release.
+
+```mermaid
+stateDiagram-v2
+    [*] --> Draft: branch pushed
+    Draft --> Checks: marked ready
+    Checks --> Checks: push a fix
+    Checks --> Review: green, external PR
+    Checks --> SquashMerge: green, owner's own PR
+    Review --> SquashMerge: approved
+    SquashMerge --> [*]: a regular PR
+    SquashMerge --> Tag: a release PR
+    Tag --> GitHubRelease
+    GitHubRelease --> [*]
+```
+
 ## Versioning
 
 SemVer. One version number lives in three places that must agree:

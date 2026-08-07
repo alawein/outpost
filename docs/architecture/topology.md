@@ -40,6 +40,25 @@ outpost/
 - `docs/decisions/` is append-only ADR history. `docs/adr/` is a compliance stub for the alawein
   org's doctrine gate (ADR-0021); it holds no real records.
 
+## Artifact flow
+
+The catalog drives everything else; `python validate.py` proves the generated artifacts still
+match it (the arrows into "checks" below).
+
+```mermaid
+flowchart TD
+    Catalog["kit/catalog/catalog.json"] --> Prompts["prompts/core/*.md"]
+    Catalog --> Templates["templates/_src/"]
+    Prompts --> Adapters["kit/adapters/*.py"]
+    Adapters --> Consumer["a consumer project (install.py)"]
+    Catalog --> Plugin["plugins/outpost/ (generated)"]
+    Catalog --> Docs["README.md and docs/*.md generated spans"]
+    Prompts --> Checks["kit/checks/* (python validate.py)"]
+    Catalog --> Checks
+    Plugin --> Checks
+    Docs --> Checks
+```
+
 ## Related
 
 - [README.md](../../README.md): install, commands, supported tools.

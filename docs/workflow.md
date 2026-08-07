@@ -14,6 +14,12 @@ Outpost is one path from first repo read to handoff, with the same prompts acros
 
 Run the step that matches the work in front of you. Skip any step a change does not need.
 
+```mermaid
+flowchart LR
+    Start --> Plan --> Build --> Check --> Ship --> Record
+    Check -.->|iterate| Build
+```
+
 1. Start. `orient-repo` maps an unfamiliar repo before you touch it; `interrogate` hardens a vague ask into a defined one before you plan.
 2. Plan. `plan-change` scopes a non-trivial change against the real repo. `split-change` breaks an over-scoped change into revertible units. `premortem` assumes a costly plan failed and prevents the top causes.
 3. Build. `implement-change` makes the smallest correct edits with the tree runnable. `write-tests` covers the behavior and the contract. `debug-failure` reproduces then root-causes a break. `refactor-safely` changes shape, not behavior. `simplify` folds duplication out of changed code.
