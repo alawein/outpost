@@ -1,9 +1,9 @@
 ---
-type: canonical
-source: none
-sync: none
+type: derived
+source: synthetic eval fixture content, not real project documentation
+sync: manual
 sla: none
-last_updated: 2026-01-01
+last_updated: 2026-08-08
 ---
 
 # Debt
