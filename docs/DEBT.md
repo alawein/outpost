@@ -14,6 +14,13 @@ Closed with the PR that closed it; never delete one.
 
 ## Open
 
+- 2026-08-08, only 5 of 26 core prompts have a behavioral eval (`interrogate`, `plan-change`,
+  `record-decision`, `write-tests`, `debt-log`; see `docs/decisions/0026-prompt-behavioral-eval.md`).
+  Taken because several of the remaining prompts (`panel`, `prove`, `grill`, `premortem`) are
+  adversarial or exploratory by design and do not reduce to a mechanically checkable assertion
+  without their own design work. Revisit by picking the next prompt with a clear stop condition
+  and adding an `evals/<name>/` directory following the existing five as a template.
+
 - 2026-08-07, `plugins/outpost/` is not listed in a Claude Code marketplace. Anthropic runs two
   public marketplaces: `claude-plugins-official` (curated at Anthropic's sole discretion; no
   application process; the submission form does not add plugins there) and
