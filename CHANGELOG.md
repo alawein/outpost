@@ -12,6 +12,21 @@ Format follows Keep a Changelog (https://keepachangelog.com). The kit uses SemVe
 
 ## [Unreleased]
 
+### Fixed
+
+- `docs/how-this-is-built.md` claimed ADR-0024 named a distinct job, nearest sibling, and unsafe
+  default like a prompt admission; it does not, since it adds a check, not a prompt. Corrected,
+  along with a hardcoded check count that had no drift protection (now points at
+  `docs/ROADMAP.md`'s generated line instead), an absolute claim about the 100-word ceiling that
+  omitted its own documented exemptions, and a README line that contradicted `converge`'s
+  Claude-only scope stated nine lines above it. Caught by an independent, dogfooded
+  `pr-review-toolkit:review-pr` pass on the already-merged PR that introduced them.
+
+### Changed
+
+- ADR-0013 (prompt admission) moved from Proposed to Accepted: two admissions (ADR-0020,
+  ADR-0023) had already followed it as binding.
+
 ### Added
 
 - A house-voice rule in `docs/writing-standard.md`: cite evidence a reader can check, never a

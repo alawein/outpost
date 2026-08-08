@@ -1,6 +1,6 @@
 # 0013: Prompt admission
 
-Status: Proposed
+Status: Accepted
 Date: 2026-07-11
 
 ## Context
