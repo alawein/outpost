@@ -43,6 +43,10 @@ Format follows Keep a Changelog (https://keepachangelog.com). The kit uses SemVe
 
 ### Added
 
+- A lightweight behavioral eval harness (`tools/run_evals.py`, `evals/`) for 5 pilot core prompts,
+  running each through a real `claude -p` call against a seeded fixture and checking mechanical
+  assertions (file created/unmodified, a tool not used, text contains a value). Opt-in, not wired
+  into `validate.py` or CI. ADR-0026.
 - A house-voice rule in `docs/writing-standard.md`: cite evidence a reader can check, never a
   gitignored scratch path as if it were a verifiable source. Naming the scratch convention itself
   stays fine; citing its content as proof does not.
