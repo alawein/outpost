@@ -24,6 +24,9 @@ Format follows Keep a Changelog (https://keepachangelog.com). The kit uses SemVe
 
 ### Changed
 
+- ADR-0013's prompt-admission bar relaxed (ADR-0025): distinct job, nearest sibling, and unsafe
+  default stay required at admission; binding mechanism, dogfood case, and deletion condition
+  become recommended, fillable in a follow-up PR.
 - ADR-0013 (prompt admission) moved from Proposed to Accepted: two admissions (ADR-0020,
   ADR-0023) had already followed it as binding.
 

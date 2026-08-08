@@ -16,7 +16,7 @@ Start from `0000-template.md` when adding a record.
 - 0010: the kit is ACK, one name for the plugin, the installer state dir, and the distribution (extends 0007).
 - 0011: the review suite, three new core prompts and a five-command review suite under `/ack:*` (widens 0002).
 - 0012: no personal trace in the tracked tree, enforced by the `traces` check; the allowed homes are CODEOWNERS, the append-only records, and the check's own pattern list.
-- 0013: prompt admission, an entry test for prompt 26 and beyond (distinct job, nearest sibling, unsafe default, binding mechanism, dogfood case, deletion condition). Accepted 2026-08-07 (originally proposed 2026-07-11), on the evidence of two admissions (0020, 0023) already following it.
+- 0013: prompt admission, an entry test for prompt 26 and beyond (distinct job, nearest sibling, unsafe default, binding mechanism, dogfood case, deletion condition). Accepted 2026-08-07 (originally proposed 2026-07-11), on the evidence of two admissions (0020, 0023) already following it. Superseded by 0025.
 - 0014: pack consolidation after the Phase 1 audit; seven owner rulings, two kept-pair negatives, `deassume` folded into `repo-review`, `converge` made Claude-only, `prove`, `panel`, and `write-doc` rewritten.
 - 0015: keep the prompt and plugin-skill copies; the plugin format mandates the nested skills tree, so the flat authored `prompts/core` stays the source and the mirror stays generated.
 - 0016: retire two dead installer paths (the `.agi-coding-kit` manifest migration and the v0.24 Cursor rename sweep); keep the records-less ownership fallback, which review showed is load-bearing for correctness.
@@ -34,3 +34,6 @@ Start from `0000-template.md` when adding a record.
 - 0023: admit `check-intent`, a structured plan-to-diff reconciliation before `code-review`.
 - 0024: a mechanical 100-word paragraph-length ceiling (`prose_length`), exempt for the
   append-only historical records.
+- 0025: relax prompt admission to three required fields (distinct job, nearest sibling, unsafe
+  default) and three recommended, non-blocking ones (binding mechanism, dogfood case, deletion
+  condition). Supersedes 0013.
