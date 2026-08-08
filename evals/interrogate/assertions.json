@@ -1,0 +1,5 @@
+[
+  {"type": "file_not_modified", "path": "app.py"},
+  {"type": "tool_not_used", "names": ["Edit", "Write", "MultiEdit"]},
+  {"type": "text_contains", "value": "?"}
+]
