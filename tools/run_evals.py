@@ -9,8 +9,8 @@ the transcript against tools/eval_assertions.py's mechanical assertions.
   python tools/run_evals.py --keep-temp              # do not delete temp dirs (debugging)
 
 Opt-in only: never wired into validate.py or CI. Requires the `claude` CLI installed and
-authenticated. Exit codes: 0 all evals passed, 1 at least one eval failed, 2 the `claude` CLI is
-not on PATH (checked once, up front, before any eval runs).
+authenticated. Exit codes: 0 all evals passed, 1 at least one eval failed or no evals found,
+2 the `claude` CLI is not on PATH (checked once, up front, before any eval runs).
 """
 from __future__ import annotations
 
@@ -62,13 +62,23 @@ def run_one_eval(name: str, evals_dir: pathlib.Path, repo_root: pathlib.Path, ti
     fixture_dir = eval_dir / "fixture"
 
     tmp = pathlib.Path(tempfile.mkdtemp(prefix=f"outpost-eval-{name}-"))
-    shutil.copytree(fixture_dir, tmp, dirs_exist_ok=True)
 
-    install = subprocess.run(
-        [sys.executable, str(repo_root / "install.py"), "--tool", "claude",
-         "--project", str(tmp), "--only", name],
-        capture_output=True, text=True, timeout=60,
-    )
+    try:
+        shutil.copytree(fixture_dir, tmp, dirs_exist_ok=True)
+    except (FileNotFoundError, OSError) as exc:
+        return {"name": name, "status": "error", "results": None,
+                "detail": f"could not copy fixture: {exc}", "tmp_dir": str(tmp)}
+
+    try:
+        install = subprocess.run(
+            [sys.executable, str(repo_root / "install.py"), "--tool", "claude",
+             "--project", str(tmp), "--only", name],
+            capture_output=True, text=True, timeout=60,
+        )
+    except subprocess.TimeoutExpired:
+        return {"name": name, "status": "error", "results": None,
+                "detail": "install.py timed out after 60s", "tmp_dir": str(tmp)}
+
     if install.returncode != 0:
         return {"name": name, "status": "error", "results": None,
                 "detail": f"install.py failed: {install.stderr.strip()}", "tmp_dir": str(tmp)}
@@ -117,12 +127,12 @@ def main(argv: list[str] | None = None) -> int:
 
     names = discover_evals(EVALS_DIR)
     if args.only:
-        wanted = set(args.only.split(","))
+        wanted = {n.strip() for n in args.only.split(",")}
         names = [n for n in names if n in wanted]
 
     if not names:
         print("no evals found under evals/", file=sys.stderr)
-        return 2
+        return 1
 
     evals_passed = 0
     for name in names:
