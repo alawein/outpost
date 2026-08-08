@@ -42,14 +42,14 @@ def test_hash_tree_skips_dot_git_directory():
         assert set(hashes) == {"app.py"}
 
 
-def test_discover_evals_finds_every_subdir_with_a_task_md():
+def test_discover_evals_finds_every_subdir_with_a_task_txt():
     with tempfile.TemporaryDirectory() as tmp:
         evals_dir = pathlib.Path(tmp)
         (evals_dir / "alpha").mkdir()
-        (evals_dir / "alpha" / "task.md").write_text("do alpha")
+        (evals_dir / "alpha" / "task.txt").write_text("do alpha")
         (evals_dir / "beta").mkdir()
-        (evals_dir / "beta" / "task.md").write_text("do beta")
-        (evals_dir / "not_an_eval").mkdir()  # no task.md, must be excluded
+        (evals_dir / "beta" / "task.txt").write_text("do beta")
+        (evals_dir / "not_an_eval").mkdir()  # no task.txt, must be excluded
         assert discover_evals(evals_dir) == ["alpha", "beta"]
 
 
@@ -65,10 +65,10 @@ def test_run_one_eval_handles_missing_fixture():
         evals_dir = pathlib.Path(evals_tmp)
         repo_root = pathlib.Path(repo_tmp)
 
-        # Set up an eval with task.md and assertions.json but no fixture/ directory
+        # Set up an eval with task.txt and assertions.json but no fixture/ directory
         eval_dir = evals_dir / "broken_eval"
         eval_dir.mkdir()
-        (eval_dir / "task.md").write_text("some task")
+        (eval_dir / "task.txt").write_text("some task")
         (eval_dir / "assertions.json").write_text("[]")
         # Note: no fixture/ directory created
 

@@ -71,26 +71,26 @@ def parse_stream_json(stdout: str) -> dict:
 
 
 def discover_evals(evals_dir: pathlib.Path) -> list[str]:
-    """Sorted names of every immediate subdirectory of evals_dir containing a task.md."""
+    """Sorted names of every immediate subdirectory of evals_dir containing a task.txt."""
     if not evals_dir.is_dir():
         return []
     return sorted(
-        p.name for p in evals_dir.iterdir() if p.is_dir() and (p / "task.md").is_file()
+        p.name for p in evals_dir.iterdir() if p.is_dir() and (p / "task.txt").is_file()
     )
 
 
 def run_one_eval(name: str, evals_dir: pathlib.Path, repo_root: pathlib.Path, timeout: int) -> dict:
     """Returns a dict carrying "tmp_dir" (str) once the temp dir has been created, so the caller
     can clean it up or, with --keep-temp, leave it for inspection regardless of how this eval
-    turned out. A failure reading task.md/assertions.json happens before the temp dir exists, so
+    turned out. A failure reading task.txt/assertions.json happens before the temp dir exists, so
     that one error dict omits "tmp_dir" — there is nothing to clean up."""
     eval_dir = evals_dir / name
     try:
-        task_text = (eval_dir / "task.md").read_text(encoding="utf-8")
+        task_text = (eval_dir / "task.txt").read_text(encoding="utf-8")
         assertions = json.loads((eval_dir / "assertions.json").read_text(encoding="utf-8"))
     except Exception as exc:
         return {"name": name, "status": "error", "results": None,
-                "detail": f"could not read task.md/assertions.json: {exc}"}
+                "detail": f"could not read task.txt/assertions.json: {exc}"}
     fixture_dir = eval_dir / "fixture"
 
     tmp = pathlib.Path(tempfile.mkdtemp(prefix=f"outpost-eval-{name}-"))
