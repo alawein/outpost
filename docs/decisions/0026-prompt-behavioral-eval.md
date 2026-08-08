@@ -66,4 +66,7 @@ than a precise "DEBT.md specifically grew" check); a fifth assertion type
 for the mechanical assertions producing false negatives on a correct-but-differently-worded
 response (e.g. `plan-change`'s exact-heading `text_contains` checks would fail a response that
 uses equivalent but different section names); if that happens often, it is the signal to invest
-in the LLM-as-judge alternative above.
+in the LLM-as-judge alternative above. Each fixture also receives the installed `CLAUDE.md` and
+`.claude/settings.json` from `install.py`'s normal install, not just the piloted skill file, so a
+no-edit eval's pass is attributable to the guide-plus-skill combination, not proof the skill alone
+would behave the same way with no guide present.

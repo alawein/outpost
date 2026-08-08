@@ -26,9 +26,10 @@ outpost/
   prompts/                   # core + per-tool prompt overlays
   plugins/outpost/           # Claude Code plugin (skills, commands, hooks)
   templates/                 # consumer guides and overlays
+  evals/                     # behavioral eval fixtures (task.md, assertions.json) per piloted prompt
   docs/                      # onboarding, workflow, ADRs, releasing
   tests/                     # pytest
-  tools/                     # build helpers (plugin / docs / templates)
+  tools/                     # build helpers (plugin / docs / templates) and the behavioral eval harness (run_evals.py, eval_assertions.py)
 ```
 
 ## Role boundaries

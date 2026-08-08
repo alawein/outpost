@@ -96,7 +96,7 @@ In Claude Code the common sequences are one command: `/outpost:drive` to plan, b
 
 Full layout map: [docs/architecture/topology.md](docs/architecture/topology.md).
 
-Top-level surfaces: `install.py` and `validate.py` at the root; `kit/` (catalog, adapters, installers, checks); `prompts/` (core and per-tool overlays); `plugins/outpost/` (Claude Code plugin); `templates/`; `docs/`; `tests/`.
+Top-level surfaces: `install.py` and `validate.py` at the root; `kit/` (catalog, adapters, installers, checks); `prompts/` (core and per-tool overlays); `plugins/outpost/` (Claude Code plugin); `templates/`; `evals/` (behavioral eval fixtures); `docs/`; `tests/`.
 
 The kit ships <!-- GENERATED:core-count-words -->twenty-six<!-- /GENERATED:core-count-words --> prompts, one per step from first repo read to handoff: start, plan, build, check, ship, with scrutiny and record around them. See [docs/workflow.md](docs/workflow.md) for the ordered path and the full prompt list.
 
