@@ -13,11 +13,13 @@ not: nothing ships without evidence.
 
 ## Every prompt clears an admission bar
 
-[ADR-0013](decisions/0013-prompt-admission.md) sets the entry test for prompt 26 onward: a
-distinct job no shipped prompt already owns, the nearest sibling and what the new one does
-differently, a real unsafe default it prevents, the exact contract line that blocks it, one real
-dogfood run, and a stated condition that would justify deleting it later. A prompt that cannot
-state all six does not enter the pack.
+[ADR-0013](decisions/0013-prompt-admission.md), relaxed by
+[ADR-0025](decisions/0025-relax-prompt-admission.md), sets the entry test for prompt 26 onward.
+Required before a prompt ships: a distinct job no shipped prompt already owns, the nearest
+sibling and what the new one does differently, and a real unsafe default it prevents. Recommended,
+expected in a fast-follow PR rather than optional forever: the exact contract line that blocks the
+default, one real dogfood run, and a stated condition that would justify deleting it later. A
+prompt that cannot state the first three does not enter the pack.
 
 [ADR-0023](decisions/0023-admit-check-intent.md) is a recent, real example: it names its
 distinct job, its nearest sibling, and its unsafe default before it shipped.

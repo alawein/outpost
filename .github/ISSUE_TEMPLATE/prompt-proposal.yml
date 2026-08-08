@@ -1,5 +1,5 @@
 name: Prompt proposal
-description: Propose a new core prompt. Must clear the ADR-0013 admission bar.
+description: Propose a new core prompt. Must clear the ADR-0025 admission bar.
 title: "[prompt] "
 labels: ["type:feature", "area:prompts"]
 body:
@@ -7,9 +7,12 @@ body:
     attributes:
       value: |
         A new prompt is expected to clear the admission bar in
-        [ADR-0013](https://github.com/alawein/outpost/blob/main/docs/decisions/0013-prompt-admission.md)
-        before it enters the pack. Fill in every field below; a proposal missing one will not be
-        admitted.
+        [ADR-0025](https://github.com/alawein/outpost/blob/main/docs/decisions/0025-relax-prompt-admission.md)
+        (superseding [ADR-0013](https://github.com/alawein/outpost/blob/main/docs/decisions/0013-prompt-admission.md))
+        before it enters the pack. Recurring task, nearest existing prompt, and unsafe default are
+        required; a proposal missing one of those three will not be admitted. Binding mechanism,
+        dogfood plan, and deletion condition are recommended: fill them in if you have them, or
+        say a follow-up will add them.
   - type: textarea
     id: recurring_task
     attributes:
@@ -34,24 +37,24 @@ body:
   - type: textarea
     id: binding_mechanism
     attributes:
-      label: Binding mechanism
-      description: The contract line (an input, step, or stop condition) that blocks the unsafe default.
+      label: Binding mechanism (recommended)
+      description: The contract line (an input, step, or stop condition) that blocks the unsafe default. Recommended, not blocking; say if a follow-up PR will add it.
     validations:
-      required: true
+      required: false
   - type: textarea
     id: dogfood_plan
     attributes:
-      label: Dogfood plan
-      description: The real run in this repo that will prove it, recorded in docs/dogfooding.md.
+      label: Dogfood plan (recommended)
+      description: The real run in this repo that will prove it, recorded in docs/dogfooding.md. Recommended, not blocking; say if a follow-up PR will add it.
     validations:
-      required: true
+      required: false
   - type: textarea
     id: deletion_condition
     attributes:
-      label: Deletion condition
-      description: The observation that would remove this prompt later.
+      label: Deletion condition (recommended)
+      description: The observation that would remove this prompt later. Recommended, not blocking; say if a follow-up PR will add it.
     validations:
-      required: true
+      required: false
   - type: dropdown
     id: provenance
     attributes:
