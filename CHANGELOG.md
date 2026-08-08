@@ -14,6 +14,10 @@ Format follows Keep a Changelog (https://keepachangelog.com). The kit uses SemVe
 
 ### Fixed
 
+- `evals/debt-log` checked the eval transcript's chat text for a wording match instead of
+  confirming `docs/DEBT.md` was actually modified, a known gap named in ADR-0026's Consequences.
+  Added a `file_modified` assertion type to `tools/eval_assertions.py` and switched the eval to
+  it; the eval now checks real behavior instead of exact wording.
 - `docs/contributing.md` still pointed prompt proposals at the superseded ADR-0013 alone, missing
   the ADR-0025 relaxation every other caller in that PR was updated to reference. The
   prompt-proposal issue form's three recommended fields (binding mechanism, dogfood case,

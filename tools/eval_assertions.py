@@ -8,6 +8,8 @@ live LLM call.
 Assertion types:
   file_not_modified {"path": str}        - the file's hash must be identical before and after,
                                             and must not have gone from present to absent.
+  file_modified     {"path": str}        - the file must be present both before and after, with
+                                            a different hash (the inverse of file_not_modified).
   file_created      {"path": str} or      - at least one path (exact or glob) must be present
                     {"path_glob": str}      after the run that was absent before.
   tool_not_used     {"names": [str, ...]} - none of the named tools may appear in tool_calls.
@@ -32,6 +34,21 @@ def _file_not_modified(assertion: dict, before: dict, after: dict) -> tuple[bool
     if after_hash is None:
         return False, f"{path} was deleted"
     return False, f"{path} was modified (hash changed)"
+
+
+def _file_modified(assertion: dict, before: dict, after: dict) -> tuple[bool, str]:
+    path = assertion.get("path")
+    if path is None:
+        return False, "file_modified assertion missing required 'path' field"
+    if path not in before:
+        return False, f"{path} did not exist before the run (misspelled path or bad fixture?)"
+    before_hash = before[path]
+    after_hash = after.get(path)
+    if after_hash is None:
+        return False, f"{path} was deleted"
+    if before_hash == after_hash:
+        return False, f"{path} unchanged"
+    return True, f"{path} modified (hash changed)"
 
 
 def _matches(path: str, assertion: dict) -> bool:
@@ -78,6 +95,7 @@ def _text_contains(assertion: dict, transcript: dict) -> tuple[bool, str]:
 
 _HANDLERS = {
     "file_not_modified": lambda a, t, b, af: _file_not_modified(a, b, af),
+    "file_modified": lambda a, t, b, af: _file_modified(a, b, af),
     "file_created": lambda a, t, b, af: _file_created(a, b, af),
     "tool_not_used": lambda a, t, b, af: _tool_not_used(a, t),
     "text_contains": lambda a, t, b, af: _text_contains(a, t),
