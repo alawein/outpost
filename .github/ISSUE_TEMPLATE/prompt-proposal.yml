@@ -37,22 +37,22 @@ body:
   - type: textarea
     id: binding_mechanism
     attributes:
-      label: Binding mechanism (recommended)
-      description: The contract line (an input, step, or stop condition) that blocks the unsafe default. Not blocking, but do not leave blank; if you don't have it yet, write "follow-up: <link>".
+      label: Binding mechanism (recommended, deferrable)
+      description: The contract line (an input, step, or stop condition) that blocks the unsafe default. Not blocking, but do not leave blank; if you don't have it yet, name the follow-up PR that will.
     validations:
       required: true
   - type: textarea
     id: dogfood_case
     attributes:
-      label: Dogfood case (recommended)
-      description: The real run in this repo that will prove it, recorded in docs/dogfooding.md. Not blocking, but do not leave blank; if you don't have it yet, write "follow-up: <link>".
+      label: Dogfood case (recommended, deferrable)
+      description: The real run in this repo that will prove it, recorded in docs/dogfooding.md. Not blocking, but do not leave blank; if you don't have it yet, name the follow-up PR that will.
     validations:
       required: true
   - type: textarea
     id: deletion_condition
     attributes:
-      label: Deletion condition (recommended)
-      description: The observation that would remove this prompt later. Not blocking, but do not leave blank; if you don't have it yet, write "follow-up: <link>".
+      label: Deletion condition (recommended, deferrable)
+      description: The observation that would remove this prompt later. Not blocking, but do not leave blank; if you don't have it yet, name the follow-up PR that will.
     validations:
       required: true
   - type: dropdown
