@@ -61,8 +61,9 @@ committed span drifts from the generator.
 ## Report a bug or propose work
 
 Open an issue from one of the forms under `.github/ISSUE_TEMPLATE/`: bug report, feature
-request, prompt proposal (must clear `docs/decisions/0013-prompt-admission.md`), or a
-repo-hygiene finding. See `docs/labels.md` for how labels route them.
+request, prompt proposal (must clear `docs/decisions/0025-relax-prompt-admission.md`, which
+relaxed `docs/decisions/0013-prompt-admission.md`), or a repo-hygiene finding. See
+`docs/labels.md` for how labels route them.
 
 ## Before a PR
 

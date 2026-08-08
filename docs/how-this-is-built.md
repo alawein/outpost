@@ -18,7 +18,7 @@ not: nothing ships without evidence.
 Required before a prompt ships: a distinct job no shipped prompt already owns, the nearest
 sibling and what the new one does differently, and a real unsafe default it prevents. Recommended,
 expected in a fast-follow PR rather than optional forever: the exact contract line that blocks the
-default, one real dogfood run, and a stated condition that would justify deleting it later. A
+default, one real dogfood case, and a stated condition that would justify deleting it later. A
 prompt that cannot state the first three does not enter the pack.
 
 [ADR-0023](decisions/0023-admit-check-intent.md) is a recent, real example: it names its
