@@ -23,7 +23,9 @@ def _file_not_modified(assertion: dict, before: dict, after: dict) -> tuple[bool
     path = assertion.get("path")
     if path is None:
         return False, "file_not_modified assertion missing required 'path' field"
-    before_hash = before.get(path)
+    if path not in before:
+        return False, f"{path} did not exist before the run (misspelled path or bad fixture?)"
+    before_hash = before[path]
     after_hash = after.get(path)
     if before_hash == after_hash:
         return True, f"{path} unchanged"

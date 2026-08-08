@@ -17,9 +17,11 @@ not reliance.
 
 A new `evals/` directory holds one fixture per piloted prompt: a seeded repo state, a task
 description, and a JSON list of mechanical assertions. `tools/run_evals.py` shells out to
-`claude -p --output-format json` against each fixture (after installing the real generated skill
-file into it via `install.py`, so the eval exercises the actual shipped artifact) and checks the
-transcript with a small assertion engine (`tools/eval_assertions.py`): a file was or was not
+`claude -p --output-format stream-json --verbose` against each fixture (after installing the real
+generated skill file into it via `install.py`, so the eval exercises the actual shipped artifact),
+reconstructs a transcript from the streamed JSONL events (the one-shot `json` output format
+carries no per-tool-call data, so `tool_not_used` needs the streamed form to check anything real),
+and checks it with a small assertion engine (`tools/eval_assertions.py`): a file was or was not
 modified, a file matching a pattern was created, a named tool was not used, the final text
 contains a substring.
 

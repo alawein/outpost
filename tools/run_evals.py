@@ -129,14 +129,13 @@ def run_one_eval(name: str, evals_dir: pathlib.Path, repo_root: pathlib.Path, ti
 
     after = hash_tree(tmp)
 
-    transcript = parse_stream_json(proc.stdout)
-    if (proc.returncode != 0 and not transcript["result"] and not transcript["tool_calls"]
-            and proc.stdout.strip()):
-        detail = (f"claude -p produced no recognizable stream-json output (exit "
-                  f"{proc.returncode}). stdout: {proc.stdout[:500]!r} stderr: "
-                  f"{proc.stderr[:500]!r}")
+    if proc.returncode != 0:
+        detail = (f"claude -p failed (exit {proc.returncode}). "
+                  f"stdout: {proc.stdout[:500]!r} stderr: {proc.stderr[:500]!r}")
         return {"name": name, "status": "error", "results": None, "detail": detail,
                 "tmp_dir": str(tmp)}
+
+    transcript = parse_stream_json(proc.stdout)
 
     try:
         results = evaluate_all(assertions, transcript, before, after)
@@ -166,15 +165,15 @@ def main(argv: list[str] | None = None) -> int:
     if args.only:
         wanted = [n.strip() for n in args.only.split(",")]
         available = names
-        names = [n for n in available if n in wanted]
-        if not names:
-            unknown = [n for n in wanted if n not in available]
+        unknown = [n for n in wanted if n not in available]
+        if unknown:
             print(
                 f"error: --only named unknown eval(s): {', '.join(unknown)} "
                 f"(available: {', '.join(available)})",
                 file=sys.stderr,
             )
             return 1
+        names = [n for n in available if n in wanted]
 
     if not names:
         print("no evals found under evals/", file=sys.stderr)

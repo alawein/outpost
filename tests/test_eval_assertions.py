@@ -43,6 +43,19 @@ def test_file_not_modified_fails_when_file_deleted():
     assert ok is False
 
 
+def test_file_not_modified_fails_when_path_never_existed():
+    """A misspelled path (absent from both snapshots) must not pass: before.get(path) and
+    after.get(path) both being None would otherwise look "unchanged" and vacuously pass."""
+    before = {"docs/decisions/0001-example.md": "abc123"}
+    after = {"docs/decisions/0001-example.md": "abc123"}
+    ok, reason = evaluate_assertion(
+        {"type": "file_not_modified", "path": "docs/decisions/typo-does-not-exist.md"},
+        EMPTY_TRANSCRIPT, before, after,
+    )
+    assert ok is False
+    assert "did not exist before the run" in reason
+
+
 def test_file_created_passes_on_exact_path_match():
     before = {"docs/DEBT.md": "aaa"}
     after = {"docs/DEBT.md": "aaa", "docs/decisions/0002-new.md": "bbb"}
