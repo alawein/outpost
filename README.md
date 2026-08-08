@@ -36,9 +36,10 @@ nobody deletes it, and the next agent follows advice that no longer applies.
 
 Outpost installs one prompt pack across Claude Code, Codex, Cursor, and Copilot, with a
 `--verify` step that proves nothing is out of sync. Every new prompt has to clear an admission
-bar first: a distinct job no shipped prompt already owns, a real unsafe default it prevents, and
-a dogfood run proving it. The pack maintains itself; a personal file usually does not. See
-[docs/how-this-is-built.md](docs/how-this-is-built.md) for what that looks like in practice.
+bar first: a distinct job no shipped prompt already owns, a nearest sibling it's not a duplicate
+of, and a real unsafe default it prevents. The pack maintains itself; a personal file usually does
+not. See [docs/how-this-is-built.md](docs/how-this-is-built.md) for what that looks like in
+practice.
 
 <div align="center">
 
