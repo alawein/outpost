@@ -11,8 +11,8 @@ body:
         (superseding [ADR-0013](https://github.com/alawein/outpost/blob/main/docs/decisions/0013-prompt-admission.md))
         before it enters the pack. Recurring task, nearest existing prompt, and unsafe default are
         required; a proposal missing one of those three will not be admitted. Binding mechanism,
-        dogfood plan, and deletion condition are recommended: fill them in if you have them, or
-        say a follow-up will add them.
+        dogfood case, and deletion condition are recommended, not blocking, but the field cannot be
+        left blank: fill it in if you have it, or write one line naming the follow-up PR that will.
   - type: textarea
     id: recurring_task
     attributes:
@@ -38,23 +38,23 @@ body:
     id: binding_mechanism
     attributes:
       label: Binding mechanism (recommended)
-      description: The contract line (an input, step, or stop condition) that blocks the unsafe default. Recommended, not blocking; say if a follow-up PR will add it.
+      description: The contract line (an input, step, or stop condition) that blocks the unsafe default. Not blocking, but do not leave blank; if you don't have it yet, write "follow-up: <link>".
     validations:
-      required: false
+      required: true
   - type: textarea
-    id: dogfood_plan
+    id: dogfood_case
     attributes:
-      label: Dogfood plan (recommended)
-      description: The real run in this repo that will prove it, recorded in docs/dogfooding.md. Recommended, not blocking; say if a follow-up PR will add it.
+      label: Dogfood case (recommended)
+      description: The real run in this repo that will prove it, recorded in docs/dogfooding.md. Not blocking, but do not leave blank; if you don't have it yet, write "follow-up: <link>".
     validations:
-      required: false
+      required: true
   - type: textarea
     id: deletion_condition
     attributes:
       label: Deletion condition (recommended)
-      description: The observation that would remove this prompt later. Recommended, not blocking; say if a follow-up PR will add it.
+      description: The observation that would remove this prompt later. Not blocking, but do not leave blank; if you don't have it yet, write "follow-up: <link>".
     validations:
-      required: false
+      required: true
   - type: dropdown
     id: provenance
     attributes:

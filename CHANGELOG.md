@@ -14,6 +14,15 @@ Format follows Keep a Changelog (https://keepachangelog.com). The kit uses SemVe
 
 ### Fixed
 
+- `docs/contributing.md` still pointed prompt proposals at the superseded ADR-0013 alone, missing
+  the ADR-0025 relaxation every other caller in that PR was updated to reference. The
+  prompt-proposal issue form's three recommended fields (binding mechanism, dogfood case,
+  deletion condition) were optional with nothing enforcing ADR-0025's own rule that an omission
+  must be stated with a named follow-up; they're required again, but a one-line deferral note now
+  satisfies the requirement. `docs/how-this-is-built.md` and the issue form also called the same
+  field "dogfood run" and "dogfood plan" where the rest of the admission docs say "dogfood case";
+  unified on "dogfood case". Caught by a workflow-backed code review.
+
 - `docs/how-this-is-built.md` claimed ADR-0024 named a distinct job, nearest sibling, and unsafe
   default like a prompt admission; it does not, since it adds a check, not a prompt. Corrected,
   along with a hardcoded check count that had no drift protection (now points at
