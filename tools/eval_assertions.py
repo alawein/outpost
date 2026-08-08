@@ -20,7 +20,9 @@ import fnmatch
 
 
 def _file_not_modified(assertion: dict, before: dict, after: dict) -> tuple[bool, str]:
-    path = assertion["path"]
+    path = assertion.get("path")
+    if path is None:
+        return False, "file_not_modified assertion missing required 'path' field"
     before_hash = before.get(path)
     after_hash = after.get(path)
     if before_hash == after_hash:
@@ -38,6 +40,8 @@ def _matches(path: str, assertion: dict) -> bool:
 
 def _file_created(assertion: dict, before: dict, after: dict) -> tuple[bool, str]:
     pattern = assertion.get("path") or assertion.get("path_glob")
+    if pattern is None:
+        return False, "file_created assertion missing required 'path' or 'path_glob' field"
     newly_present = [
         path for path, after_hash in after.items()
         if after_hash is not None
@@ -50,7 +54,10 @@ def _file_created(assertion: dict, before: dict, after: dict) -> tuple[bool, str
 
 
 def _tool_not_used(assertion: dict, transcript: dict) -> tuple[bool, str]:
-    forbidden = set(assertion["names"])
+    names = assertion.get("names")
+    if names is None:
+        return False, "tool_not_used assertion missing required 'names' field"
+    forbidden = set(names)
     used = [call["name"] for call in transcript.get("tool_calls", []) if call["name"] in forbidden]
     if used:
         return False, f"forbidden tool(s) used: {', '.join(used)}"
@@ -58,7 +65,9 @@ def _tool_not_used(assertion: dict, transcript: dict) -> tuple[bool, str]:
 
 
 def _text_contains(assertion: dict, transcript: dict) -> tuple[bool, str]:
-    value = assertion["value"]
+    value = assertion.get("value")
+    if value is None:
+        return False, "text_contains assertion missing required 'value' field"
     text = transcript.get("result", "")
     if value in text:
         return True, f"{value!r} found in result text"

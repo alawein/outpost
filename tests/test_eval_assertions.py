@@ -148,6 +148,38 @@ def test_evaluate_all_reports_one_result_per_assertion_in_order():
     assert results[1][1] is True
 
 
+def test_file_not_modified_missing_path_fails_without_raising():
+    ok, reason = evaluate_assertion(
+        {"type": "file_not_modified"}, EMPTY_TRANSCRIPT, {}, {},
+    )
+    assert ok is False
+    assert "path" in reason
+
+
+def test_file_created_missing_path_and_path_glob_fails_without_raising():
+    ok, reason = evaluate_assertion(
+        {"type": "file_created"}, EMPTY_TRANSCRIPT, {}, {},
+    )
+    assert ok is False
+    assert "path" in reason
+
+
+def test_tool_not_used_missing_names_fails_without_raising():
+    ok, reason = evaluate_assertion(
+        {"type": "tool_not_used"}, EMPTY_TRANSCRIPT, {}, {},
+    )
+    assert ok is False
+    assert "names" in reason
+
+
+def test_text_contains_missing_value_fails_without_raising():
+    ok, reason = evaluate_assertion(
+        {"type": "text_contains"}, EMPTY_TRANSCRIPT, {}, {},
+    )
+    assert ok is False
+    assert "value" in reason
+
+
 def test_evaluate_all_does_not_short_circuit_on_first_failure():
     assertions = [
         {"type": "text_contains", "value": "NOPE"},

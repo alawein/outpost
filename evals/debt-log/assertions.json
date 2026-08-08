@@ -1,3 +1,3 @@
 [
-  {"type": "file_created", "path_glob": "*"}
+  {"type": "text_contains", "value": "product catalog"}
 ]

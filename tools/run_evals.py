@@ -44,6 +44,32 @@ def hash_tree(root: pathlib.Path) -> dict[str, str]:
     return hashes
 
 
+def parse_stream_json(stdout: str) -> dict:
+    """Reconstruct the {"result": str, "tool_calls": [{"name": str}, ...]} shape
+    tools/eval_assertions.py expects, from claude -p --output-format stream-json --verbose's
+    JSONL stdout. Ignores lines that aren't valid JSON or aren't a recognized event type. If no
+    "result"-type line is found, "result" is "" (the caller treats an empty transcript with no
+    tool_calls as a real, if uninformative, result — the JSON-parse-failure path is for when
+    stdout doesn't parse as JSONL at all, not for this case)."""
+    tool_calls = []
+    result_text = ""
+    for line in stdout.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            obj = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if obj.get("type") == "assistant":
+            for block in (obj.get("message", {}) or {}).get("content", []) or []:
+                if isinstance(block, dict) and block.get("type") == "tool_use":
+                    tool_calls.append({"name": block.get("name")})
+        elif obj.get("type") == "result":
+            result_text = obj.get("result") or ""
+    return {"result": result_text, "tool_calls": tool_calls}
+
+
 def discover_evals(evals_dir: pathlib.Path) -> list[str]:
     """Sorted names of every immediate subdirectory of evals_dir containing a task.md."""
     if not evals_dir.is_dir():
@@ -54,11 +80,17 @@ def discover_evals(evals_dir: pathlib.Path) -> list[str]:
 
 
 def run_one_eval(name: str, evals_dir: pathlib.Path, repo_root: pathlib.Path, timeout: int) -> dict:
-    """Returns a dict always carrying "tmp_dir" (str), so the caller can clean it up or, with
-    --keep-temp, leave it for inspection regardless of how this eval turned out."""
+    """Returns a dict carrying "tmp_dir" (str) once the temp dir has been created, so the caller
+    can clean it up or, with --keep-temp, leave it for inspection regardless of how this eval
+    turned out. A failure reading task.md/assertions.json happens before the temp dir exists, so
+    that one error dict omits "tmp_dir" — there is nothing to clean up."""
     eval_dir = evals_dir / name
-    task_text = (eval_dir / "task.md").read_text(encoding="utf-8")
-    assertions = json.loads((eval_dir / "assertions.json").read_text(encoding="utf-8"))
+    try:
+        task_text = (eval_dir / "task.md").read_text(encoding="utf-8")
+        assertions = json.loads((eval_dir / "assertions.json").read_text(encoding="utf-8"))
+    except Exception as exc:
+        return {"name": name, "status": "error", "results": None,
+                "detail": f"could not read task.md/assertions.json: {exc}"}
     fixture_dir = eval_dir / "fixture"
 
     tmp = pathlib.Path(tempfile.mkdtemp(prefix=f"outpost-eval-{name}-"))
@@ -87,7 +119,7 @@ def run_one_eval(name: str, evals_dir: pathlib.Path, repo_root: pathlib.Path, ti
 
     try:
         proc = subprocess.run(
-            ["claude", "-p", task_text, "--output-format", "json",
+            ["claude", "-p", task_text, "--output-format", "stream-json", "--verbose",
              "--permission-mode", "acceptEdits"],
             cwd=str(tmp), capture_output=True, text=True, timeout=timeout,
         )
@@ -97,15 +129,20 @@ def run_one_eval(name: str, evals_dir: pathlib.Path, repo_root: pathlib.Path, ti
 
     after = hash_tree(tmp)
 
-    try:
-        transcript = json.loads(proc.stdout)
-    except json.JSONDecodeError:
-        detail = (f"could not parse claude -p output as JSON (exit {proc.returncode}). "
-                  f"stdout: {proc.stdout[:500]!r} stderr: {proc.stderr[:500]!r}")
+    transcript = parse_stream_json(proc.stdout)
+    if (proc.returncode != 0 and not transcript["result"] and not transcript["tool_calls"]
+            and proc.stdout.strip()):
+        detail = (f"claude -p produced no recognizable stream-json output (exit "
+                  f"{proc.returncode}). stdout: {proc.stdout[:500]!r} stderr: "
+                  f"{proc.stderr[:500]!r}")
         return {"name": name, "status": "error", "results": None, "detail": detail,
                 "tmp_dir": str(tmp)}
 
-    results = evaluate_all(assertions, transcript, before, after)
+    try:
+        results = evaluate_all(assertions, transcript, before, after)
+    except Exception as exc:
+        return {"name": name, "status": "error", "results": None,
+                "detail": f"evaluate_all raised: {exc}", "tmp_dir": str(tmp)}
     status = "pass" if all(passed for _, passed, _ in results) else "fail"
     return {"name": name, "status": status, "results": results, "detail": None,
             "tmp_dir": str(tmp)}
@@ -127,8 +164,17 @@ def main(argv: list[str] | None = None) -> int:
 
     names = discover_evals(EVALS_DIR)
     if args.only:
-        wanted = {n.strip() for n in args.only.split(",")}
-        names = [n for n in names if n in wanted]
+        wanted = [n.strip() for n in args.only.split(",")]
+        available = names
+        names = [n for n in available if n in wanted]
+        if not names:
+            unknown = [n for n in wanted if n not in available]
+            print(
+                f"error: --only named unknown eval(s): {', '.join(unknown)} "
+                f"(available: {', '.join(available)})",
+                file=sys.stderr,
+            )
+            return 1
 
     if not names:
         print("no evals found under evals/", file=sys.stderr)
@@ -151,10 +197,12 @@ def main(argv: list[str] | None = None) -> int:
             if outcome["status"] == "pass":
                 evals_passed += 1
         finally:
-            if args.keep_temp:
-                print(f"  kept: {outcome['tmp_dir']}")
-            else:
-                shutil.rmtree(outcome["tmp_dir"], ignore_errors=True)
+            tmp_dir = outcome.get("tmp_dir")
+            if tmp_dir:
+                if args.keep_temp:
+                    print(f"  kept: {tmp_dir}")
+                else:
+                    shutil.rmtree(tmp_dir, ignore_errors=True)
 
     print(f"\n{evals_passed}/{len(names)} evals passed")
     return 0 if evals_passed == len(names) else 1

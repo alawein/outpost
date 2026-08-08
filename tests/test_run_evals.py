@@ -1,8 +1,9 @@
-"""tools/run_evals.py's filesystem-hashing and eval-discovery helpers are pure and testable
-without a live claude call. The actual subprocess orchestration (run_one_eval's claude -p call)
-is exercised only by python tools/run_evals.py itself, run by hand or in the dogfood record, not
-by pytest -q, which stays fast, free, and deterministic."""
+"""tools/run_evals.py's filesystem-hashing, eval-discovery, and stream-json-parsing helpers are
+pure and testable without a live claude call. The actual subprocess orchestration (run_one_eval's
+claude -p call) is exercised only by python tools/run_evals.py itself, run by hand or in the
+dogfood record, not by pytest -q, which stays fast, free, and deterministic."""
 import hashlib
+import json
 import pathlib
 import sys
 import tempfile
@@ -10,7 +11,8 @@ import tempfile
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
 
-from run_evals import discover_evals, hash_tree  # noqa: E402
+import run_evals  # noqa: E402
+from run_evals import discover_evals, hash_tree, parse_stream_json  # noqa: E402
 
 
 def test_hash_tree_hashes_every_file_under_root():
@@ -83,3 +85,72 @@ def test_run_one_eval_handles_missing_fixture():
 
         # Verify the temp directory exists (was created before the error)
         assert pathlib.Path(outcome["tmp_dir"]).exists()
+
+
+def test_parse_stream_json_single_tool_use():
+    stdout = "\n".join([
+        json.dumps({"type": "system", "subtype": "init"}),
+        json.dumps({"type": "assistant", "message": {"content": [
+            {"type": "text", "text": "Reading the file."},
+            {"type": "tool_use", "name": "Read", "input": {"file_path": "a.py"}},
+        ]}}),
+        json.dumps({"type": "result", "result": "Done reading."}),
+    ])
+    assert parse_stream_json(stdout) == {
+        "result": "Done reading.", "tool_calls": [{"name": "Read"}],
+    }
+
+
+def test_parse_stream_json_no_tool_use():
+    stdout = "\n".join([
+        json.dumps({"type": "assistant", "message": {"content": [
+            {"type": "text", "text": "No tools needed."},
+        ]}}),
+        json.dumps({"type": "result", "result": "All good, no edits made."}),
+    ])
+    assert parse_stream_json(stdout) == {
+        "result": "All good, no edits made.", "tool_calls": [],
+    }
+
+
+def test_parse_stream_json_multiple_assistant_lines_each_contribute_tool_use():
+    stdout = "\n".join([
+        json.dumps({"type": "assistant", "message": {"content": [
+            {"type": "tool_use", "name": "Read", "input": {}},
+        ]}}),
+        json.dumps({"type": "assistant", "message": {"content": [
+            {"type": "tool_use", "name": "Edit", "input": {}},
+            {"type": "tool_use", "name": "Grep", "input": {}},
+        ]}}),
+        json.dumps({"type": "result", "result": "Made the edit."}),
+    ])
+    parsed = parse_stream_json(stdout)
+    assert parsed["tool_calls"] == [{"name": "Read"}, {"name": "Edit"}, {"name": "Grep"}]
+    assert parsed["result"] == "Made the edit."
+
+
+def test_parse_stream_json_skips_unparseable_and_blank_lines():
+    stdout = "\n".join([
+        "",
+        "not valid json {{{",
+        json.dumps({"type": "assistant", "message": {"content": [
+            {"type": "tool_use", "name": "Write", "input": {}},
+        ]}}),
+        "   ",
+        json.dumps({"type": "result", "result": "Wrote the file."}),
+        "trailing garbage",
+    ])
+    assert parse_stream_json(stdout) == {
+        "result": "Wrote the file.", "tool_calls": [{"name": "Write"}],
+    }
+
+
+def test_main_reports_unknown_only_names(monkeypatch, capsys):
+    """--only naming a name that matches no discovered eval names them explicitly rather than
+    falling into the generic "no evals found" message."""
+    monkeypatch.setattr(run_evals.shutil, "which", lambda name: "/usr/bin/claude")
+    exit_code = run_evals.main(["--only", "nosuchname"])
+    captured = capsys.readouterr()
+    assert exit_code == 1
+    assert "nosuchname" in captured.err
+    assert "unknown eval" in captured.err.lower()
