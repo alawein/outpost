@@ -1,0 +1,5 @@
+Use the triage skill to rank and route these two findings against app.py.
+Bar for fix now: only blockers ship this week, everything else can wait.
+
+1. create_order does not validate that item is a non-empty string; it accepts any value.
+2. get_user raises a KeyError when user_id is not found.
