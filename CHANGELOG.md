@@ -12,6 +12,12 @@ Format follows Keep a Changelog (https://keepachangelog.com). The kit uses SemVe
 
 ## [Unreleased]
 
+### Added
+
+- A 6th piloted behavioral eval, `evals/orient-repo/`, covering the read-only `orient-repo`
+  prompt: asserts no file was modified, no edit tool was called, and the four most distinctive
+  Output format headings appear in the transcript.
+
 ### Fixed
 
 - `evals/debt-log` checked the eval transcript's chat text for a wording match instead of
