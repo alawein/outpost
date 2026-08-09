@@ -28,7 +28,7 @@ The caps are soft: exceed one with a stated reason in the PR body, not silently.
 | Review window | reviewers requested at creation; no self-merge before one human approval; an admin bypass is a recorded exception, never the mechanism | the automated review, where one is wired, completes and gets read before merge |
 | Branch life | two days at most, deleted on merge | same; no unpushed branch older than a day |
 | Open-PR cap | about three open PRs per repo; stale at seven days means close or ticket | same |
-| Commits | one logical change per commit; imperative subject under about 50 characters; the host repo's prefix convention; a body when the why is not obvious | same |
+| Commits | one logical change per commit; imperative subject under about 70 characters (the git/kernel guides below cite ~50 for the subject alone; this repo's own commits run longer, partly from the `(#NN)` GitHub appends on squash-merge, so `CLAUDE.md` and `prepare-pr` set the working number at 70); the host repo's prefix convention; a body when the why is not obvious | same |
 | Commit count | no target; bursts are fine, grab-bags are not | same |
 | Tracker | one item per shippable change or handoff, linked from the PR; never per commit or per in-session step; a canceled item keeps its reason | an item only when work crosses a session or person boundary |
 | Reviewing | answer a requested review within one business day; reciprocity is part of the job | n/a |

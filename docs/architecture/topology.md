@@ -22,11 +22,14 @@ outpost/
     adapters/                # Claude, Codex, Cursor, Copilot writers
     installers/              # install / verify / prune / remove
     checks/                  # structure, docs truth, catalog gates
+    labels/                  # namespaced label registry (kit/labels/registry.json)
     docs_build.py            # generated README / workflow spans
+    plugin.py                # generated Claude plugin tree
+    templates_build.py       # generated guide templates
   prompts/                   # core + per-tool prompt overlays
   plugins/outpost/           # Claude Code plugin (skills, commands, hooks)
   templates/                 # consumer guides and overlays
-  evals/                     # behavioral eval fixtures (task.md, assertions.json) per piloted prompt
+  evals/                     # behavioral eval fixtures (task.txt, assertions.json) per piloted prompt
   docs/                      # onboarding, workflow, ADRs, releasing
   tests/                     # pytest
   tools/                     # build helpers (plugin / docs / templates) and the behavioral eval harness (run_evals.py, eval_assertions.py)

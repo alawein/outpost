@@ -41,13 +41,15 @@ Recorded so no one re-adds them without a decision.
   The kit is stdlib-only.
 - Auto-update of an installed kit, and a packaged distribution. Out and not planned.
 
+## History
+
+v0.1.0 (shipped, see `CHANGELOG.md`) was Outpost's first public release, forked from an internal
+predecessor kit (ADR-0017). That predecessor's own version history (v0.1 through v0.25) does not
+carry forward; see `docs/decisions/` for the design decisions that still hold.
+
 ## Planned
 
 Nothing is scheduled for the next release yet; candidates live in the idea backlog below.
-
-v0.1.0 is Outpost's first public release, forked from an internal predecessor kit (ADR-0017).
-That predecessor's own version history (v0.1 through v0.25) does not carry forward; see
-`docs/decisions/` for the design decisions that still hold.
 
 Rule for adding a check: it catches a mismatch the current checks miss, runs on the Python standard library only, and ships with a test that passes clean and fails on a seeded violation.
 

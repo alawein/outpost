@@ -61,5 +61,5 @@ The `catalog` check fails if any differ, or if they do not match the latest rele
 
 - `main` always passes and is always releasable. Work on short-lived branches.
 - One concern per PR. A human merges after the checks pass; no unattended auto-merge.
-- The catalog is hand-maintained; the checks compare it with disk. The one generated tree is the Claude plugin under `plugins/outpost/`, which is committed and kept in sync by `plugin_sync` (regenerate with `python tools/build.py plugin`).
+- The catalog is hand-maintained; the checks compare it with disk. Three trees are generated from it (`python tools/build.py plugin|docs|templates`), all committed and kept in sync by their own check (`plugin_sync`, `docs_sync`, `templates_sync`). Only the plugin carries the catalog's version number, so step 4 above regenerates the plugin alone; a version bump cannot change the docs or templates output.
 - Stage explicit paths, never a blanket add. Keep caches and secrets out of the tree.
