@@ -552,6 +552,24 @@ def test_prune_skips_a_modified_orphan(tmp_path, capsys):
     assert ".claude/skills/grill/SKILL.md" in _manifest(tmp_path)["tools"]["claude"]["files"]
 
 
+def test_prune_keeps_a_byte_identical_file_at_a_never_recorded_path(tmp_path):
+    # the file was never part of any install this project ran (excluded from the very first
+    # install), so it has no manifest record at all: not existed=True, no record whatsoever.
+    # A byte match alone must never authorize deletion (ADR-0019: matching bytes never prove
+    # kit ownership); "no record" is not the same as "the kit created it".
+    skill = tmp_path / ".claude" / "skills" / "grill" / "SKILL.md"
+    skill.parent.mkdir(parents=True)
+    kit_content = (ROOT / "prompts" / "core" / "grill.md").read_text(encoding="utf-8")
+    skill.write_text(kit_content, encoding="utf-8")
+    install.main(["--tool", "claude", "--project", str(tmp_path), "--exclude", "grill"])
+    assert ".claude/skills/grill/SKILL.md" not in _manifest(tmp_path)["tools"]["claude"]["files"]
+    before = _tree(tmp_path)
+    rc = install.main(["--tool", "claude", "--project", str(tmp_path), "--prune"])
+    assert rc == 0
+    assert skill.read_text(encoding="utf-8") == kit_content  # never deleted
+    assert _tree(tmp_path) == before  # nothing else in the tree touched either
+
+
 def test_remove_leaves_a_corrupt_settings_file_untouched(tmp_path):
     install.main(["--tool", "claude", "--project", str(tmp_path)])
     settings = tmp_path / ".claude" / "settings.json"
@@ -696,6 +714,25 @@ def test_remove_all_tools(tmp_path):
 def test_remove_on_an_empty_project_is_safe(tmp_path):
     rc = install.main(["--tool", "claude", "--project", str(tmp_path), "--remove"])
     assert rc == 0  # nothing to remove, no crash
+
+
+def test_remove_all_keeps_a_byte_identical_file_for_a_never_installed_tool(tmp_path):
+    # codex is never installed in this project; claude is the only tool ever installed, so
+    # codex's manifest entry does not exist at all (not even a legacy, files-less one). A user
+    # file at a codex-shipped path, byte-identical to what codex would render, must survive
+    # --remove --tool all: no manifest entry at all is no proof of authorship (ADR-0019).
+    reference = tmp_path / "_codex_reference"
+    reference.mkdir()
+    install.main(["--tool", "codex", "--project", str(reference)])
+    kit_content = (reference / ".agents" / "prompts" / "grill.md").read_text(encoding="utf-8")
+    install.main(["--tool", "claude", "--project", str(tmp_path)])
+    mine = tmp_path / ".agents" / "prompts" / "grill.md"
+    mine.parent.mkdir(parents=True)
+    mine.write_text(kit_content, encoding="utf-8")
+    assert "codex" not in _manifest(tmp_path).get("tools", {})
+    rc = install.main(["--tool", "all", "--project", str(tmp_path), "--remove"])
+    assert rc == 0
+    assert mine.read_text(encoding="utf-8") == kit_content
 
 
 def test_remove_and_verify_together_are_rejected(tmp_path):
@@ -870,6 +907,21 @@ def test_remove_keeps_a_preexisting_prompt_file_even_when_byte_identical(tmp_pat
     install.main(["--tool", "copilot", "--project", str(tmp_path)])
     install.main(["--tool", "copilot", "--project", str(tmp_path), "--remove"])
     assert mine.read_text(encoding="utf-8") == kit_content
+
+
+def test_remove_keeps_a_byte_identical_file_at_a_never_recorded_path(tmp_path):
+    # same scenario as test_prune_keeps_a_byte_identical_file_at_a_never_recorded_path, for
+    # --remove: a file at a path excluded from every install this project ran has no manifest
+    # record, so --remove must never delete it on a byte match alone either.
+    skill = tmp_path / ".claude" / "skills" / "grill" / "SKILL.md"
+    skill.parent.mkdir(parents=True)
+    kit_content = (ROOT / "prompts" / "core" / "grill.md").read_text(encoding="utf-8")
+    skill.write_text(kit_content, encoding="utf-8")
+    install.main(["--tool", "claude", "--project", str(tmp_path), "--exclude", "grill"])
+    assert ".claude/skills/grill/SKILL.md" not in _manifest(tmp_path)["tools"]["claude"]["files"]
+    rc = install.main(["--tool", "claude", "--project", str(tmp_path), "--remove"])
+    assert rc == 0
+    assert skill.read_text(encoding="utf-8") == kit_content  # never deleted
 
 
 def test_verify_treats_a_recorded_preexisting_file_as_user_owned(tmp_path, capsys):

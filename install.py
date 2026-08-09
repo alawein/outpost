@@ -321,11 +321,11 @@ def _remove_empty_parents(target: pathlib.Path, root: pathlib.Path) -> None:
 def prune_orphans(project_root: pathlib.Path, tools, manifest: dict, args_terse: bool):
     """Delete orphan kit-owned prompt files (those the manifest no longer selects), so disk matches
     the recorded selection. Safe: only write-mode prompt files are touched, never a user-owned or
-    merged file; an orphan whose content was hand-edited (not the kit version) is left in place and
-    reported, so a customization is never silently lost. Returns (removed, skipped, failed, retired)
-    lists."""
+    merged file; an orphan whose content was hand-edited (not the kit version), or that carries no
+    ownership record at all, is left in place and reported, so a customization or an unrecorded
+    file is never silently lost. Returns (removed, skipped, failed, retired) lists."""
     removed: list[str] = []
-    skipped: list[str] = []   # edited orphans, left in place on purpose
+    skipped: list[str] = []   # pre-existing, edited, or unrecorded orphans, left in place on purpose
     failed: list[str] = []    # could not delete (locked, permission); one bad file must not abort
     retired: list[str] = []   # kit-created files whose prompt no longer ships to this host
     for t in tools:
@@ -356,7 +356,7 @@ def prune_orphans(project_root: pathlib.Path, tools, manifest: dict, args_terse:
         sel = _selection_for(manifest, t)
         if sel is None:
             continue  # no narrowing recorded: no de-selected orphans to prune
-        files = (manifest.get("tools", {}).get(t) or {}).get("files") or {}
+        files = (manifest.get("tools", {}).get(t) or {}).get("files")
         keep = {a.path for a in plan_for(t, KIT_ROOT, project_root, terse=terse, select=sel)}
         for a in plan_for(t, KIT_ROOT, project_root, terse=terse, select=None):
             if a.mode != "write" or a.path in keep:
@@ -364,9 +364,19 @@ def prune_orphans(project_root: pathlib.Path, tools, manifest: dict, args_terse:
             target = project_root / a.path
             if not target.exists():
                 continue
-            rec = files.get(a.path)
+            rec = files.get(a.path) if files is not None else None
             if rec is not None and rec.get("existed"):
                 skipped.append(a.path)  # recorded as pre-existing: the user's file, never pruned
+                continue
+            if rec is None and files is not None:
+                # a modern manifest exists but never recorded this path (excluded from every
+                # install this project has run): no record is no proof the kit ever owned it, so
+                # a byte match alone must not authorize deletion (ADR-0019). Only a manifest with
+                # no files map at all (files is None) still falls back to byte-match-only, below --
+                # and unlike remove_for_tools, files is None here only for a genuine pre-records
+                # manifest: sel (above) is None, and this loop never reached, for a tool with no
+                # manifest entry at all, so there is no never-installed-tool case to guard against.
+                skipped.append(a.path)
                 continue
             if a.status(project_root) != "unchanged":
                 skipped.append(a.path)  # edited orphan: a possible customization, user decides
@@ -424,7 +434,14 @@ def remove_for_tools(project_root: pathlib.Path, tools, manifest: dict, args_ter
                 failed.append(path)
             else:
                 retired.append(path)
-        files = (manifest.get("tools", {}).get(t) or {}).get("files")
+        entry = manifest.get("tools", {}).get(t) or {}
+        files = entry.get("files")
+        # A pre-records manifest (this tool was installed here, by a kit version before per-file
+        # ownership records existed) still falls back to byte-match below: `entry` is present but
+        # `files` is None. A tool with no entry at all was never installed in this project, so
+        # there is no proof of authorship and nothing to reclaim (ADR-0019); that must not reuse
+        # the legacy fallback just because `files` is also None in that case.
+        legacy_manifest = bool(entry) and files is None
         for a in plan_for(t, KIT_ROOT, project_root, terse=_terse_for(manifest, t, args_terse),
                           select=None, tolerant=True):
             if a.mode not in ("write", "create"):
@@ -435,6 +452,14 @@ def remove_for_tools(project_root: pathlib.Path, tools, manifest: dict, args_ter
             rec = files.get(a.path) if files is not None else None
             if rec is not None and rec.get("existed"):
                 skipped.append(a.path)  # recorded as pre-existing: the user's file, not the kit's
+                continue
+            if rec is None and not legacy_manifest:
+                # no record for this path, and not the legacy-manifest case: either a modern
+                # manifest that never recorded this path (excluded from every install this
+                # project has run), or this tool was never installed here at all. Either way, no
+                # record is no proof the kit ever owned it, so a byte match alone must not
+                # authorize deletion (ADR-0019).
+                skipped.append(a.path)
                 continue
             # Ownership contract: the manifest record proves the kit created the path, and the
             # byte match still protects an edit. A pre-records manifest has no file records, so
@@ -810,13 +835,14 @@ def main(argv: list[str] | None = None) -> int:
         for p in retired:
             print(f"  remove {p} (retired from this host)")
         for p in skipped:
-            print(f"  skip   {p} (edited; left in place, remove by hand if you do not want it)")
+            print(f"  skip   {p} (not created by the kit, or edited; left in place, "
+                  "remove by hand if you do not want it)")
         for p in failed:
             print(f"  FAILED {p} (could not delete; check permissions)")
         if not removed and not retired and not skipped and not failed:
             print("nothing to prune (disk matches the manifest)")
         else:
-            print(f"done. {len(removed) + len(retired)} removed, {len(skipped)} skipped (edited), "
+            print(f"done. {len(removed) + len(retired)} removed, {len(skipped)} skipped, "
                   f"{len(failed)} failed.")
         return 1 if failed else 0
 
