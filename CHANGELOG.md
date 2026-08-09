@@ -17,6 +17,10 @@ Format follows Keep a Changelog (https://keepachangelog.com). The kit uses SemVe
 - A 6th piloted behavioral eval, `evals/orient-repo/`, covering the read-only `orient-repo`
   prompt: asserts no file was modified, no edit tool was called, and the four most distinctive
   Output format headings appear in the transcript.
+- A 7th piloted behavioral eval, `evals/triage/`, covering the read-only `triage` prompt: seeds
+  one true and one false finding against the shared demo fixture and asserts no file was
+  modified, no edit tool was called, and all three verification buckets (confirmed, doubtful,
+  wrong) appear in the transcript.
 
 ### Fixed
 

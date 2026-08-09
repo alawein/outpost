@@ -76,8 +76,8 @@ wired for this repo, and CodeRabbit is off (`.coderabbit.yaml`).
 
 ## Behavioral evals (optional)
 
-`python tools/run_evals.py` runs 6 pilot prompts through a real `claude -p` call against a seeded
+`python tools/run_evals.py` runs 7 pilot prompts through a real `claude -p` call against a seeded
 fixture and checks the result. Requires the `claude` CLI installed and authenticated; not part of
 `validate.py` or CI, since it costs real usage and is not deterministic. Run it by hand after
 touching one of the piloted prompts (`interrogate`, `plan-change`, `record-decision`,
-`write-tests`, `debt-log`, `orient-repo`); `python tools/run_evals.py --only <name>` runs just one.
+`write-tests`, `debt-log`, `orient-repo`, `triage`); `python tools/run_evals.py --only <name>` runs just one.
