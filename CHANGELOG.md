@@ -24,6 +24,17 @@ Format follows Keep a Changelog (https://keepachangelog.com). The kit uses SemVe
 
 ### Fixed
 
+- `install.py --prune` and `--remove` could delete a user's pre-existing file when it happened
+  to be byte-identical to a kit file: `prune`/`remove` when a path was excluded from every
+  install the project ever ran, and `--remove --tool all` when a whole tool was never installed
+  in the project at all. Both cases treated "no ownership record" the same as "kit-created",
+  falling through to a byte-match check instead of blocking it (the exact ownership rule
+  ADR-0019 rejected). Fixed: a path is now protected from byte-match deletion whenever there is
+  no record proving the kit created it; the byte-match fallback survives only for a true
+  pre-records manifest (a tool actually installed here, before per-file records existed).
+  A same-session review independently reproduced a second instance of the never-installed-tool
+  case that the first pass missed, before this landed. Found by a `repo-review`/`triage`
+  self-review pass, recorded in `docs/dogfooding.md`.
 - `evals/debt-log` checked the eval transcript's chat text for a wording match instead of
   confirming `docs/DEBT.md` was actually modified, a known gap named in ADR-0026's Consequences.
   Added a `file_modified` assertion type to `tools/eval_assertions.py` and switched the eval to
