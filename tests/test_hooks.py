@@ -52,6 +52,19 @@ def test_nudge_fires_on_large_unbounded_read(tmp_path: pathlib.Path):
     assert "nudge" in proc.stderr
 
 
+def test_nudge_message_is_self_contained(tmp_path: pathlib.Path):
+    # the hook ships inside the installed Claude plugin, into a consumer project that never
+    # receives Outpost's own docs/, so the guidance must not point somewhere the reader has no
+    # way to follow (a prior version pointed at docs/token-budget.md, which a consumer never gets)
+    f = tmp_path / "big.md"
+    f.write_bytes(b"x" * 110_000)
+    proc = _run(NUDGE, {"tool_input": {"file_path": str(f)}})
+    assert proc.returncode == 0
+    assert "Prefer a targeted range or a subagent to keep it out of your own context." in proc.stderr
+    assert "docs/token-budget.md" not in proc.stderr
+    assert "docs/" not in proc.stderr
+
+
 def test_nudge_threshold_via_new_env_name(tmp_path: pathlib.Path):
     f = tmp_path / "file.md"
     f.write_bytes(b"x" * 200)
