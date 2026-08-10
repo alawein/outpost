@@ -37,6 +37,7 @@ Start from `0000-template.md` when adding a record.
 - 0025: relax prompt admission to three required fields (distinct job, nearest sibling, unsafe
   default) and three recommended, non-blocking ones (binding mechanism, dogfood case, deletion
   condition). Supersedes 0013.
-- 0026: a lightweight behavioral eval for 5 pilot core prompts (interrogate, plan-change,
-  record-decision, write-tests, debt-log), mechanical assertions via `claude -p`, opt-in and not
-  CI-gated.
+- 0026: a lightweight behavioral eval for core prompts, mechanical assertions via `claude -p`,
+  opt-in and not CI-gated. Piloted 5 at admission (interrogate, plan-change, record-decision,
+  write-tests, debt-log); `docs/DEBT.md`'s open entry names the current pilot count and list, so
+  this index is not itself a second place that count can drift.

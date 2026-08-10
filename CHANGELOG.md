@@ -21,6 +21,21 @@ Format follows Keep a Changelog (https://keepachangelog.com). The kit uses SemVe
   one true and one false finding against the shared demo fixture and asserts no file was
   modified, no edit tool was called, and all three verification buckets (confirmed, doubtful,
   wrong) appear in the transcript.
+- A lightweight behavioral eval harness (`tools/run_evals.py`, `evals/`) for the first 5 pilot core
+  prompts (2 more piloted since, see the bullets above),
+  running each through a real `claude -p` call against a seeded fixture and checking mechanical
+  assertions (file created/unmodified, a tool not used, text contains a value). Opt-in, not wired
+  into `validate.py` or CI. ADR-0026.
+- A house-voice rule in `docs/writing-standard.md`: cite evidence a reader can check, never a
+  gitignored scratch path as if it were a verifiable source. Naming the scratch convention itself
+  stays fine; citing its content as proof does not.
+- `prose_length`, a gate check that fails a markdown paragraph over 100 words (measured against
+  the tracked tree; nothing needed a rewrite to adopt it), exempt for the append-only historical
+  records (`docs/decisions/`, `docs/DEBT.md`, `docs/dogfooding.md`, `docs/audit/`). ADR-0024.
+- `check-intent`, a structured plan-to-diff reconciliation that runs right before `code-review`:
+  marks every plan item Done, Missing, or Changed-approach, and every untraceable file Extra.
+  ADR-0023 records the admission (independently designed; verified CLEAN-ROOM against ACK's
+  equivalent capability after the draft existed) and its first dogfood run.
 
 ### Fixed
 
@@ -55,33 +70,36 @@ Format follows Keep a Changelog (https://keepachangelog.com). The kit uses SemVe
   omitted its own documented exemptions, and a README line that contradicted `converge`'s
   Claude-only scope stated nine lines above it. Caught by an independent, dogfooded
   `pr-review-toolkit:review-pr` pass on the already-merged PR that introduced them.
+- Twelve doc-truth findings from the same `repo-review`/`triage` self-review pass that found the
+  `--prune`/`--remove` bug above: `docs/decisions/README.md` hardcoded a pilot count of 5 that
+  went stale once the 6th and 7th pilots landed; it now names `docs/DEBT.md`'s open entry as the
+  live source instead of carrying a second copy of the number; `docs/cadence.md`'s cited
+  commit-subject length (50) contradicted `CLAUDE.md`'s and `prepare-pr`'s shipped 70 (kept 70,
+  the number this repo's own history mostly runs above); the installed Claude-plugin context-nudge
+  hook pointed a consumer project at `docs/token-budget.md`, a doc it never receives;
+  `docs/architecture/topology.md` named a nonexistent `task.md` and omitted three live `kit/`
+  modules; `docs/releasing.md` claimed one generated tree where there are three; `SECURITY.md`'s
+  "no network calls" was false for two opt-in dev tools under `tools/`; a broken
+  `docs/audit-2026-07-10.md` path reference (hyphen for slash) was flagged with a correction note
+  in `docs/audit/2026-07-12.md`'s own callout and in a new `docs/DEBT.md` entry (its one occurrence
+  inside `docs/decisions/0014-pack-consolidation.md` stays untouched, append-only); `--list` was
+  undocumented, closed with a new Flags section in `docs/adapters.md`; `docs/ROADMAP.md` stranded
+  already-shipped v0.1.0 history under `## Planned`; and the README docs map was missing five
+  gate-required docs (`docs/token-budget.md`, `docs/dogfooding.md`, `docs/DEBT.md`,
+  `docs/writing-standard.md`, `docs/decisions/`), two more than the pass itself named, found by
+  cross-checking the map against `kit/checks/docs.py`'s actual `REQUIRED_DOCS` while fixing it.
 
 ### Changed
 
 - ADR-0013's prompt-admission bar relaxed (ADR-0025): distinct job, nearest sibling, and unsafe
   default stay required at admission; binding mechanism, dogfood case, and deletion condition
-  become recommended, fillable in a follow-up PR. `docs/how-this-is-built.md`, `README.md`, and
-  the prompt-proposal issue form updated to match: the form no longer requires the three
-  recommended fields.
+  become recommended, fillable in a follow-up PR. `docs/how-this-is-built.md` and `README.md`
+  updated to match. The prompt-proposal issue form's three recommended fields were made optional
+  to match, but a later fix (see Fixed, above) put them back to `required: true` on the form
+  itself, since nothing else enforced ADR-0025's own rule that an omission be stated with a named
+  follow-up; a one-line deferral note now satisfies both the form and the rule.
 - ADR-0013 (prompt admission) moved from Proposed to Accepted: two admissions (ADR-0020,
   ADR-0023) had already followed it as binding.
-
-### Added
-
-- A lightweight behavioral eval harness (`tools/run_evals.py`, `evals/`) for 5 pilot core prompts,
-  running each through a real `claude -p` call against a seeded fixture and checking mechanical
-  assertions (file created/unmodified, a tool not used, text contains a value). Opt-in, not wired
-  into `validate.py` or CI. ADR-0026.
-- A house-voice rule in `docs/writing-standard.md`: cite evidence a reader can check, never a
-  gitignored scratch path as if it were a verifiable source. Naming the scratch convention itself
-  stays fine; citing its content as proof does not.
-- `prose_length`, a gate check that fails a markdown paragraph over 100 words (measured against
-  the tracked tree; nothing needed a rewrite to adopt it), exempt for the append-only historical
-  records (`docs/decisions/`, `docs/DEBT.md`, `docs/dogfooding.md`, `docs/audit/`). ADR-0024.
-- `check-intent`, a structured plan-to-diff reconciliation that runs right before `code-review`:
-  marks every plan item Done, Missing, or Changed-approach, and every untraceable file Extra.
-  ADR-0023 records the admission (independently designed; verified CLEAN-ROOM against ACK's
-  equivalent capability after the draft existed) and its first dogfood run.
 
 ## [0.3.0] - 2026-08-07
 

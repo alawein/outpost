@@ -134,6 +134,7 @@ Each tool writes to its own paths, so they can live in one project. The installe
 
 - [docs/onboarding.md](docs/onboarding.md)
 - [docs/workflow.md](docs/workflow.md)
+- [docs/writing-standard.md](docs/writing-standard.md)
 - [docs/architecture/topology.md](docs/architecture/topology.md)
 - [docs/contributing.md](docs/contributing.md)
 - [docs/releasing.md](docs/releasing.md)
@@ -143,6 +144,10 @@ Each tool writes to its own paths, so they can live in one project. The installe
 - [docs/how-this-is-built.md](docs/how-this-is-built.md)
 - [docs/plugin.md](docs/plugin.md)
 - [docs/labels.md](docs/labels.md)
+- [docs/token-budget.md](docs/token-budget.md)
+- [docs/dogfooding.md](docs/dogfooding.md)
+- [docs/DEBT.md](docs/DEBT.md)
+- [docs/decisions/](docs/decisions/README.md)
 - [AGENTS.md](AGENTS.md)
 - [CLAUDE.md](CLAUDE.md)
 

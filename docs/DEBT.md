@@ -44,6 +44,18 @@ Closed with the PR that closed it; never delete one.
   are all hand-verified clean. Close by adding a check in the same regex-line-scan style as
   `label_refs.py` that flags a duplicate `id:` per file, the next time a form is added or edited.
 
+- 2026-08-09, `docs/decisions/0014-pack-consolidation.md:8` cites `docs/audit-2026-07-10.md`
+  (a hyphen where the real path uses a slash: `docs/audit/2026-07-10.md`), a broken reference
+  found in a `repo-review` self-review pass. Not fixed at the source: `docs/decisions/` is
+  append-only, so a citation typo in an accepted record's Context section is not something to
+  silently rewrite. Taken because the plain-typo case is minor enough that a superseding record
+  is overkill; the five companion citations for the same audit inside `docs/audit/2026-07-12.md`
+  got a correction note in its own point-in-time-record callout instead of a rewrite, same
+  reasoning.
+  Close by adding a correction note the next time ADR-0014 is touched for any other reason, or by
+  asking whether this repo wants a lighter-weight convention than a full superseding record for a
+  pure citation fix.
+
 ## Closed
 
 - 2026-07-11, four PRs admin-merged without a second human approval. #111, #113, #114, and this

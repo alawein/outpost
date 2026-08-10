@@ -31,6 +31,21 @@ The installer plans first, then prints (`--dry-run`) or applies. Both use the sa
 
 Paths stay separate across tools, so more than one install in the same repo does not collide. The `adapters` check proves this on every `python validate.py` run.
 
+## Flags
+
+- `--tool <name>|all` chooses the target tool; required for every install, verify, prune, or
+  remove, unless `--list` is given instead. `--project <path>` chooses the target project
+  directory; defaults to `.`.
+- `--only <names>` / `--exclude <names>` narrow the pack to a comma-separated subset (mutually
+  exclusive with each other); the full pack installs by default.
+- `--dry-run` prints the plan and writes nothing.
+- `--terse` also installs, and defaults to, the terse output style (Claude only).
+- `--list` prints what the kit would install (prompts, templates, and adapters) and writes
+  nothing; it needs no `--tool`/`--project`, since it describes the kit itself, not a target
+  install.
+- `--verify`, `--prune`, and `--remove` are mutually exclusive with each other and with
+  `--list`/`--dry-run`; see their own sections below.
+
 ## The install manifest
 
 Each install writes `.outpost/manifest.json` at the project root. It records the kit version and, per tool, which prompts were installed, how they were chosen (`full`, `only`, or `exclude`), and whether `--terse` was used. `--verify` reads that record and checks the installed subset, not the full pack. That keeps excluded prompts from being reported as missing. It also lets `--verify`/`--prune`/`--remove` handle the terse output style without re-passing `--terse`. Installing a second tool adds its entry without dropping the first.

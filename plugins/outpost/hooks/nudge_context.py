@@ -5,8 +5,10 @@ never blocks. Pure stdlib, so it runs in any repo that enables the plugin.
 
 The threshold is a byte size (OUTPOST_NUDGE_BYTES, default 100000). A read that already passes offset
 or limit is the good path and stays silent; a small file stays silent. This teaches the
-context-hygiene habit described in docs/token-budget.md without getting in the
-way. If it proves noisy in real use, drop it; it is deliberately the weakest guard in the kit.
+context-hygiene habit directly, in the nudge text itself: this hook ships inside the installed
+Claude plugin, into a consumer project that never receives Outpost's own docs/token-budget.md, so
+the message must not point somewhere the reader cannot follow. If it proves noisy in real use,
+drop it; it is deliberately the weakest guard in the kit.
 """
 from __future__ import annotations
 
@@ -53,7 +55,7 @@ def main() -> int:
     if size > THRESHOLD:
         print(
             f"nudge: read {size // 1000}KB of {path} with no offset/limit. "
-            f"Prefer a targeted range or a subagent (see docs/token-budget.md).",
+            "Prefer a targeted range or a subagent to keep it out of your own context.",
             file=sys.stderr,
         )
     return 0

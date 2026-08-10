@@ -9,8 +9,11 @@ last_updated: 2026-07-26
 # Security policy
 
 Outpost is a personal, standard-library-only kit that installs prompt files and runs local checks.
-It has no network calls and no runtime dependencies, so its attack surface is small: the main risk
-is the installer acting on a crafted `.outpost/manifest.json` in a cloned repo.
+`install.py`, `validate.py`, and everything under `kit/` make no network calls and have no runtime
+dependencies, so the installed kit's attack surface is small: the main risk there is the installer
+acting on a crafted `.outpost/manifest.json` in a cloned repo. Two opt-in dev tools under `tools/`
+do call out: `sync_labels.py` shells to the `gh` CLI, and `run_evals.py` shells to the `claude`
+CLI; neither is installed into a consumer project or runs as part of `validate.py`.
 
 ## Reporting a vulnerability
 
