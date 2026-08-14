@@ -47,7 +47,7 @@ In Claude Code the common sequences are one typed command. Three bundle several 
 
 ## All the prompts
 
-The kit ships <!-- GENERATED:core-count-digits -->27<!-- /GENERATED:core-count-digits --> prompts, grouped by stage.
+The kit ships <!-- GENERATED:core-count-digits -->28<!-- /GENERATED:core-count-digits --> prompts, grouped by stage.
 
 <!-- GENERATED:skills-table -->
 | Stage | Prompts | Use them to |

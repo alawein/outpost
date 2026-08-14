@@ -218,7 +218,7 @@ def test_docs_sync_catches_a_hand_edited_generated_span(repo_copy):
     from kit.checks import docs_sync
     p = repo_copy / "docs" / "workflow.md"
     text = p.read_text(encoding="utf-8").replace(
-        "<!-- GENERATED:core-count-digits -->27<!-- /GENERATED:core-count-digits -->",
+        "<!-- GENERATED:core-count-digits -->28<!-- /GENERATED:core-count-digits -->",
         "<!-- GENERATED:core-count-digits -->99<!-- /GENERATED:core-count-digits -->")
     assert "99" in text  # guard: the corruption must exist
     p.write_text(text, encoding="utf-8")
