@@ -766,6 +766,26 @@ def test_remove_keeps_a_preexisting_settings_file_byte_equal_to_the_kits_merge(t
     assert settings.read_text(encoding="utf-8") == before
 
 
+def test_unmerge_settings_keeps_a_file_for_a_never_installed_tool(tmp_path):
+    project = tmp_path
+    settings_path = project / ".claude" / "settings.json"
+    settings_path.parent.mkdir(parents=True)
+    # content shaped like the kit's own deny-only merge, so unmerged_text would return None
+    # (nothing of the user's left) if this were treated as the kit's to reclaim
+    settings_path.write_text(
+        '{"permissions": {"deny": ["Read(./.env)", "Read(./.env.*)"]}}\n', encoding="utf-8")
+
+    manifest = {"tools": {}}  # claude was never installed in this project: no entry at all
+
+    results = install.unmerge_kit_settings(project, ["claude"], manifest, args_terse=False)
+
+    assert results == [(".claude/settings.json", "skipped")] or (
+        settings_path.exists()
+        and settings_path.read_text(encoding="utf-8")
+        == '{"permissions": {"deny": ["Read(./.env)", "Read(./.env.*)"]}}\n'
+    )
+
+
 def test_reinstall_after_remove_restores_cleanly(tmp_path):
     install.main(["--tool", "claude", "--project", str(tmp_path)])
     first = _tree(tmp_path)

@@ -498,8 +498,10 @@ def unmerge_kit_settings(project_root: pathlib.Path, tools, manifest: dict, args
     """Un-install the kit's settings merge for each tool: strip the kit deny rules, keeping every
     other key. Delete the file only when nothing of the user's remains and the manifest records
     the kit created it; a file recorded as pre-existing is the user's and is left in place (its
-    content was never the kit's to reclaim). A pre-records manifest, or none, falls back to the
-    old rule and deletes an emptied file. Returns a list of (path, outcome) where outcome is
+    content was never the kit's to reclaim). Only a genuine pre-records manifest (the tool was
+    installed here before per-file records existed) falls back to the old rule and deletes an
+    emptied file; no manifest entry at all means the tool was never installed here, so the file
+    is left alone instead (ADR-0019). Returns a list of (path, outcome) where outcome is
     'removed', 'unmerged', 'unchanged' (no kit rules found), 'skipped', or 'failed'."""
     results = []
     for t in tools:
@@ -521,10 +523,18 @@ def unmerge_kit_settings(project_root: pathlib.Path, tools, manifest: dict, args
             except ValueError:
                 results.append((a.path, "skipped"))  # malformed user settings: leave it untouched
                 continue
+            legacy_manifest = bool((manifest.get("tools", {}).get(t) or {})) and files is None
             rec = files.get(a.path) if files is not None else None
             if new_text is None and rec is not None and rec.get("existed"):
                 # the file pre-existed the kit, so what looks like kit-only content is the
                 # user's own; never delete it, and strip nothing (the merge was a no-op)
+                results.append((a.path, "skipped"))
+                continue
+            if new_text is None and rec is None and not legacy_manifest:
+                # no record for this path, and not a genuine pre-records manifest: this tool was
+                # never installed here at all (ADR-0019's rule, the same distinction
+                # remove_for_tools already makes at install.py:444), so there is no proof the kit
+                # ever owned this file; leave it alone rather than deleting on a byte-match guess
                 results.append((a.path, "skipped"))
                 continue
             try:
