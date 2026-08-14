@@ -100,6 +100,9 @@ Format follows Keep a Changelog (https://keepachangelog.com). The kit uses SemVe
 
 ### Changed
 
+- `.github/PULL_REQUEST_TEMPLATE.md` gained a release checklist section (release PRs only),
+  mirroring `docs/releasing.md`'s "Cutting a release" steps 1 through 6, so a release PR carries
+  its own checklist instead of relying on the contributor to cross-reference the doc.
 - ADR-0013's prompt-admission bar relaxed (ADR-0025): distinct job, nearest sibling, and unsafe
   default stay required at admission; binding mechanism, dogfood case, and deletion condition
   become recommended, fillable in a follow-up PR. `docs/how-this-is-built.md` and `README.md`
