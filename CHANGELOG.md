@@ -15,8 +15,9 @@ Format follows Keep a Changelog (https://keepachangelog.com). The kit uses SemVe
 ### Added
 
 - An 8th piloted behavioral eval, `evals/repo-review/`, covering the read-only `repo-review`
-  prompt: asserts no file was modified, no edit tool was called, and the review's own contract
-  markers (Verdict, a numbered finding, Gaps) appear in the transcript.
+  prompt: asserts no file was modified, no edit tool was called, and that the deliberately
+  planted gaps in the fixture are mentioned in the transcript (untested `create_order` function,
+  false `make check` README claim).
 - A 6th piloted behavioral eval, `evals/orient-repo/`, covering the read-only `orient-repo`
   prompt: asserts no file was modified, no edit tool was called, and the four most distinctive
   Output format headings appear in the transcript.
