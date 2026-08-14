@@ -74,3 +74,13 @@ def test_check_intent_blocks_on_a_missing_or_unexplained_extra():
     # the reconciliation order: enumerate the plan, then walk the diff against it
     assert text.index("list every distinct item the plan or ask called for") < text.index(
         "walk the diff file by file")
+
+
+def test_risk_review_refuses_to_approve_an_unattacked_claim():
+    text = (CORE / "risk-review.md").read_text(encoding="utf-8").lower()
+
+    assert "do not approve while a claim" in text
+    assert "has not been attacked" in text
+    assert "incomplete verdict" in text
+    assert "surrender" not in text  # guard against a future edit softening the requirement into a suggestion
+    assert "survived" in text and "broken" in text
