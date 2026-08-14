@@ -766,6 +766,26 @@ def test_remove_keeps_a_preexisting_settings_file_byte_equal_to_the_kits_merge(t
     assert settings.read_text(encoding="utf-8") == before
 
 
+def test_unmerge_settings_keeps_a_file_for_a_never_installed_tool(tmp_path):
+    project = tmp_path
+    settings_path = project / ".claude" / "settings.json"
+    settings_path.parent.mkdir(parents=True)
+    # content shaped like the kit's own deny-only merge, so unmerged_text would return None
+    # (nothing of the user's left) if this were treated as the kit's to reclaim
+    settings_path.write_text(
+        '{"permissions": {"deny": ["Read(./.env)", "Read(./.env.*)"]}}\n', encoding="utf-8")
+
+    manifest = {"tools": {}}  # claude was never installed in this project: no entry at all
+
+    results = install.unmerge_kit_settings(project, ["claude"], manifest, args_terse=False)
+
+    assert results == [(".claude/settings.json", "skipped")] or (
+        settings_path.exists()
+        and settings_path.read_text(encoding="utf-8")
+        == '{"permissions": {"deny": ["Read(./.env)", "Read(./.env.*)"]}}\n'
+    )
+
+
 def test_reinstall_after_remove_restores_cleanly(tmp_path):
     install.main(["--tool", "claude", "--project", str(tmp_path)])
     first = _tree(tmp_path)
@@ -1193,6 +1213,55 @@ def test_prune_skips_a_retired_file_with_no_recorded_hash(tmp_path, capsys):
     assert rc == 0
     assert stale.is_file()
     assert "skip" in out and ".agents/prompts/converge.md" in out
+
+
+def test_remove_does_not_delete_a_file_outside_the_project_via_a_symlink(tmp_path):
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    secret = outside / "secret.txt"
+    secret.write_text("do not delete me", encoding="utf-8")
+
+    project = tmp_path / "project"
+    project.mkdir()
+    try:
+        (project / "link_dir").symlink_to(outside, target_is_directory=True)
+    except OSError:
+        pytest.skip("symlink creation not permitted in this environment")
+
+    kit_hash = install._hash_str("do not delete me")
+    manifest = {"kit_version": "0.3.0", "tools": {"claude": {
+        "selection": "full", "prompts": [], "terse": False,
+        "files": {"link_dir/secret.txt": {"existed": False, "kit_hash": kit_hash}},
+    }}}
+
+    removed, skipped, failed, retired = install.remove_for_tools(
+        project, ["claude"], manifest, args_terse=False)
+
+    assert "link_dir/secret.txt" not in removed
+    assert "link_dir/secret.txt" not in retired
+    assert secret.exists()
+    assert secret.read_text(encoding="utf-8") == "do not delete me"
+
+
+def test_retired_paths_excludes_a_path_that_escapes_through_a_symlink(tmp_path):
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (outside / "secret.txt").write_text("x", encoding="utf-8")
+
+    project = tmp_path / "project"
+    project.mkdir()
+    try:
+        (project / "link_dir").symlink_to(outside, target_is_directory=True)
+    except OSError:
+        pytest.skip("symlink creation not permitted in this environment")
+
+    manifest = {"tools": {"claude": {"prompts": [], "files": {
+        "link_dir/secret.txt": {"existed": False, "kit_hash": "sha256:irrelevant"},
+    }}}}
+
+    result = install._retired_paths(project, "claude", manifest, terse=False, tolerant=True)
+
+    assert result == []
 
 
 def test_a_user_owned_converge_file_is_never_touched(tmp_path, capsys):
