@@ -41,3 +41,6 @@ Start from `0000-template.md` when adding a record.
   opt-in and not CI-gated. Piloted 5 at admission (interrogate, plan-change, record-decision,
   write-tests, debt-log); `docs/DEBT.md`'s open entry names the current pilot count and list, so
   this index is not itself a second place that count can drift.
+- 0028: fix a manifest-driven symlink escape in `prune`/`remove` (a crafted manifest plus a
+  pre-planted symlink could delete a file outside the project root); `unmerge_kit_settings` gets
+  the same never-installed-tool guard `remove_for_tools` already proved.
