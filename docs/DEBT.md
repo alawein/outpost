@@ -178,3 +178,12 @@ Closed with the PR that closed it; never delete one.
   Closed by the new `command_lists` gate check, which fails when a shipped plugin command is
   missing from README.md or docs/when-to-use.md. (Post-eval repo review; closed by the
   command-list-gate PR.)
+
+- 2026-08-14, `tests/test_check_negatives.py`'s `repo_copy` fixture (`IGNORE`, the
+  `shutil.ignore_patterns` list) did not exclude `.superpowers/` or `docs/superpowers/`, this
+  repo's gitignored planning-scratch directories. A local worktree that had accumulated multi-plan
+  scratch content could trip `test_prose_length_catches_a_sprawling_paragraph_in_a_real_doc` on a
+  long paragraph inside a scratch doc, even though those directories are untracked and a fresh CI
+  clone never has them (CI was unaffected). Found while running this change's own mandated gate.
+  Closed 2026-08-14: added `.superpowers` and `superpowers` to the `IGNORE` tuple, the same
+  reasoning already applied to `.claude`.

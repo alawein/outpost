@@ -76,6 +76,15 @@ def test_check_intent_blocks_on_a_missing_or_unexplained_extra():
         "walk the diff file by file")
 
 
+def test_cross_doc_check_never_flags_a_wording_only_difference():
+    text = (CORE / "cross-doc-check.md").read_text(encoding="utf-8").lower()
+
+    assert "a wording difference alone" in text
+    assert "never be reported as a finding" in text or "is not a finding" in text
+    assert "direct contradiction" in text
+    assert "unexplained scope gap" in text
+
+
 def test_risk_review_refuses_to_approve_an_unattacked_claim():
     text = (CORE / "risk-review.md").read_text(encoding="utf-8").lower()
 

@@ -41,6 +41,10 @@ Start from `0000-template.md` when adding a record.
   opt-in and not CI-gated. Piloted 5 at admission (interrogate, plan-change, record-decision,
   write-tests, debt-log); `docs/DEBT.md`'s open entry names the current pilot count and list, so
   this index is not itself a second place that count can drift.
+- 0027: admit `risk-review`, a second-gear review composing `code-review`'s structural pass with
+  `grill`'s claim-attack, gated to install/adapter write paths or anything named hard to reverse.
 - 0028: fix a manifest-driven symlink escape in `prune`/`remove` (a crafted manifest plus a
   pre-planted symlink could delete a file outside the project root); `unmerge_kit_settings` gets
   the same never-installed-tool guard `remove_for_tools` already proved.
+- 0029: cross-doc-check, comparing two named docs that are each supposed to state the same policy
+  and flagging a real contradiction or unexplained scope gap, never a wording difference.

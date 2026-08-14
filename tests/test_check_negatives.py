@@ -12,11 +12,13 @@ from kit.checks import (adapters, banned_sync, catalog, command_lists, commands,
                         roadmap, structure, template_refs, templates, traces)
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-# .claude holds machine-local tool config (untracked, gitignored); exclude it so an untracked
-# settings file cannot leak a home path into the copied tree and trip the traces walk-fallback,
-# which the real git-tracked scan never sees.
-IGNORE = shutil.ignore_patterns(".git", ".claude", "__pycache__", ".pytest_cache", ".benchmarks",
-                                ".venv", "venv", "*.egg-info")
+# .claude holds machine-local tool config (untracked, gitignored); .superpowers and
+# docs/superpowers hold session planning scratch (also untracked, gitignored, per .gitignore and
+# CLAUDE.md's Repo rules). Exclude all three so untracked local content, a home path in a settings
+# file or an over-length paragraph in a scratch brief, cannot leak into the copied tree and trip
+# a check's walk-fallback, which the real git-tracked scan never sees.
+IGNORE = shutil.ignore_patterns(".git", ".claude", ".superpowers", "superpowers", "__pycache__",
+                                ".pytest_cache", ".benchmarks", ".venv", "venv", "*.egg-info")
 
 
 @pytest.fixture
@@ -216,7 +218,7 @@ def test_docs_sync_catches_a_hand_edited_generated_span(repo_copy):
     from kit.checks import docs_sync
     p = repo_copy / "docs" / "workflow.md"
     text = p.read_text(encoding="utf-8").replace(
-        "<!-- GENERATED:core-count-digits -->27<!-- /GENERATED:core-count-digits -->",
+        "<!-- GENERATED:core-count-digits -->28<!-- /GENERATED:core-count-digits -->",
         "<!-- GENERATED:core-count-digits -->99<!-- /GENERATED:core-count-digits -->")
     assert "99" in text  # guard: the corruption must exist
     p.write_text(text, encoding="utf-8")

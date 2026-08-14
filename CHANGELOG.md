@@ -14,6 +14,8 @@ Format follows Keep a Changelog (https://keepachangelog.com). The kit uses SemVe
 
 ### Added
 
+- `cross-doc-check`, comparing two named docs that are each supposed to state the same policy and
+  flagging a real contradiction or an unexplained scope gap, never a wording difference. ADR-0029.
 - `risk-review`, a second-gear review for a change to install/adapter write paths or anything
   named hard to reverse: runs `code-review`'s pass, then requires the risky part's claims to
   actually be attacked before it will approve. ADR-0027.
