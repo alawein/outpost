@@ -14,6 +14,9 @@ Format follows Keep a Changelog (https://keepachangelog.com). The kit uses SemVe
 
 ### Added
 
+- `risk-review`, a second-gear review for a change to install/adapter write paths or anything
+  named hard to reverse: runs `code-review`'s pass, then requires the risky part's claims to
+  actually be attacked before it will approve. ADR-0027.
 - `issue_forms`, a gate check that no `.github/ISSUE_TEMPLATE/*.yml` form has a duplicate `id:` or
   a dropdown/checkboxes field with no `options:`, closing the open `docs/DEBT.md` item on this.
 - `commands`, a gate check that every plugin command file under `plugins/outpost/commands/` has a
