@@ -62,6 +62,21 @@ def frontmatter_field(frontmatter: str, key: str) -> str | None:
     return m.group(1).strip().strip('"').strip("'") if m else None
 
 
+def strip_comment(line: str) -> str:
+    """Drop a trailing ` #comment`, honoring quotes so a `#` inside a quoted value is not mistaken
+    for one."""
+    in_quote = None
+    for i, ch in enumerate(line):
+        if in_quote:
+            if ch == in_quote:
+                in_quote = None
+        elif ch in "\"'":
+            in_quote = ch
+        elif ch == "#" and (i == 0 or line[i - 1] in " \t"):
+            return line[:i]
+    return line
+
+
 def tracked_files(root: pathlib.Path) -> list[str] | None:
     """Return repo-relative POSIX paths git is tracking, or None when this is not a git repo or git
     is unavailable. Checks that depend on what is committed use this so a local cache never trips

@@ -417,6 +417,17 @@ def test_issue_forms_catches_a_dropdown_with_no_options(repo_copy):
     assert not ok and "dropdown field has no options" in detail
 
 
+def test_issue_forms_catches_a_duplicate_id_with_a_trailing_comment(repo_copy):
+    forms = repo_copy / ".github" / "ISSUE_TEMPLATE"
+    (forms / "bug.yml").write_text(
+        "name: Bug report\ndescription: x\nbody:\n"
+        "  - type: textarea\n    id: problem  # first\n    attributes:\n      label: Problem\n"
+        "  - type: textarea\n    id: problem\n    attributes:\n      label: Problem again\n",
+        encoding="utf-8")
+    ok, detail = issue_forms.run(repo_copy)
+    assert not ok and "duplicate id 'problem'" in detail
+
+
 def test_prose_length_catches_a_sprawling_paragraph_in_a_real_doc(repo_copy):
     p = repo_copy / "docs" / "contributing.md"
     long_para = " ".join(["word"] * (prose_length.MAX_PARAGRAPH_WORDS + 1))

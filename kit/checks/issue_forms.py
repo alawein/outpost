@@ -9,6 +9,8 @@ from __future__ import annotations
 import pathlib
 import re
 
+from . import strip_comment
+
 _ID = re.compile(r"^\s*id:\s*(\S+)\s*$")
 _TYPE = re.compile(r"^\s*-\s*type:\s*(?P<kind>\S+)\s*$")
 _OPTIONS_KEY = re.compile(r"^\s*options:\s*$")
@@ -73,7 +75,7 @@ def run(root: pathlib.Path) -> tuple[bool, str]:
         return True, "no issue forms yet; nothing to check"
     errors: list[str] = []
     for p in files:
-        lines = p.read_text(encoding="utf-8").splitlines()
+        lines = [strip_comment(line) for line in p.read_text(encoding="utf-8").splitlines()]
         rel = p.relative_to(root).as_posix()
         for dup in duplicate_ids(lines):
             errors.append(f"{rel}: duplicate id {dup!r}")
