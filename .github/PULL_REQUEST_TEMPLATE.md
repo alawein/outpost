@@ -37,6 +37,20 @@ observed outside Outpost (definitions: [docs/labels.md](../docs/labels.md#proven
       `release:*` label.
 - [ ] Not user-visible: no changelog entry needed.
 
+## Release checklist (release PRs only)
+
+Skip this section entirely unless this PR is the release cut itself (see `docs/releasing.md`).
+
+- [ ] `python validate.py` and `pytest` pass on `main` before starting.
+- [ ] Version bumped to the same value in `kit/catalog/catalog.json`, `pyproject.toml`, and
+      `kit/__init__.py`.
+- [ ] `docs/ROADMAP.md`'s current-release line updated to match.
+- [ ] Plugin regenerated (`python tools/build.py plugin`) so its manifest version matches; only
+      the real version-line change staged, not unchanged `SKILL.md` files.
+- [ ] `[Unreleased]` renamed to `[X.Y.Z] - YYYY-MM-DD`, a fresh empty `[Unreleased]` opened above
+      it.
+- [ ] `python validate.py` and `pytest` re-run over the bumped, regenerated tree.
+
 ## Generated files
 
 - [ ] Regenerated via `python tools/build.py` and committed.
