@@ -533,7 +533,7 @@ def unmerge_kit_settings(project_root: pathlib.Path, tools, manifest: dict, args
             if new_text is None and rec is None and not legacy_manifest:
                 # no record for this path, and not a genuine pre-records manifest: this tool was
                 # never installed here at all (ADR-0019's rule, the same distinction
-                # remove_for_tools already makes at install.py:444), so there is no proof the kit
+                # remove_for_tools already makes), so there is no proof the kit
                 # ever owned this file; leave it alone rather than deleting on a byte-match guess
                 results.append((a.path, "skipped"))
                 continue
