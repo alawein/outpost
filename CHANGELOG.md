@@ -26,7 +26,7 @@ Format follows Keep a Changelog (https://keepachangelog.com). The kit uses SemVe
   modified, no edit tool was called, and all three verification buckets (confirmed, doubtful,
   wrong) appear in the transcript.
 - A lightweight behavioral eval harness (`tools/run_evals.py`, `evals/`) for the first 5 pilot core
-  prompts (2 more piloted since, see the bullets above),
+  prompts (3 more piloted since, see the bullets above),
   running each through a real `claude -p` call against a seeded fixture and checking mechanical
   assertions (file created/unmodified, a tool not used, text contains a value). Opt-in, not wired
   into `validate.py` or CI. ADR-0026.
