@@ -10,26 +10,11 @@ from __future__ import annotations
 import pathlib
 import re
 
+from . import strip_comment
 from ..labels import load_labels
 
 _LABELS_KEY = re.compile(r"^(?P<indent>[ \t]*)labels:[ \t]*(?P<inline>.*)$")
 _LIST_ITEM = re.compile(r"^(?P<indent>[ \t]*)-[ \t]*(?P<value>.+?)[ \t]*$")
-
-
-def _strip_comment(line: str) -> str:
-    """Drop a trailing ` #comment`, honoring quotes so a `#` inside a quoted label name (not
-    that one would ever contain one, but a stray one should not corrupt parsing) is not mistaken
-    for one."""
-    in_quote = None
-    for i, ch in enumerate(line):
-        if in_quote:
-            if ch == in_quote:
-                in_quote = None
-        elif ch in "\"'":
-            in_quote = ch
-        elif ch == "#" and (i == 0 or line[i - 1] in " \t"):
-            return line[:i]
-    return line
 
 
 def _unquote(token: str) -> str:
@@ -53,7 +38,7 @@ def extract_label_refs(text: str) -> list[str]:
     block-list (`labels:\\n  - a\\n  - b`, indented under the key or flush with it) style. A
     trailing `# comment` is dropped; a blank or comment-only line inside a block list does not
     end it."""
-    lines = [_strip_comment(line) for line in text.splitlines()]
+    lines = [strip_comment(line) for line in text.splitlines()]
     refs: list[str] = []
     i = 0
     while i < len(lines):

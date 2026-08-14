@@ -36,14 +36,6 @@ Closed with the PR that closed it; never delete one.
   docs at that URL, following them for `plugins/outpost`, and confirming the entry appears in
   https://github.com/anthropics/claude-plugins-community/blob/main/.claude-plugin/marketplace.json.
 
-- 2026-08-07, no structural check on issue-form YAML. `kit/checks/label_refs.py` validates only
-  `labels:` references in `.github/ISSUE_TEMPLATE/*.yml`; nothing checks GitHub's actual
-  issue-form schema (a duplicate `id:` within one form, a dropdown missing `options:`). GitHub
-  only surfaces that error in the browser at "New issue," not in `validate.py`/CI. Taken because
-  it is out of scope for the PR that first added real issue forms (#10) and today's five forms
-  are all hand-verified clean. Close by adding a check in the same regex-line-scan style as
-  `label_refs.py` that flags a duplicate `id:` per file, the next time a form is added or edited.
-
 - 2026-08-09, `docs/decisions/0014-pack-consolidation.md:8` cites `docs/audit-2026-07-10.md`
   (a hyphen where the real path uses a slash: `docs/audit/2026-07-10.md`), a broken reference
   found in a `repo-review` self-review pass. Not fixed at the source: `docs/decisions/` is
@@ -57,6 +49,15 @@ Closed with the PR that closed it; never delete one.
   pure citation fix.
 
 ## Closed
+
+- 2026-08-07, no structural check on issue-form YAML. `kit/checks/label_refs.py` validates only
+  `labels:` references in `.github/ISSUE_TEMPLATE/*.yml`; nothing checks GitHub's actual
+  issue-form schema (a duplicate `id:` within one form, a dropdown missing `options:`). GitHub
+  only surfaces that error in the browser at "New issue," not in `validate.py`/CI. Taken because
+  it is out of scope for the PR that first added real issue forms (#10) and today's five forms
+  are all hand-verified clean. Closed 2026-08-13: added `issue_forms`, a regex-line-scan gate
+  check in the same style as `label_refs.py`, catching a duplicate `id:` and a dropdown or
+  checkboxes field with no `options:`.
 
 - 2026-07-11, four PRs admin-merged without a second human approval. #111, #113, #114, and this
   recording PR #115 were squash-merged with `--admin`, bypassing the branch-protection review

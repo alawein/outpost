@@ -72,6 +72,7 @@
     { "name": "commands", "module": "kit.checks.commands", "summary": "Every plugin command file has a real description and is not a stub." },
     { "name": "traces", "module": "kit.checks.traces", "summary": "No personal email, handle, or machine path in the tracked tree." },
     { "name": "label_refs", "module": "kit.checks.label_refs", "summary": "Issue forms and labeler config name only registered labels." },
+    { "name": "issue_forms", "module": "kit.checks.issue_forms", "summary": "No duplicate id in an issue form, and every dropdown or checkboxes field has options." },
     { "name": "prose_length", "module": "kit.checks.prose_length", "summary": "No markdown paragraph exceeds the concision ceiling, outside the append-only ledgers." }
   ]
 }

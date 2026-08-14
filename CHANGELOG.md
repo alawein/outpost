@@ -14,6 +14,8 @@ Format follows Keep a Changelog (https://keepachangelog.com). The kit uses SemVe
 
 ### Added
 
+- `issue_forms`, a gate check that no `.github/ISSUE_TEMPLATE/*.yml` form has a duplicate `id:` or
+  a dropdown/checkboxes field with no `options:`, closing the open `docs/DEBT.md` item on this.
 - `commands`, a gate check that every plugin command file under `plugins/outpost/commands/` has a
   real frontmatter description and a non-stub body, mirroring the structural lint prompts already
   get.
