@@ -16,6 +16,9 @@ Format follows Keep a Changelog (https://keepachangelog.com). The kit uses SemVe
 
 - `cross-doc-check`, comparing two named docs that are each supposed to state the same policy and
   flagging a real contradiction or an unexplained scope gap, never a wording difference. ADR-0029.
+- `risk-review`, a second-gear review for a change to install/adapter write paths or anything
+  named hard to reverse: runs `code-review`'s pass, then requires the risky part's claims to
+  actually be attacked before it will approve. ADR-0027.
 - `issue_forms`, a gate check that no `.github/ISSUE_TEMPLATE/*.yml` form has a duplicate `id:` or
   a dropdown/checkboxes field with no `options:`, closing the open `docs/DEBT.md` item on this.
 - `commands`, a gate check that every plugin command file under `plugins/outpost/commands/` has a
@@ -102,6 +105,9 @@ Format follows Keep a Changelog (https://keepachangelog.com). The kit uses SemVe
 
 ### Changed
 
+- `.github/PULL_REQUEST_TEMPLATE.md` gained a release checklist section (release PRs only),
+  mirroring `docs/releasing.md`'s "Cutting a release" steps 1 through 6, so a release PR carries
+  its own checklist instead of relying on the contributor to cross-reference the doc.
 - ADR-0013's prompt-admission bar relaxed (ADR-0025): distinct job, nearest sibling, and unsafe
   default stay required at admission; binding mechanism, dogfood case, and deletion condition
   become recommended, fillable in a follow-up PR. `docs/how-this-is-built.md` and `README.md`
@@ -111,6 +117,17 @@ Format follows Keep a Changelog (https://keepachangelog.com). The kit uses SemVe
   follow-up; a one-line deferral note now satisfies both the form and the rule.
 - ADR-0013 (prompt admission) moved from Proposed to Accepted: two admissions (ADR-0020,
   ADR-0023) had already followed it as binding.
+
+### Security
+
+- `install.py --prune`/`--remove` could be steered by a crafted `.outpost/manifest.json` plus a
+  filesystem symlink to delete a file outside the project root, a variant of the exact threat
+  model the v0.2.0 fix closed, through a mechanism (symlink indirection) that fix never checked.
+  Fixed: a new containment check resolves a manifest-derived delete candidate's real path before
+  it is treated as kit-owned. `unmerge_kit_settings`'s related never-installed-tool gap (documented
+  fallback behavior, same data-loss shape) got the same fix already proven for `remove_for_tools`
+  in PR #25. Found by a live dogfood run of a review prompt against the real installer code.
+  ADR-0028.
 
 ## [0.3.0] - 2026-08-07
 

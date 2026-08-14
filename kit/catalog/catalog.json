@@ -21,6 +21,7 @@
     { "name": "simplify", "path": "prompts/core/simplify.md", "summary": "Reuse, simplification, and efficiency cleanups on changed code, behavior preserved.", "stage": "Build" },
     { "name": "check-intent", "path": "prompts/core/check-intent.md", "summary": "Reconcile the diff against the plan or the stated ask before code-review: missing, extra, or changed-approach items.", "stage": "Review and ship" },
     { "name": "code-review", "path": "prompts/core/code-review.md", "summary": "Structured correctness-and-standards review with one honest verdict.", "stage": "Review and ship" },
+    { "name": "risk-review", "path": "prompts/core/risk-review.md", "summary": "Second-gear review for a change to install/adapter write paths or anything named hard to reverse: gate the verdict on attacking the risky claims, not just reading them.", "stage": "Review and ship" },
     { "name": "prepare-pr", "path": "prompts/core/prepare-pr.md", "summary": "Draft the commit and PR from the diff and run the pre-merge checks.", "stage": "Review and ship" },
     { "name": "respond-to-review", "path": "prompts/core/respond-to-review.md", "summary": "Triage review feedback, fix or push back with a reason, reply to each.", "stage": "Review and ship" },
     { "name": "triage", "path": "prompts/core/triage.md", "summary": "Rank a findings list: confirm each, rate severity, route to fix, defer, or reject.", "stage": "Review and ship" },

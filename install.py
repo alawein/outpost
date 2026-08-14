@@ -103,6 +103,21 @@ def _hash_str(content: str) -> str:
     return "sha256:" + hashlib.sha256(content.encode("utf-8")).hexdigest()
 
 
+def _is_contained(project_root: pathlib.Path, path: str) -> bool:
+    """True if project_root / path resolves, following any symlink, to somewhere still inside
+    project_root. A manifest 'files' key is validated only as a string (no absolute path, no ..,
+    no backslash or colon); a symlink already sitting in the project can still redirect a
+    clean-looking relative key outside the root once the filesystem actually resolves it. Anything
+    about to be treated as a kit-owned delete candidate from a manifest key must pass this first."""
+    root = project_root.resolve()
+    target = (project_root / path).resolve()
+    try:
+        target.relative_to(root)
+        return True
+    except ValueError:
+        return False
+
+
 def _legacy_claim(project_root: pathlib.Path, tool: str, prev_entry: dict) -> set:
     """The paths a records-less install of this tool can prove it wrote: the plan derived from its
     own recorded prompts, guide, and terse flag. A manifest without a `files` map (a kit version
@@ -286,7 +301,8 @@ def _retired_paths(project_root: pathlib.Path, tool: str, manifest: dict, terse:
                                         tolerant=tolerant)}
     return [path for path, rec in sorted(files.items())
             if not rec.get("existed") and path not in current
-            and (project_root / path).is_file()]
+            and (project_root / path).is_file()
+            and _is_contained(project_root, path)]
 
 
 def _retired_unedited(project_root: pathlib.Path, path: str, rec: dict) -> bool:
@@ -482,8 +498,10 @@ def unmerge_kit_settings(project_root: pathlib.Path, tools, manifest: dict, args
     """Un-install the kit's settings merge for each tool: strip the kit deny rules, keeping every
     other key. Delete the file only when nothing of the user's remains and the manifest records
     the kit created it; a file recorded as pre-existing is the user's and is left in place (its
-    content was never the kit's to reclaim). A pre-records manifest, or none, falls back to the
-    old rule and deletes an emptied file. Returns a list of (path, outcome) where outcome is
+    content was never the kit's to reclaim). Only a genuine pre-records manifest (the tool was
+    installed here before per-file records existed) falls back to the old rule and deletes an
+    emptied file; no manifest entry at all means the tool was never installed here, so the file
+    is left alone instead (ADR-0019). Returns a list of (path, outcome) where outcome is
     'removed', 'unmerged', 'unchanged' (no kit rules found), 'skipped', or 'failed'."""
     results = []
     for t in tools:
@@ -505,10 +523,18 @@ def unmerge_kit_settings(project_root: pathlib.Path, tools, manifest: dict, args
             except ValueError:
                 results.append((a.path, "skipped"))  # malformed user settings: leave it untouched
                 continue
+            legacy_manifest = bool((manifest.get("tools", {}).get(t) or {})) and files is None
             rec = files.get(a.path) if files is not None else None
             if new_text is None and rec is not None and rec.get("existed"):
                 # the file pre-existed the kit, so what looks like kit-only content is the
                 # user's own; never delete it, and strip nothing (the merge was a no-op)
+                results.append((a.path, "skipped"))
+                continue
+            if new_text is None and rec is None and not legacy_manifest:
+                # no record for this path, and not a genuine pre-records manifest: this tool was
+                # never installed here at all (ADR-0019's rule, the same distinction
+                # remove_for_tools already makes), so there is no proof the kit
+                # ever owned this file; leave it alone rather than deleting on a byte-match guess
                 results.append((a.path, "skipped"))
                 continue
             try:

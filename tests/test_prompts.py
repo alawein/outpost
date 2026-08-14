@@ -83,3 +83,13 @@ def test_cross_doc_check_never_flags_a_wording_only_difference():
     assert "never be reported as a finding" in text or "is not a finding" in text
     assert "direct contradiction" in text
     assert "unexplained scope gap" in text
+
+
+def test_risk_review_refuses_to_approve_an_unattacked_claim():
+    text = (CORE / "risk-review.md").read_text(encoding="utf-8").lower()
+
+    assert "do not approve while a claim" in text
+    assert "has not been attacked" in text
+    assert "incomplete verdict" in text
+    assert "surrender" not in text  # guard against a future edit softening the requirement into a suggestion
+    assert "survived" in text and "broken" in text
