@@ -14,8 +14,8 @@ Closed with the PR that closed it; never delete one.
 
 ## Open
 
-- 2026-08-08, only 7 of 26 core prompts have a behavioral eval (`interrogate`, `plan-change`,
-  `record-decision`, `write-tests`, `debt-log`, `orient-repo`, `triage`; see
+- 2026-08-08, only 8 of 26 core prompts have a behavioral eval (`interrogate`, `plan-change`,
+  `record-decision`, `write-tests`, `debt-log`, `orient-repo`, `triage`, `repo-review`; see
   `docs/decisions/0026-prompt-behavioral-eval.md`). Taken because several of the remaining prompts
   (`panel`, `prove`, `grill`, `premortem`) are adversarial or exploratory by design and do not
   reduce to a mechanically checkable assertion without their own design work. Revisit by picking
