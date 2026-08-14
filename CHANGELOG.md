@@ -14,6 +14,8 @@ Format follows Keep a Changelog (https://keepachangelog.com). The kit uses SemVe
 
 ### Added
 
+- `issue_forms`, a gate check that no `.github/ISSUE_TEMPLATE/*.yml` form has a duplicate `id:` or
+  a dropdown/checkboxes field with no `options:`, closing the open `docs/DEBT.md` item on this.
 - A 6th piloted behavioral eval, `evals/orient-repo/`, covering the read-only `orient-repo`
   prompt: asserts no file was modified, no edit tool was called, and the four most distinctive
   Output format headings appear in the transcript.

@@ -3,7 +3,7 @@ import pathlib
 import re
 import subprocess
 
-from kit.checks import label_refs, prompts, secrets, voice
+from kit.checks import issue_forms, label_refs, prompts, secrets, voice
 from kit.checks.run import run_all
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -229,6 +229,11 @@ def test_label_refs_extracts_and_validates_every_real_issue_form():
     # no labels: key but is still scanned), so a form silently disappearing from the glob fails
     ok, detail = label_refs.run(ROOT)
     assert ok and "5 file(s)" in detail, detail
+
+
+def test_issue_forms_has_no_duplicate_ids_or_missing_options():
+    ok, detail = issue_forms.run(ROOT)
+    assert ok and "5 issue form(s)" in detail, detail
 
 
 def test_extract_label_refs_handles_a_zero_indent_block_list():

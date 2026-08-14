@@ -8,8 +8,8 @@ import pytest
 
 from kit.adapters.base import Action
 from kit.checks import (adapters, banned_sync, catalog, command_lists, doc_truth, docs,
-                        label_refs, plugin_orphans, prompts, prose_length, registries, roadmap,
-                        structure, template_refs, templates, traces)
+                        issue_forms, label_refs, plugin_orphans, prompts, prose_length, registries,
+                        roadmap, structure, template_refs, templates, traces)
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 # .claude holds machine-local tool config (untracked, gitignored); exclude it so an untracked
@@ -393,6 +393,28 @@ def test_label_refs_passes_with_only_registered_and_retained_labels(repo_copy):
         encoding="utf-8")
     ok, detail = label_refs.run(repo_copy)
     assert ok, detail
+
+
+def test_issue_forms_catches_a_duplicate_id(repo_copy):
+    forms = repo_copy / ".github" / "ISSUE_TEMPLATE"
+    (forms / "bug.yml").write_text(
+        "name: Bug report\ndescription: x\nbody:\n"
+        "  - type: textarea\n    id: problem\n    attributes:\n      label: Problem\n"
+        "  - type: textarea\n    id: problem\n    attributes:\n      label: Problem again\n",
+        encoding="utf-8")
+    ok, detail = issue_forms.run(repo_copy)
+    assert not ok and "duplicate id 'problem'" in detail
+
+
+def test_issue_forms_catches_a_dropdown_with_no_options(repo_copy):
+    forms = repo_copy / ".github" / "ISSUE_TEMPLATE"
+    (forms / "bug.yml").write_text(
+        "name: Bug report\ndescription: x\nbody:\n"
+        "  - type: dropdown\n    id: severity\n    attributes:\n      label: Severity\n"
+        "    validations:\n      required: true\n",
+        encoding="utf-8")
+    ok, detail = issue_forms.run(repo_copy)
+    assert not ok and "dropdown field has no options" in detail
 
 
 def test_prose_length_catches_a_sprawling_paragraph_in_a_real_doc(repo_copy):
