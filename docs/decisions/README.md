@@ -41,3 +41,5 @@ Start from `0000-template.md` when adding a record.
   opt-in and not CI-gated. Piloted 5 at admission (interrogate, plan-change, record-decision,
   write-tests, debt-log); `docs/DEBT.md`'s open entry names the current pilot count and list, so
   this index is not itself a second place that count can drift.
+- 0029: cross-doc-check, comparing two named docs that are each supposed to state the same policy
+  and flagging a real contradiction or unexplained scope gap, never a wording difference.
