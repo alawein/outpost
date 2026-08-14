@@ -3,7 +3,7 @@ import pathlib
 import re
 import subprocess
 
-from kit.checks import issue_forms, label_refs, prompts, secrets, voice
+from kit.checks import commands, issue_forms, label_refs, prompts, secrets, voice
 from kit.checks.run import run_all
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -104,6 +104,11 @@ def test_prompt_lint_flags_a_plain_value_starting_with_a_yaml_indicator():
         GOOD_PROMPT,
         "[Use before writing code for any change that is not trivial, to scope the edit first]")
     assert any("indicator" in e for e in prompts.lint_prompt(bad, "plan-change"))
+
+
+def test_commands_lints_every_real_plugin_command():
+    ok, detail = commands.run(ROOT)
+    assert ok and "9 plugin commands well-formed" in detail, detail
 
 
 def test_voice_passes_clean_and_flags_a_dash(tmp_path):

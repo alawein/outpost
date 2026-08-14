@@ -16,6 +16,13 @@ Format follows Keep a Changelog (https://keepachangelog.com). The kit uses SemVe
 
 - `issue_forms`, a gate check that no `.github/ISSUE_TEMPLATE/*.yml` form has a duplicate `id:` or
   a dropdown/checkboxes field with no `options:`, closing the open `docs/DEBT.md` item on this.
+- `commands`, a gate check that every plugin command file under `plugins/outpost/commands/` has a
+  real frontmatter description and a non-stub body, mirroring the structural lint prompts already
+  get.
+- An 8th piloted behavioral eval, `evals/repo-review/`, covering the read-only `repo-review`
+  prompt: asserts no file was modified, no edit tool was called, and that the deliberately
+  planted gaps in the fixture are mentioned in the transcript (untested `create_order` function,
+  false `make check` README claim).
 - A 6th piloted behavioral eval, `evals/orient-repo/`, covering the read-only `orient-repo`
   prompt: asserts no file was modified, no edit tool was called, and the four most distinctive
   Output format headings appear in the transcript.
@@ -24,7 +31,7 @@ Format follows Keep a Changelog (https://keepachangelog.com). The kit uses SemVe
   modified, no edit tool was called, and all three verification buckets (confirmed, doubtful,
   wrong) appear in the transcript.
 - A lightweight behavioral eval harness (`tools/run_evals.py`, `evals/`) for the first 5 pilot core
-  prompts (2 more piloted since, see the bullets above),
+  prompts (3 more piloted since, see the bullets above),
   running each through a real `claude -p` call against a seeded fixture and checking mechanical
   assertions (file created/unmodified, a tool not used, text contains a value). Opt-in, not wired
   into `validate.py` or CI. ADR-0026.
