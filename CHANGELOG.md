@@ -110,6 +110,17 @@ Format follows Keep a Changelog (https://keepachangelog.com). The kit uses SemVe
 - ADR-0013 (prompt admission) moved from Proposed to Accepted: two admissions (ADR-0020,
   ADR-0023) had already followed it as binding.
 
+### Security
+
+- `install.py --prune`/`--remove` could be steered by a crafted `.outpost/manifest.json` plus a
+  filesystem symlink to delete a file outside the project root, a variant of the exact threat
+  model the v0.2.0 fix closed, through a mechanism (symlink indirection) that fix never checked.
+  Fixed: a new containment check resolves a manifest-derived delete candidate's real path before
+  it is treated as kit-owned. `unmerge_kit_settings`'s related never-installed-tool gap (documented
+  fallback behavior, same data-loss shape) got the same fix already proven for `remove_for_tools`
+  in PR #25. Found by a live dogfood run of a review prompt against the real installer code.
+  ADR-0028.
+
 ## [0.3.0] - 2026-08-07
 
 ### Added

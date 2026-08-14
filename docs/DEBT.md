@@ -48,6 +48,17 @@ Closed with the PR that closed it; never delete one.
   asking whether this repo wants a lighter-weight convention than a full superseding record for a
   pure citation fix.
 
+- 2026-08-14, `tests/test_check_negatives.py`'s `repo_copy` fixture (`IGNORE`, line 18-19) does not
+  exclude `.superpowers/`, this repo's gitignored planning-scratch directory. A local worktree that
+  has accumulated multi-plan scratch content can trip
+  `test_prose_length_catches_a_sprawling_paragraph_in_a_real_doc` on a long paragraph inside a
+  scratch doc. `.superpowers/` is untracked, so a fresh CI clone never has it and CI is unaffected;
+  this only surfaces in a long-running local multi-plan session. Found while landing ADR-0028.
+  Taken because fixing the fixture was unrelated to that fix's own file list (`install.py`,
+  `tests/test_install.py`) and would have bundled an unrelated change into a security-focused
+  commit. Close by adding `.superpowers` to the `IGNORE` tuple, the same reasoning already applied
+  to `.claude`.
+
 ## Closed
 
 - 2026-08-07, no structural check on issue-form YAML. `kit/checks/label_refs.py` validates only
