@@ -14,6 +14,8 @@ Format follows Keep a Changelog (https://keepachangelog.com). The kit uses SemVe
 
 ### Added
 
+- `cross-doc-check`, comparing two named docs that are each supposed to state the same policy and
+  flagging a real contradiction or an unexplained scope gap, never a wording difference. ADR-0029.
 - `issue_forms`, a gate check that no `.github/ISSUE_TEMPLATE/*.yml` form has a duplicate `id:` or
   a dropdown/checkboxes field with no `options:`, closing the open `docs/DEBT.md` item on this.
 - `commands`, a gate check that every plugin command file under `plugins/outpost/commands/` has a

@@ -33,6 +33,7 @@
     { "name": "prove", "path": "prompts/core/prove.md", "summary": "Prove or refute many claims from the source of truth with recomputation and refutation.", "stage": "Scrutiny" },
     { "name": "panel", "path": "prompts/core/panel.md", "summary": "Convene independent expert lenses, map their conflicts, and synthesize one recommendation.", "stage": "Scrutiny" },
     { "name": "repo-review", "path": "prompts/core/repo-review.md", "summary": "Health audit of a whole repo: structure, docs truth, tests, dead code, drift.", "stage": "Scrutiny" },
+    { "name": "cross-doc-check", "path": "prompts/core/cross-doc-check.md", "summary": "Compare two docs that are each supposed to state the same policy and flag a real contradiction or unexplained gap, never a wording difference.", "stage": "Scrutiny" },
     { "name": "repo-hygiene-sweep", "path": "prompts/core/repo-hygiene-sweep.md", "summary": "Orchestrate fleet topology, evidence-backed triage, and gated cleanup across repositories.", "stage": "Scrutiny" },
     { "name": "record-decision", "path": "prompts/core/record-decision.md", "summary": "Capture an architecture decision as a short append-only record: context, decision, consequences.", "stage": "Record" },
     { "name": "debt-log", "path": "prompts/core/debt-log.md", "summary": "Record a deliberate shortcut or limitation with its reason, cost, and revisit trigger.", "stage": "Record" },

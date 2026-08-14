@@ -74,3 +74,12 @@ def test_check_intent_blocks_on_a_missing_or_unexplained_extra():
     # the reconciliation order: enumerate the plan, then walk the diff against it
     assert text.index("list every distinct item the plan or ask called for") < text.index(
         "walk the diff file by file")
+
+
+def test_cross_doc_check_never_flags_a_wording_only_difference():
+    text = (CORE / "cross-doc-check.md").read_text(encoding="utf-8").lower()
+
+    assert "a wording difference alone" in text
+    assert "never be reported as a finding" in text or "is not a finding" in text
+    assert "direct contradiction" in text
+    assert "unexplained scope gap" in text
