@@ -1,5 +1,5 @@
 ---
-description: "Start a change: plan, build, test."
+description: "Start a change: plan it, implement it, and cover it with tests."
 ---
 
 # /drive

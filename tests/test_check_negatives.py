@@ -7,7 +7,7 @@ import shutil
 import pytest
 
 from kit.adapters.base import Action
-from kit.checks import (adapters, banned_sync, catalog, command_lists, doc_truth, docs,
+from kit.checks import (adapters, banned_sync, catalog, command_lists, commands, doc_truth, docs,
                         label_refs, plugin_orphans, prompts, prose_length, registries, roadmap,
                         structure, template_refs, templates, traces)
 
@@ -401,3 +401,24 @@ def test_prose_length_catches_a_sprawling_paragraph_in_a_real_doc(repo_copy):
     p.write_text(p.read_text(encoding="utf-8") + f"\n\n{long_para}\n", encoding="utf-8")
     ok, detail = prose_length.run(repo_copy)
     assert not ok and "docs/contributing.md" in detail and "paragraph too long" in detail
+
+
+def test_commands_catches_a_short_description(repo_copy):
+    cmd = repo_copy / "plugins" / "outpost" / "commands" / "repo-review.md"
+    cmd.write_text(
+        '---\ndescription: "short"\n---\n\n# /repo-review\n\nAudit the whole repo and report '
+        'findings shaped for triage, covering structure, docs truth, test coverage, and dead '
+        'code.\n',
+        encoding="utf-8")
+    ok, detail = commands.run(repo_copy)
+    assert not ok and "repo-review" in detail and "too short" in detail
+    assert "body is empty" not in detail and "too thin" not in detail
+
+
+def test_commands_catches_an_empty_body(repo_copy):
+    cmd = repo_copy / "plugins" / "outpost" / "commands" / "repo-review.md"
+    cmd.write_text(
+        '---\ndescription: "Audit the whole repo: structure, docs truth, tests, dead code, drift."\n---\n',
+        encoding="utf-8")
+    ok, detail = commands.run(repo_copy)
+    assert not ok and "repo-review" in detail and "body is empty" in detail

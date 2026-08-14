@@ -14,6 +14,9 @@ Format follows Keep a Changelog (https://keepachangelog.com). The kit uses SemVe
 
 ### Added
 
+- `commands`, a gate check that every plugin command file under `plugins/outpost/commands/` has a
+  real frontmatter description and a non-stub body, mirroring the structural lint prompts already
+  get.
 - An 8th piloted behavioral eval, `evals/repo-review/`, covering the read-only `repo-review`
   prompt: asserts no file was modified, no edit tool was called, and that the deliberately
   planted gaps in the fixture are mentioned in the transcript (untested `create_order` function,
