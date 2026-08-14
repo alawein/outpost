@@ -1195,6 +1195,55 @@ def test_prune_skips_a_retired_file_with_no_recorded_hash(tmp_path, capsys):
     assert "skip" in out and ".agents/prompts/converge.md" in out
 
 
+def test_remove_does_not_delete_a_file_outside_the_project_via_a_symlink(tmp_path):
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    secret = outside / "secret.txt"
+    secret.write_text("do not delete me", encoding="utf-8")
+
+    project = tmp_path / "project"
+    project.mkdir()
+    try:
+        (project / "link_dir").symlink_to(outside, target_is_directory=True)
+    except OSError:
+        pytest.skip("symlink creation not permitted in this environment")
+
+    kit_hash = install._hash_str("do not delete me")
+    manifest = {"kit_version": "0.3.0", "tools": {"claude": {
+        "selection": "full", "prompts": [], "terse": False,
+        "files": {"link_dir/secret.txt": {"existed": False, "kit_hash": kit_hash}},
+    }}}
+
+    removed, skipped, failed, retired = install.remove_for_tools(
+        project, ["claude"], manifest, args_terse=False)
+
+    assert "link_dir/secret.txt" not in removed
+    assert "link_dir/secret.txt" not in retired
+    assert secret.exists()
+    assert secret.read_text(encoding="utf-8") == "do not delete me"
+
+
+def test_retired_paths_excludes_a_path_that_escapes_through_a_symlink(tmp_path):
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (outside / "secret.txt").write_text("x", encoding="utf-8")
+
+    project = tmp_path / "project"
+    project.mkdir()
+    try:
+        (project / "link_dir").symlink_to(outside, target_is_directory=True)
+    except OSError:
+        pytest.skip("symlink creation not permitted in this environment")
+
+    manifest = {"tools": {"claude": {"prompts": [], "files": {
+        "link_dir/secret.txt": {"existed": False, "kit_hash": "sha256:irrelevant"},
+    }}}}
+
+    result = install._retired_paths(project, "claude", manifest, terse=False, tolerant=True)
+
+    assert result == []
+
+
 def test_a_user_owned_converge_file_is_never_touched(tmp_path, capsys):
     # the same path with no kit-created record (none at all, or recorded as pre-existing) is the
     # user's file: verify stays in sync, prune and remove leave it alone

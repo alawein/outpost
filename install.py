@@ -103,6 +103,21 @@ def _hash_str(content: str) -> str:
     return "sha256:" + hashlib.sha256(content.encode("utf-8")).hexdigest()
 
 
+def _is_contained(project_root: pathlib.Path, path: str) -> bool:
+    """True if project_root / path resolves, following any symlink, to somewhere still inside
+    project_root. A manifest 'files' key is validated only as a string (no absolute path, no ..,
+    no backslash or colon); a symlink already sitting in the project can still redirect a
+    clean-looking relative key outside the root once the filesystem actually resolves it. Anything
+    about to be treated as a kit-owned delete candidate from a manifest key must pass this first."""
+    root = project_root.resolve()
+    target = (project_root / path).resolve()
+    try:
+        target.relative_to(root)
+        return True
+    except ValueError:
+        return False
+
+
 def _legacy_claim(project_root: pathlib.Path, tool: str, prev_entry: dict) -> set:
     """The paths a records-less install of this tool can prove it wrote: the plan derived from its
     own recorded prompts, guide, and terse flag. A manifest without a `files` map (a kit version
@@ -286,7 +301,8 @@ def _retired_paths(project_root: pathlib.Path, tool: str, manifest: dict, terse:
                                         tolerant=tolerant)}
     return [path for path, rec in sorted(files.items())
             if not rec.get("existed") and path not in current
-            and (project_root / path).is_file()]
+            and (project_root / path).is_file()
+            and _is_contained(project_root, path)]
 
 
 def _retired_unedited(project_root: pathlib.Path, path: str, rec: dict) -> bool:
