@@ -1,5 +1,5 @@
 ---
-description: "Review the work and prepare the PR."
+description: "Review the work, run the pre-merge checks, and prepare the PR."
 ---
 
 # /ship
