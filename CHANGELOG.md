@@ -14,6 +14,9 @@ Format follows Keep a Changelog (https://keepachangelog.com). The kit uses SemVe
 
 ### Added
 
+- `commands`, a gate check that every plugin command file under `plugins/outpost/commands/` has a
+  real frontmatter description and a non-stub body, mirroring the structural lint prompts already
+  get.
 - A 6th piloted behavioral eval, `evals/orient-repo/`, covering the read-only `orient-repo`
   prompt: asserts no file was modified, no edit tool was called, and the four most distinctive
   Output format headings appear in the transcript.
