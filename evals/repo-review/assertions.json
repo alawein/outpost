@@ -1,5 +1,7 @@
 [
   {"type": "file_not_modified", "path": "app.py"},
   {"type": "file_not_modified", "path": "README.md"},
-  {"type": "tool_not_used", "names": ["Edit", "Write", "MultiEdit"]}
+  {"type": "tool_not_used", "names": ["Edit", "Write", "MultiEdit"]},
+  {"type": "text_contains", "value": "create_order"},
+  {"type": "text_contains", "value": "make check"}
 ]
