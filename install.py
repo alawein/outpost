@@ -716,15 +716,15 @@ def verify(actions, project_root: pathlib.Path, user_owned=frozenset()) -> tuple
     ok = True
     lines: list[str] = []
     for a in actions:
-        if a.mode in ("write", "create", "merge") and not _is_contained(project_root, a.path):
-            ok = False
-            lines.append(f"  ESCAPED {a.path} (resolves outside the project via a symlink; "
-                         "remove or fix the symlink, re-running install will not change this)")
-            continue
         status = a.status(project_root)
         if a.mode == "create" or (a.mode == "write" and a.path in user_owned):
             where = "present" if (project_root / a.path).exists() else "absent (optional)"
             lines.append(f"  ok      {a.path} ({where})")
+            continue
+        if a.mode in ("write", "create", "merge") and not _is_contained(project_root, a.path):
+            ok = False
+            lines.append(f"  ESCAPED {a.path} (resolves outside the project via a symlink; "
+                         "remove or fix the symlink, re-running install will not change this)")
             continue
         if status == "unchanged":
             lines.append(f"  ok      {a.path}")
@@ -1019,7 +1019,7 @@ def main(argv: list[str] | None = None) -> int:
     apply_stale_terse(project_root,
                       _withdrawn_terse(project_root, prev_manifest, args.tool, args.terse))
     escapes = tally.get("skip (escapes)", 0)
-    escape_note = (f", {escapes} left alone (resolves outside the project via a symlink)"
+    escape_note = (f", {escapes} left alone (escaping the project via a symlink)"
                    if escapes else "")
     print(f"done. {tally['create']} created, {tally['update']} updated, "
           f"{tally['skip (exists)']} skipped, {tally['unchanged']} unchanged{escape_note}. "

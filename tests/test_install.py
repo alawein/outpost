@@ -1285,7 +1285,10 @@ def test_unmerge_settings_skips_a_write_back_through_a_symlink(tmp_path):
     settings_dir = project / ".claude"
     settings_dir.mkdir()
     try:
-        (settings_dir / "settings.json").symlink_to("..\\..\\outside-settings.json")
+        # Absolute target: see the note in test_apply_stale_terse_skips_a_clear_through_a_symlink
+        # -- the identical backslash-relative bug was here first (this is presumably where it got
+        # copied from), silently passing on 3 of this repo's 4 CI legs for the same reason.
+        (settings_dir / "settings.json").symlink_to(outside)
     except OSError:
         pytest.skip("symlink creation not permitted in this environment")
 
@@ -1574,6 +1577,57 @@ def test_verify_reports_escaped_distinctly_from_missing(tmp_path):
     assert not any("MISSING" in line and "escaped.md" in line for line in lines)
 
 
+def test_verify_reports_ok_for_a_user_owned_or_create_path_that_escapes_via_a_symlink(tmp_path):
+    # A user who symlinks their own CLAUDE.md (or a manifest-recorded pre-existing file) to a
+    # shared dotfiles location is not an attack: the kit never writes these paths regardless of
+    # whether they escape, so there was never anything for re-running install to change. The
+    # ESCAPED check must not fire here; verify()'s own docstring says a user-owned target is
+    # "fine present or absent," which a false ESCAPED would contradict.
+    project = tmp_path / "project"
+    project.mkdir()
+    try:
+        (project / "CLAUDE.md").symlink_to("../outside-claude.md")
+        (project / "mine.md").symlink_to("../outside-mine.md")
+    except OSError:
+        pytest.skip("symlink creation not permitted in this environment")
+
+    actions = [
+        install.Action(path="CLAUDE.md", mode="create", content="guide", note="test"),
+        install.Action(path="mine.md", mode="write", content="kit content", note="test"),
+    ]
+    ok, lines = install.verify(actions, project, user_owned={"mine.md"})
+
+    assert ok is True
+    assert not any("ESCAPED" in line for line in lines)
+    assert any("ok" in line and "CLAUDE.md" in line for line in lines)
+    assert any("ok" in line and "mine.md" in line for line in lines)
+
+
+def test_install_summary_notes_an_escape_when_one_occurs(tmp_path, capsys):
+    project = tmp_path / "project"
+    project.mkdir()
+    try:
+        (project / "CLAUDE.md").symlink_to("../outside-claude-guide.md")
+    except OSError:
+        pytest.skip("symlink creation not permitted in this environment")
+
+    capsys.readouterr()
+    rc = install.main(["--tool", "claude", "--project", str(project)])
+    out = capsys.readouterr().out
+
+    assert rc == 0
+    assert "1 left alone (escaping the project via a symlink)" in out
+
+
+def test_install_summary_omits_the_escape_note_when_nothing_escapes(tmp_path, capsys):
+    capsys.readouterr()
+    rc = install.main(["--tool", "claude", "--project", str(tmp_path)])
+    out = capsys.readouterr().out
+
+    assert rc == 0
+    assert "left alone (escaping the project via a symlink)" not in out
+
+
 def test_apply_stale_terse_skips_a_clear_through_a_symlink(tmp_path):
     project = tmp_path / "project"
     project.mkdir()
@@ -1583,7 +1637,13 @@ def test_apply_stale_terse_skips_a_clear_through_a_symlink(tmp_path):
     settings_dir = project / ".claude"
     settings_dir.mkdir()
     try:
-        (settings_dir / "settings.json").symlink_to("..\\..\\outside-style.json")
+        # Absolute target: a backslash-relative string ("..\\..\\...") is a path separator only
+        # on Windows. On POSIX, backslash is a literal filename character, so the whole string
+        # reads as one nonexistent path component still inside the project -- _is_contained sees
+        # it as contained, the guard never fires, and the resulting FileNotFoundError from
+        # read_text() gets caught by this branch's own except (ValueError, OSError), so the test
+        # would pass for the wrong reason on 3 of this repo's 4 CI legs (every ubuntu job).
+        (settings_dir / "settings.json").symlink_to(outside)
     except OSError:
         pytest.skip("symlink creation not permitted in this environment")
 
@@ -1617,3 +1677,42 @@ def test_apply_stale_terse_skips_a_remove_through_a_symlink(tmp_path):
 
     assert real_terse.exists()
     assert real_terse.read_text(encoding="utf-8") == outside_content
+
+
+def test_apply_checks_containment_before_the_pre_existing_and_warn_logic(tmp_path, capsys):
+    # Task 1's review found that checking containment AFTER the WARN/protected logic (where it
+    # originally shipped) misreports an escaping path two different ways: a content-matching
+    # escape reads straight through to "unchanged" (never flagged as an escape at all), and a
+    # drifted escape triggers a spurious WARN about an overwrite that is never going to happen.
+    # Moving the check to the top of the loop must guarantee neither ever prints for an escaping
+    # path -- only the escape skip does, regardless of what the outside content looks like.
+    # Absolute symlink targets throughout: status() has to read real content through the symlink
+    # for the pre-fix (reverted-ordering) comparison to mean anything, and a relative target's
+    # exists()/read_text() behavior is unreliable on this box (see the other fixes on this
+    # branch).
+    project = tmp_path / "project"
+    project.mkdir()
+    outside_matching = tmp_path / "outside-matching.md"
+    outside_matching.write_text("kit content", encoding="utf-8")
+    outside_drifted = tmp_path / "outside-drifted.md"
+    outside_drifted.write_text("hand-edited content", encoding="utf-8")
+    try:
+        (project / "escaped-matching.md").symlink_to(outside_matching)
+        (project / "escaped-drifted.md").symlink_to(outside_drifted)
+    except OSError:
+        pytest.skip("symlink creation not permitted in this environment")
+
+    actions = [
+        install.Action(path="escaped-matching.md", mode="write", content="kit content", note="t"),
+        install.Action(path="escaped-drifted.md", mode="write", content="kit content", note="t"),
+    ]
+    capsys.readouterr()
+    tally = install.apply(actions, project)
+    out = capsys.readouterr().out
+
+    assert tally["skip (escapes)"] == 2
+    assert tally["unchanged"] == 0
+    assert "(unchanged)" not in out
+    assert "WARN" not in out
+    assert "skip   escaped-matching.md (resolves outside the project via a symlink" in out
+    assert "skip   escaped-drifted.md (resolves outside the project via a symlink" in out
