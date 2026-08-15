@@ -120,6 +120,13 @@ Format follows Keep a Changelog (https://keepachangelog.com). The kit uses SemVe
 
 ### Security
 
+- A dangling symlink pre-planted at a plan-derived install path (e.g. `CLAUDE.md`, a `SKILL.md`
+  path) could crash `install.py` outright, and on a platform where the underlying write call
+  follows a dangling symlink rather than raising, could plausibly write kit content to a location
+  outside the project. Fixed: the same containment check ADR-0028 proved for deletes now guards
+  every install-time write too. A related, previously open question (whether a plan-derived delete
+  path could be redirected the same way) turned out not to need a fix: an existing byte-match guard
+  already closes it. ADR-0030.
 - `install.py --prune`/`--remove` could be steered by a crafted `.outpost/manifest.json` plus a
   filesystem symlink to delete a file outside the project root, a variant of the exact threat
   model the v0.2.0 fix closed, through a mechanism (symlink indirection) that fix never checked.
