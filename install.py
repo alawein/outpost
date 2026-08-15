@@ -107,8 +107,9 @@ def _is_contained(project_root: pathlib.Path, path: str) -> bool:
     """True if project_root / path resolves, following any symlink, to somewhere still inside
     project_root. A manifest 'files' key is validated only as a string (no absolute path, no ..,
     no backslash or colon); a symlink already sitting in the project can still redirect a
-    clean-looking relative key outside the root once the filesystem actually resolves it. Anything
-    about to be treated as a kit-owned delete candidate from a manifest key must pass this first."""
+    clean-looking relative key outside the root once the filesystem actually resolves it. Used
+    before any delete or write this file performs on a project-relative path, so a pre-planted
+    symlink can redirect neither."""
     root = project_root.resolve()
     target = (project_root / path).resolve()
     try:
@@ -511,6 +512,9 @@ def unmerge_kit_settings(project_root: pathlib.Path, tools, manifest: dict, args
             if a.mode != "merge":
                 continue
             target = project_root / a.path
+            if not _is_contained(project_root, a.path):
+                results.append((a.path, "skipped"))
+                continue
             if not target.exists():
                 continue
             try:
@@ -616,6 +620,10 @@ def apply_stale_terse(project_root: pathlib.Path, stale) -> None:
             else:
                 print(f"  remove {path} (terse withdrawn by this install)")
         else:  # clear
+            if not _is_contained(project_root, path):
+                print(f"warning: {path} resolves outside the project via a symlink; left alone",
+                      file=sys.stderr)
+                continue
             try:
                 data = json.loads(target.read_text(encoding="utf-8"))
                 data.pop("outputStyle", None)
@@ -665,6 +673,10 @@ def apply(actions, project_root: pathlib.Path, protected=frozenset()) -> dict:
         if status in ("update", "overwrite") and a.mode == "write":
             print(f"  WARN   {a.path} was edited; overwriting with the kit version "
                   f"(to customize a prompt, use the prompts/<tool>/ overlay instead)")
+        if not _is_contained(project_root, a.path):
+            print(f"  skip   {a.path} (resolves outside the project via a symlink; left alone)")
+            tally["skip (exists)"] += 1
+            continue
         target.parent.mkdir(parents=True, exist_ok=True)
         # Write bytes with explicit LF so the installed files keep the kit's line-ending policy on
         # every platform (pathlib.write_text would translate to CRLF on Windows).

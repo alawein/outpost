@@ -1243,6 +1243,58 @@ def test_remove_does_not_delete_a_file_outside_the_project_via_a_symlink(tmp_pat
     assert secret.read_text(encoding="utf-8") == "do not delete me"
 
 
+def test_install_skips_a_plan_derived_path_behind_a_dangling_symlink(tmp_path):
+    project = tmp_path / "project"
+    project.mkdir()
+    outside_target = tmp_path / "outside-target.txt"
+    try:
+        (project / "CLAUDE.md").symlink_to("../outside-target.txt")
+    except OSError:
+        pytest.skip("symlink creation not permitted in this environment")
+
+    result = install.main(["--tool", "claude", "--project", str(project)])
+
+    assert result == 0
+    assert not outside_target.exists()
+    assert (project / ".claude" / "skills" / "code-review" / "SKILL.md").is_file()
+    assert (project / "CLAUDE.md").is_symlink()
+    assert not (project / "CLAUDE.md").exists()  # still dangling; never followed or overwritten
+
+
+def test_apply_skips_a_write_action_whose_target_escapes_via_a_symlink(tmp_path):
+    project = tmp_path / "project"
+    project.mkdir()
+    try:
+        (project / "escaped.md").symlink_to("../outside.txt")
+    except OSError:
+        pytest.skip("symlink creation not permitted in this environment")
+
+    action = install.Action(path="escaped.md", mode="write", content="hello", note="test")
+    tally = install.apply([action], project)
+
+    assert not (project.parent / "outside.txt").exists()
+    assert tally["skip (exists)"] == 1
+
+
+def test_unmerge_settings_skips_a_write_back_through_a_symlink(tmp_path):
+    project = tmp_path / "project"
+    project.mkdir()
+    outside = project.parent / "outside-settings.json"
+    outside_content = '{"permissions": {"deny": ["Read(./.env)", "my-own-rule"]}}\n'
+    outside.write_text(outside_content, encoding="utf-8")
+    settings_dir = project / ".claude"
+    settings_dir.mkdir()
+    try:
+        (settings_dir / "settings.json").symlink_to("../../outside-settings.json")
+    except OSError:
+        pytest.skip("symlink creation not permitted in this environment")
+
+    manifest = {"tools": {"claude": {"selection": "full", "prompts": []}}}  # legacy manifest, files=None
+    install.unmerge_kit_settings(project, ["claude"], manifest, args_terse=False)
+
+    assert outside.read_text(encoding="utf-8") == outside_content  # untouched
+
+
 def test_retired_paths_excludes_a_path_that_escapes_through_a_symlink(tmp_path):
     outside = tmp_path / "outside"
     outside.mkdir()
