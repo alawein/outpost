@@ -1,5 +1,5 @@
 [
   {"type": "file_not_modified", "path": "checkout.py"},
   {"type": "tool_not_used", "names": ["Edit", "Write", "MultiEdit"]},
-  {"type": "text_contains", "value": "apply_discount"}
+  {"type": "text_contains", "value": "pct"}
 ]
