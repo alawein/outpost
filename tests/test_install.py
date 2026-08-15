@@ -1285,7 +1285,7 @@ def test_unmerge_settings_skips_a_write_back_through_a_symlink(tmp_path):
     settings_dir = project / ".claude"
     settings_dir.mkdir()
     try:
-        (settings_dir / "settings.json").symlink_to("../../outside-settings.json")
+        (settings_dir / "settings.json").symlink_to("..\\..\\outside-settings.json")
     except OSError:
         pytest.skip("symlink creation not permitted in this environment")
 
