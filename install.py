@@ -951,6 +951,16 @@ def main(argv: list[str] | None = None) -> int:
         prev_manifest = _read_manifest(project_root)
         records_by_tool = {t: _file_records(project_root, t, args.terse, select_set, prev_manifest)
                            for t in _tools_for(args.tool)}
+        # A path apply() will actually skip (it resolves outside the project via a symlink) must
+        # carry no ownership record at all: a false "the kit created this" claim is what lets a
+        # later --remove or --prune delete a file this install never touched (the F1/F3 finding
+        # from ADR-0030's own risk-review dogfood run). Every consuming guard already treats "no
+        # record" as "no proof of ownership, leave it alone", so removing the record is sufficient;
+        # no new guard vocabulary is needed downstream.
+        for t in _tools_for(args.tool):
+            for a in plan_for(t, KIT_ROOT, project_root, terse=args.terse, select=select_set):
+                if a.mode in ("write", "create", "merge") and not _is_contained(project_root, a.path):
+                    records_by_tool[t].pop(a.path, None)
         # A completed withdrawal (this run deletes the kit's own style file) ends the kit's
         # ownership claim on that path, so it never seizes a later hand-adopted style with the
         # kit's own bytes and the user's own key (the F32 residual, PR 101).

@@ -1295,6 +1295,40 @@ def test_unmerge_settings_skips_a_write_back_through_a_symlink(tmp_path):
     assert outside.read_text(encoding="utf-8") == outside_content  # untouched
 
 
+def test_manifest_records_no_ownership_for_a_symlink_escaped_path(tmp_path):
+    shared = tmp_path / "shared-claude"
+    shared.mkdir()
+    project = tmp_path / "project"
+    project.mkdir()
+    try:
+        (project / ".claude").symlink_to(shared, target_is_directory=True)
+    except OSError:
+        pytest.skip("symlink creation not permitted in this environment")
+
+    result = install.main(["--tool", "claude", "--project", str(project)])
+    assert result == 0
+
+    manifest = json.loads((project / ".outpost" / "manifest.json").read_text(encoding="utf-8"))
+    files = manifest.get("tools", {}).get("claude", {}).get("files") or {}
+    escaped_paths = [p for p in files if p.startswith(".claude/")]
+    assert escaped_paths == [], (
+        f"manifest claims ownership of escaped paths it never wrote: {escaped_paths}")
+
+    # simulate a real kit file legitimately arriving at the shared location later (another
+    # project's own install), then confirm --remove in THIS project cannot delete it there
+    real_skill = shared / "skills" / "code-review" / "SKILL.md"
+    real_skill.parent.mkdir(parents=True)
+    kit_content = (
+        pathlib.Path(__file__).resolve().parents[1] / "plugins" / "outpost" / "skills"
+        / "code-review" / "SKILL.md"
+    ).read_text(encoding="utf-8")
+    real_skill.write_text(kit_content, encoding="utf-8")
+
+    remove_result = install.main(["--tool", "claude", "--project", str(project), "--remove"])
+    assert remove_result == 0
+    assert real_skill.exists(), "a file outside the project was deleted through the symlink"
+
+
 def test_retired_paths_excludes_a_path_that_escapes_through_a_symlink(tmp_path):
     outside = tmp_path / "outside"
     outside.mkdir()
