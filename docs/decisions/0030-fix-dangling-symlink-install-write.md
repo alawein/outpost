@@ -32,14 +32,14 @@ in write mode can create the file at the resolved target path rather than raisin
 failure mode there is plausibly a silent write outside the project root rather than a crash. This
 is a reasoned hypothesis from documented POSIX behavior, not reproduced here, and named as such.
 
-Two smaller instances of the identical missing-containment-check shape were found while locating
-every `write_bytes` call site that acts on a plan- or record-derived path: `apply_stale_terse`'s
-clear branch and `unmerge_kit_settings`'s write-back. Both are narrower in practice (each only
-reaches `write_bytes` after a prior read on the same target succeeds) but share the same gap. Two
-further `write_bytes` sites exist (the manifest-persist writes in `--prune` and `--remove`), both
-at the fixed constant path `.outpost/manifest.json`; these share ADR-0028's own out-of-scope
-category (a fixed, kit-owned location, not a plan- or manifest-derived one) rather than this fix's
-target, and stay open the same way ADR-0028 left its own version of this question open.
+Two smaller instances of the identical missing-containment-check shape were found while checking
+every `write_bytes` call site in the file individually: `apply_stale_terse`'s clear branch and
+`unmerge_kit_settings`'s write-back, both writing to `.claude/settings.json`. Both are narrower in
+practice (each only reaches `write_bytes` after a prior read on the same target succeeds) but share
+the same gap as `apply`'s own site. Two further `write_bytes` sites exist (the manifest-persist
+writes in `--prune` and `--remove`), both at the fixed constant path `.outpost/manifest.json`;
+these share ADR-0028's own out-of-scope category (a fixed, kit-owned location) rather than this
+fix's target, and stay open the same way ADR-0028 left its own version of this question open.
 
 ## Decision
 
