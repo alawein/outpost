@@ -1431,6 +1431,31 @@ def test_remove_does_not_delete_the_manifest_through_an_escaping_symlink(tmp_pat
     assert outside_manifest.exists(), "the manifest outside the project was deleted"
 
 
+def test_remove_does_not_overwrite_the_manifest_through_an_escaping_symlink(tmp_path):
+    # Removing one tool out of several leaves manifest["tools"] non-empty, so main()'s --remove
+    # block takes the WRITE branch (mpath.write_bytes) rather than the delete branch. write_bytes
+    # follows a symlink to its target's content on this platform (unlink does not: it only
+    # removes the link itself), so this is the branch of the guard under test that a
+    # single-tool-installed fixture (the delete-branch test above) can never exercise.
+    project = tmp_path / "project"
+    project.mkdir()
+    install.main(["--tool", "all", "--project", str(project)])  # several tools stay after one goes
+    real_manifest = (project / ".outpost" / "manifest.json").read_text(encoding="utf-8")
+    outside_manifest = tmp_path / "outside-manifest.json"
+    outside_manifest.write_text(real_manifest, encoding="utf-8")
+    (project / ".outpost" / "manifest.json").unlink()
+    try:
+        (project / ".outpost" / "manifest.json").symlink_to(outside_manifest)  # absolute target
+    except OSError:
+        pytest.skip("symlink creation not permitted in this environment")
+
+    result = install.main(["--tool", "claude", "--project", str(project), "--remove"])
+
+    assert result == 0
+    assert outside_manifest.read_text(encoding="utf-8") == real_manifest, (
+        "the manifest outside the project was overwritten")
+
+
 def test_retired_paths_excludes_a_path_that_escapes_through_a_symlink(tmp_path):
     outside = tmp_path / "outside"
     outside.mkdir()
