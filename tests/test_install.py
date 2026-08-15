@@ -1285,8 +1285,8 @@ def test_unmerge_settings_skips_a_write_back_through_a_symlink(tmp_path):
     settings_dir = project / ".claude"
     settings_dir.mkdir()
     try:
-        # Absolute target: see the note in test_apply_stale_terse_skips_a_clear_through_a_symlink
-        # -- the identical backslash-relative bug was here first (this is presumably where it got
+        # Absolute target: see the note in test_apply_stale_terse_skips_a_clear_through_a_symlink.
+        # The identical backslash-relative bug was here first (this is presumably where it got
         # copied from), silently passing on 3 of this repo's 4 CI legs for the same reason.
         (settings_dir / "settings.json").symlink_to(outside)
     except OSError:
@@ -1347,7 +1347,7 @@ def test_remove_for_tools_skips_a_path_that_escapes_via_a_symlink(tmp_path):
     try:
         # An absolute target: a relative multi-level target string ("../../../../...") resolves
         # correctly through Path.resolve() on this Windows/Python 3.14 box, but exists()/stat()/
-        # unlink() raise WinError 123 against it -- which would exit this loop through the plain
+        # unlink() raise WinError 123 against it, which would exit this loop through the plain
         # "not target.exists(): continue" above the guard under test, for the wrong reason, and
         # pass without ever exercising it. Same quirk as commit 97b39f5 and Task 1's own fix.
         (skills_dir / "SKILL.md").symlink_to(outside)
@@ -1379,7 +1379,7 @@ def test_prune_orphans_skips_a_path_that_escapes_via_a_symlink(tmp_path):
 
     # A legacy manifest (no "files" map at all) that narrows the selection to nothing, so
     # code-review's SKILL.md reads as a de-selected orphan and falls to the byte-match-only
-    # legacy path -- an empty "files": {} map (present but empty) would instead skip this path
+    # legacy path. An empty "files": {} map (present but empty) would instead skip this path
     # via the separate "no record for this path" rule, regardless of the containment check.
     manifest = {"tools": {"claude": {"selection": "only", "prompts": []}}}
     removed, skipped, failed, retired = install.prune_orphans(
@@ -1405,7 +1405,7 @@ def test_prune_does_not_persist_the_manifest_through_an_escaping_symlink(tmp_pat
         pytest.skip("symlink creation not permitted in this environment")
 
     # prune_orphans() itself never writes the manifest; only main()'s --prune block does, and
-    # only when something was retired or removed -- the grill orphan above is what drives
+    # only when something was retired or removed. The grill orphan above is what drives
     # execution into the guarded write call this test targets, via a real main() --prune run.
     result = install.main(["--tool", "claude", "--project", str(project), "--prune"])
 
@@ -1725,7 +1725,7 @@ def test_apply_stale_terse_skips_a_clear_through_a_symlink(tmp_path):
     try:
         # Absolute target: a backslash-relative string ("..\\..\\...") is a path separator only
         # on Windows. On POSIX, backslash is a literal filename character, so the whole string
-        # reads as one nonexistent path component still inside the project -- _is_contained sees
+        # reads as one nonexistent path component still inside the project. _is_contained sees
         # it as contained, the guard never fires, and the resulting FileNotFoundError from
         # read_text() gets caught by this branch's own except (ValueError, OSError), so the test
         # would pass for the wrong reason on 3 of this repo's 4 CI legs (every ubuntu job).
@@ -1741,7 +1741,7 @@ def test_apply_stale_terse_skips_a_clear_through_a_symlink(tmp_path):
 def test_apply_stale_terse_skips_a_remove_through_a_symlink(tmp_path):
     # A leaf symlink (terse.md -> an outside file) cannot reproduce the reviewer's C1 finding:
     # Path.unlink() on a file symlink removes the link itself, never the target it points to, on
-    # every platform -- confirmed empirically here, not a Windows-only quirk. The reviewer's real
+    # every platform (confirmed empirically here, not a Windows-only quirk). The reviewer's real
     # repro moved .claude itself out and replaced it with a directory symlink, so the leaf
     # terse.md the unlink() call reaches is a genuine file living outside the project, not a
     # symlink. Matches the ancestor-directory-symlink pattern already used in this file (see
@@ -1771,7 +1771,7 @@ def test_apply_checks_containment_before_the_pre_existing_and_warn_logic(tmp_pat
     # escape reads straight through to "unchanged" (never flagged as an escape at all), and a
     # drifted escape triggers a spurious WARN about an overwrite that is never going to happen.
     # Moving the check to the top of the loop must guarantee neither ever prints for an escaping
-    # path -- only the escape skip does, regardless of what the outside content looks like.
+    # path. Only the escape skip does, regardless of what the outside content looks like.
     # Absolute symlink targets throughout: status() has to read real content through the symlink
     # for the pre-fix (reverted-ordering) comparison to mean anything, and a relative target's
     # exists()/read_text() behavior is unreliable on this box (see the other fixes on this
