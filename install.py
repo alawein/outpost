@@ -618,6 +618,10 @@ def apply_stale_terse(project_root: pathlib.Path, stale) -> None:
         if op == "keep":
             print(f"  skip   {path} (edited terse style; left in place, remove it by hand)")
         elif op == "remove":
+            if not _is_contained(project_root, path):
+                print(f"warning: {path} resolves outside the project via a symlink; left alone",
+                      file=sys.stderr)
+                continue
             try:
                 target.unlink()
                 _remove_empty_parents(target, project_root)
@@ -659,9 +663,13 @@ def apply(actions, project_root: pathlib.Path, protected=frozenset()) -> dict:
     write fails. `protected` paths are recorded as pre-existing user files: they are skipped with
     a named warning, never overwritten. Returns a tally of outcomes by status. Raises OSError if a
     write fails; the caller reports the partial state and exits non-zero."""
-    tally = {"create": 0, "update": 0, "skip (exists)": 0, "unchanged": 0}
+    tally = {"create": 0, "update": 0, "skip (exists)": 0, "skip (escapes)": 0, "unchanged": 0}
     for a in actions:
         target = project_root / a.path
+        if a.mode in ("write", "create", "merge") and not _is_contained(project_root, a.path):
+            print(f"  skip   {a.path} (resolves outside the project via a symlink; left alone)")
+            tally["skip (escapes)"] += 1
+            continue
         status = a.status(project_root)
         if a.mode == "write" and a.path in protected and target.exists():
             print(f"  skip   {a.path} (pre-existing file, not the kit's; left alone, "
@@ -679,10 +687,6 @@ def apply(actions, project_root: pathlib.Path, protected=frozenset()) -> dict:
         if status in ("update", "overwrite") and a.mode == "write":
             print(f"  WARN   {a.path} was edited; overwriting with the kit version "
                   f"(to customize a prompt, use the prompts/<tool>/ overlay instead)")
-        if not _is_contained(project_root, a.path):
-            print(f"  skip   {a.path} (resolves outside the project via a symlink; left alone)")
-            tally["skip (exists)"] += 1
-            continue
         target.parent.mkdir(parents=True, exist_ok=True)
         # Write bytes with explicit LF so the installed files keep the kit's line-ending policy on
         # every platform (pathlib.write_text would translate to CRLF on Windows).
@@ -712,6 +716,11 @@ def verify(actions, project_root: pathlib.Path, user_owned=frozenset()) -> tuple
     ok = True
     lines: list[str] = []
     for a in actions:
+        if a.mode in ("write", "create", "merge") and not _is_contained(project_root, a.path):
+            ok = False
+            lines.append(f"  ESCAPED {a.path} (resolves outside the project via a symlink; "
+                         "remove or fix the symlink, re-running install will not change this)")
+            continue
         status = a.status(project_root)
         if a.mode == "create" or (a.mode == "write" and a.path in user_owned):
             where = "present" if (project_root / a.path).exists() else "absent (optional)"
@@ -1009,8 +1018,11 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     apply_stale_terse(project_root,
                       _withdrawn_terse(project_root, prev_manifest, args.tool, args.terse))
+    escapes = tally.get("skip (escapes)", 0)
+    escape_note = (f", {escapes} left alone (resolves outside the project via a symlink)"
+                   if escapes else "")
     print(f"done. {tally['create']} created, {tally['update']} updated, "
-          f"{tally['skip (exists)']} skipped, {tally['unchanged']} unchanged. "
+          f"{tally['skip (exists)']} skipped, {tally['unchanged']} unchanged{escape_note}. "
           "restart your agent so it picks up the new files.")
     return 0
 

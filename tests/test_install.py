@@ -1273,7 +1273,7 @@ def test_apply_skips_a_write_action_whose_target_escapes_via_a_symlink(tmp_path)
     tally = install.apply([action], project)
 
     assert not (project.parent / "outside.txt").exists()
-    assert tally["skip (exists)"] == 1
+    assert tally["skip (escapes)"] == 1
 
 
 def test_unmerge_settings_skips_a_write_back_through_a_symlink(tmp_path):
@@ -1541,3 +1541,79 @@ def test_records_less_fallback_claims_the_recorded_footprint(tmp_path):
     for path in (".github/prompts/plan-change.prompt.md", ".github/copilot-instructions.md"):
         assert files[path]["existed"] is False
         assert files[path]["kit_hash"].startswith("sha256:")
+
+
+def test_install_reports_a_symlink_escape_distinctly_from_an_ordinary_skip(tmp_path):
+    project = tmp_path / "project"
+    project.mkdir()
+    try:
+        (project / "escaped.md").symlink_to("../outside-target.txt")
+    except OSError:
+        pytest.skip("symlink creation not permitted in this environment")
+
+    action = install.Action(path="escaped.md", mode="write", content="hello", note="test")
+    tally = install.apply([action], project)
+
+    assert tally.get("skip (escapes)") == 1
+    assert tally.get("skip (exists)", 0) == 0
+
+
+def test_verify_reports_escaped_distinctly_from_missing(tmp_path):
+    project = tmp_path / "project"
+    project.mkdir()
+    try:
+        (project / "escaped.md").symlink_to("../outside.txt")
+    except OSError:
+        pytest.skip("symlink creation not permitted in this environment")
+
+    action = install.Action(path="escaped.md", mode="write", content="hello", note="test")
+    ok, lines = install.verify([action], project)
+
+    assert ok is False
+    assert any("ESCAPED" in line and "escaped.md" in line for line in lines)
+    assert not any("MISSING" in line and "escaped.md" in line for line in lines)
+
+
+def test_apply_stale_terse_skips_a_clear_through_a_symlink(tmp_path):
+    project = tmp_path / "project"
+    project.mkdir()
+    outside = project.parent / "outside-style.json"
+    outside_content = '{"outputStyle": "terse", "other": "value"}\n'
+    outside.write_text(outside_content, encoding="utf-8")
+    settings_dir = project / ".claude"
+    settings_dir.mkdir()
+    try:
+        (settings_dir / "settings.json").symlink_to("..\\..\\outside-style.json")
+    except OSError:
+        pytest.skip("symlink creation not permitted in this environment")
+
+    install.apply_stale_terse(project, [("clear", ".claude/settings.json")])
+
+    assert outside.read_text(encoding="utf-8") == outside_content
+
+
+def test_apply_stale_terse_skips_a_remove_through_a_symlink(tmp_path):
+    # A leaf symlink (terse.md -> an outside file) cannot reproduce the reviewer's C1 finding:
+    # Path.unlink() on a file symlink removes the link itself, never the target it points to, on
+    # every platform -- confirmed empirically here, not a Windows-only quirk. The reviewer's real
+    # repro moved .claude itself out and replaced it with a directory symlink, so the leaf
+    # terse.md the unlink() call reaches is a genuine file living outside the project, not a
+    # symlink. Matches the ancestor-directory-symlink pattern already used in this file (see
+    # test_remove_does_not_delete_a_file_outside_the_project_via_a_symlink above).
+    outside = tmp_path / "outside-claude"
+    (outside / "output-styles").mkdir(parents=True)
+    real_terse = outside / "output-styles" / "terse.md"
+    outside_content = "not the kit's terse style file, do not delete"
+    real_terse.write_text(outside_content, encoding="utf-8")
+
+    project = tmp_path / "project"
+    project.mkdir()
+    try:
+        (project / ".claude").symlink_to(outside, target_is_directory=True)
+    except OSError:
+        pytest.skip("symlink creation not permitted in this environment")
+
+    install.apply_stale_terse(project, [("remove", ".claude/output-styles/terse.md")])
+
+    assert real_terse.exists()
+    assert real_terse.read_text(encoding="utf-8") == outside_content
