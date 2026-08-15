@@ -23,14 +23,23 @@ it is closed here with reasoning.
 
 While tracing those delete-side guards, `apply()` (the function that writes every plan-derived file
 to disk) turned out to have no equivalent guard on its write path, and this is not merely
-theoretical. A dangling symlink (target does not yet exist) planted at a plan-derived write path
-before a project's first-ever install was live-reproduced in this session crashing
-`python install.py` outright: `error: install failed partway: [Errno 22] Invalid argument: '...'`
-(Windows; `write_bytes` on a dangling symlink raises rather than following it). POSIX systems were
-not directly testable in this environment; standard POSIX `open()` semantics for a dangling symlink
-in write mode can create the file at the resolved target path rather than raising, so the practical
-failure mode there is plausibly a silent write outside the project root rather than a crash. This
-is a reasoned hypothesis from documented POSIX behavior, not reproduced here, and named as such.
+theoretical: both a crash and a silent outside-project write were directly reproduced against the
+real `install.py` this session. What decides whether `write_bytes` raises or follows a dangling
+symlink here is not dangling-vs-existing or inside-vs-outside the project; it is whether the
+symlink's own stored target string uses a forward slash. A forward-slash-relative target, escaping
+or not, makes `write_bytes` raise `OSError: [Errno 22] Invalid argument` before writing anything; a
+bare filename, a backslash-relative target, or an absolute path all make it follow the symlink and
+write at the resolved location instead, escaping or not, with no error at all. A
+forward-slash-relative dangling symlink planted at a plan-derived write path before a project's
+first-ever install was live-reproduced crashing `python install.py` outright this way:
+`error: install failed partway: [Errno 22] Invalid argument: '...'`. Separately, and more
+seriously: an unguarded write through a backslash-relative dangling symlink pointing outside the
+project does not crash at all. It succeeds silently and plants real kit content at the resolved
+location outside the project root, confirmed by neutralizing `_is_contained` to simulate the
+pre-fix code and running the real, unmodified `install.py` against it. POSIX's `open()` has no such
+forward-slash-specific quirk, so the silent outside-project write is plausibly the only failure mode
+there, for any relative or absolute dangling symlink; that POSIX-specific claim was not directly
+tested this session and stays a reasoned hypothesis, not a reproduction.
 
 Two smaller instances of the identical missing-containment-check shape were found while checking
 every `write_bytes` call site in the file individually: `apply_stale_terse`'s clear branch and
@@ -46,7 +55,7 @@ fix's target, and stay open the same way ADR-0028 left its own version of this q
 Reuse `_is_contained` (ADR-0028), already proven for the delete side, as a pre-write containment
 guard at all three unguarded `write_bytes` call sites: `apply` (the single choke point every
 `write`, `create`, and `merge`-mode action funnels through), `apply_stale_terse`'s clear branch,
-and `unmerge_kit_settings`'s write-back. An escaping path is silently skipped, consistent with
+and `unmerge_kit_settings`'s write-back. An escaping path is skipped, consistent with
 this file's existing skip-and-continue philosophy for every other per-file problem (an edited
 file, a permission failure, a lock), rather than aborting an install that has other, legitimate
 files to write. Two of the three sites print a message naming the skip; the third
@@ -78,12 +87,18 @@ live-confirmed crash), `test_apply_skips_a_write_action_whose_target_escapes_via
 
 ## Consequences
 
-A pre-planted symlink (dangling or not) at a plan-derived write path can no longer crash
-`install.py` or write kit content to a location outside the project. The delete-side question
-ADR-0028 left open is closed with reasoning, not code, since the existing byte-match guards already
-cover it. `tests/test_install.py` grows by 3. The CI matrix's `ubuntu-latest` and `windows-latest`
-legs both exercise the new tests, giving the POSIX hypothesis real, if not this-session-live,
-coverage. A smaller gap stays open the same way: `_is_contained` resolves the target internally but
+A pre-planted symlink that resolves outside the project, at a plan-derived write path, can no
+longer write kit content there, and can no longer crash `install.py` either, since the containment
+check now runs before any `write_bytes` call regardless of the symlink's own slash style. A
+narrower, more benign residual stays open: a dangling symlink that resolves safely inside the
+project is correctly judged contained and let through, so a forward-slash-relative one still
+crashes the install with the same `[Errno 22]` error as before, confirmed this session against the
+real, fixed code; this is a locally broken symlink crashing its own install, not an attacker
+redirecting a write, and stays outside this fix's scope. The delete-side question ADR-0028 left
+open is closed with reasoning, not code, since the existing byte-match guards already cover it.
+`tests/test_install.py` grows by 3. The CI matrix's `ubuntu-latest` and `windows-latest` legs both
+exercise the new tests, giving the POSIX hypothesis real, if not this-session-live, coverage. A
+smaller gap stays open the same way: `_is_contained` resolves the target internally but
 returns only a bool, and all three call sites then act on the original, unresolved path, which the
 operating system resolves again at each later syscall, so a path component swapped between the
 check and the write could in principle defeat the guard. That requires an active, concurrent,
