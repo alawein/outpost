@@ -50,4 +50,5 @@ Start from `0000-template.md` when adding a record.
   and flagging a real contradiction or unexplained scope gap, never a wording difference.
 - 0030: fix a dangling-symlink install-time write (a pre-planted symlink at a plan-derived write
   path could crash install.py or write kit content outside the project); closes a related delete-
-  side question ADR-0028 left open, with reasoning rather than code.
+  side question ADR-0028 left open, including a false-ownership-record root cause and independent
+  containment checks at every remaining write or delete site.
