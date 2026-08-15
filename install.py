@@ -379,6 +379,9 @@ def prune_orphans(project_root: pathlib.Path, tools, manifest: dict, args_terse:
             if a.mode != "write" or a.path in keep:
                 continue
             target = project_root / a.path
+            if not _is_contained(project_root, a.path):
+                skipped.append(a.path)  # resolves outside the project via a symlink; never deleted
+                continue
             if not target.exists():
                 continue
             rec = files.get(a.path) if files is not None else None
@@ -464,6 +467,9 @@ def remove_for_tools(project_root: pathlib.Path, tools, manifest: dict, args_ter
             if a.mode not in ("write", "create"):
                 continue  # the settings merge is un-installed by unmerge_kit_settings
             target = project_root / a.path
+            if not _is_contained(project_root, a.path):
+                skipped.append(a.path)  # resolves outside the project via a symlink; never deleted
+                continue
             if not target.exists():
                 continue
             rec = files.get(a.path) if files is not None else None
@@ -864,10 +870,14 @@ def main(argv: list[str] | None = None) -> int:
             # persist the ended ownership claims: prune_orphans dropped the file records for both
             # retired files and de-selected orphans, so the manifest must be rewritten either way
             mpath = _existing_manifest_path(project_root) or (project_root / MANIFEST_PATH)
-            try:
-                mpath.write_bytes(manifest_dumps(manifest).encode("utf-8"))
-            except OSError as e:
-                print(f"warning: could not update the manifest: {e}", file=sys.stderr)
+            if not _is_contained(project_root, MANIFEST_PATH):
+                print("warning: .outpost/manifest.json resolves outside the project via a "
+                      "symlink; manifest not updated", file=sys.stderr)
+            else:
+                try:
+                    mpath.write_bytes(manifest_dumps(manifest).encode("utf-8"))
+                except OSError as e:
+                    print(f"warning: could not update the manifest: {e}", file=sys.stderr)
         for p in removed:
             print(f"  remove {p}")
         for p in retired:
@@ -902,15 +912,19 @@ def main(argv: list[str] | None = None) -> int:
             for t in tools:
                 manifest = drop_tool(manifest, t)
             mpath = project_root / MANIFEST_PATH
-            try:
-                if manifest.get("tools"):
-                    mpath.parent.mkdir(parents=True, exist_ok=True)
-                    mpath.write_bytes(manifest_dumps(manifest).encode("utf-8"))
-                elif mpath.exists():
-                    mpath.unlink()
-                    _remove_empty_parents(mpath, project_root)
-            except OSError as e:
-                print(f"warning: could not update the manifest: {e}", file=sys.stderr)
+            if not _is_contained(project_root, MANIFEST_PATH):
+                print("warning: .outpost/manifest.json resolves outside the project via a "
+                      "symlink; manifest not updated", file=sys.stderr)
+            else:
+                try:
+                    if manifest.get("tools"):
+                        mpath.parent.mkdir(parents=True, exist_ok=True)
+                        mpath.write_bytes(manifest_dumps(manifest).encode("utf-8"))
+                    elif mpath.exists():
+                        mpath.unlink()
+                        _remove_empty_parents(mpath, project_root)
+                except OSError as e:
+                    print(f"warning: could not update the manifest: {e}", file=sys.stderr)
         for p in removed:
             print(f"  remove {p}")
         for p in retired:

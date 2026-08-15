@@ -1329,6 +1329,108 @@ def test_manifest_records_no_ownership_for_a_symlink_escaped_path(tmp_path):
     assert real_skill.exists(), "a file outside the project was deleted through the symlink"
 
 
+def test_remove_for_tools_skips_a_path_that_escapes_via_a_symlink(tmp_path):
+    project = tmp_path / "project"
+    project.mkdir()
+    outside = tmp_path / "outside-skill.md"
+    # Byte-identical to the kit's own rendering: remove_for_tools's byte-match guard would
+    # otherwise skip this path on content grounds alone, which would pass regardless of the
+    # containment check this test targets and prove nothing about it.
+    kit_content = (ROOT / "plugins" / "outpost" / "skills" / "code-review" / "SKILL.md").read_text(
+        encoding="utf-8")
+    outside.write_text(kit_content, encoding="utf-8")
+    skills_dir = project / ".claude" / "skills" / "code-review"
+    skills_dir.mkdir(parents=True)
+    try:
+        # An absolute target: a relative multi-level target string ("../../../../...") resolves
+        # correctly through Path.resolve() on this Windows/Python 3.14 box, but exists()/stat()/
+        # unlink() raise WinError 123 against it -- which would exit this loop through the plain
+        # "not target.exists(): continue" above the guard under test, for the wrong reason, and
+        # pass without ever exercising it. Same quirk as commit 97b39f5 and Task 1's own fix.
+        (skills_dir / "SKILL.md").symlink_to(outside)
+    except OSError:
+        pytest.skip("symlink creation not permitted in this environment")
+
+    manifest = {"tools": {"claude": {"selection": "full", "prompts": []}}}  # legacy manifest, files=None
+    removed, skipped, failed, retired = install.remove_for_tools(
+        project, ["claude"], manifest, args_terse=False)
+
+    assert ".claude/skills/code-review/SKILL.md" not in removed
+    assert ".claude/skills/code-review/SKILL.md" in skipped
+    assert outside.read_text(encoding="utf-8") == kit_content
+
+
+def test_prune_orphans_skips_a_path_that_escapes_via_a_symlink(tmp_path):
+    project = tmp_path / "project"
+    project.mkdir()
+    outside = tmp_path / "outside-skill.md"
+    kit_content = (ROOT / "plugins" / "outpost" / "skills" / "code-review" / "SKILL.md").read_text(
+        encoding="utf-8")
+    outside.write_text(kit_content, encoding="utf-8")
+    skills_dir = project / ".claude" / "skills" / "code-review"
+    skills_dir.mkdir(parents=True)
+    try:
+        (skills_dir / "SKILL.md").symlink_to(outside)  # absolute target; see the note above
+    except OSError:
+        pytest.skip("symlink creation not permitted in this environment")
+
+    # A legacy manifest (no "files" map at all) that narrows the selection to nothing, so
+    # code-review's SKILL.md reads as a de-selected orphan and falls to the byte-match-only
+    # legacy path -- an empty "files": {} map (present but empty) would instead skip this path
+    # via the separate "no record for this path" rule, regardless of the containment check.
+    manifest = {"tools": {"claude": {"selection": "only", "prompts": []}}}
+    removed, skipped, failed, retired = install.prune_orphans(
+        project, ["claude"], manifest, args_terse=False)
+
+    assert ".claude/skills/code-review/SKILL.md" not in removed
+    assert ".claude/skills/code-review/SKILL.md" in skipped
+    assert outside.read_text(encoding="utf-8") == kit_content
+
+
+def test_prune_does_not_persist_the_manifest_through_an_escaping_symlink(tmp_path):
+    project = tmp_path / "project"
+    project.mkdir()
+    install.main(["--tool", "claude", "--project", str(project)])  # full pack
+    install.main(["--tool", "claude", "--project", str(project), "--exclude", "grill"])  # orphans grill
+    real_manifest = (project / ".outpost" / "manifest.json").read_text(encoding="utf-8")
+    outside_manifest = tmp_path / "outside-manifest.json"
+    outside_manifest.write_text(real_manifest, encoding="utf-8")
+    (project / ".outpost" / "manifest.json").unlink()
+    try:
+        (project / ".outpost" / "manifest.json").symlink_to(outside_manifest)  # absolute target
+    except OSError:
+        pytest.skip("symlink creation not permitted in this environment")
+
+    # prune_orphans() itself never writes the manifest; only main()'s --prune block does, and
+    # only when something was retired or removed -- the grill orphan above is what drives
+    # execution into the guarded write call this test targets, via a real main() --prune run.
+    result = install.main(["--tool", "claude", "--project", str(project), "--prune"])
+
+    assert result == 0
+    assert not (project / ".claude" / "skills" / "grill").exists()  # the orphan is still pruned
+    assert outside_manifest.read_text(encoding="utf-8") == real_manifest, (
+        "the manifest outside the project was overwritten")
+
+
+def test_remove_does_not_delete_the_manifest_through_an_escaping_symlink(tmp_path):
+    project = tmp_path / "project"
+    project.mkdir()
+    install.main(["--tool", "claude", "--project", str(project)])
+    real_manifest = (project / ".outpost" / "manifest.json").read_text(encoding="utf-8")
+    outside_manifest = tmp_path / "outside-manifest.json"
+    outside_manifest.write_text(real_manifest, encoding="utf-8")
+    (project / ".outpost" / "manifest.json").unlink()
+    try:
+        (project / ".outpost" / "manifest.json").symlink_to("../../outside-manifest.json")
+    except OSError:
+        pytest.skip("symlink creation not permitted in this environment")
+
+    result = install.main(["--tool", "claude", "--project", str(project), "--remove"])
+
+    assert result == 0
+    assert outside_manifest.exists(), "the manifest outside the project was deleted"
+
+
 def test_retired_paths_excludes_a_path_that_escapes_through_a_symlink(tmp_path):
     outside = tmp_path / "outside"
     outside.mkdir()
