@@ -724,13 +724,22 @@ def render_plan(actions, project_root: pathlib.Path, protected=frozenset()) -> l
     return lines
 
 
-def verify(actions, project_root: pathlib.Path, user_owned=frozenset()) -> tuple[bool, list[str]]:
+def verify(actions, project_root: pathlib.Path,
+          user_owned=frozenset()) -> tuple[bool, list[str], list[str], bool]:
     """Check an existing install against the plan without writing. A kit-owned action (write or
     merge) that is missing or content-drifted is a failure; a user-owned target (a create action,
-    or a path the manifest records as pre-existing) is fine present or absent. Returns
-    (in_sync, report_lines)."""
+    or a path the manifest records as pre-existing) is fine present or absent. A kit-owned action
+    whose target resolves outside the project via a symlink is a failure too, but a distinct one:
+    apply() already refuses to write an escaping path, so re-running install cannot restore it the
+    way it restores a MISSING or DRIFTED path. The caller needs that distinction to avoid telling
+    a symlink escape to re-run install when nothing about re-running install touches it. Returns
+    (in_sync, report_lines, escaped_paths, missing_or_drifted): escaped_paths are the action paths
+    reported ESCAPED above, and missing_or_drifted is True when at least one action is genuinely
+    MISSING or DRIFTED, i.e. something a re-install actually fixes."""
     ok = True
+    missing_or_drifted = False
     lines: list[str] = []
+    escaped_paths: list[str] = []
     for a in actions:
         status = a.status(project_root)
         if a.mode == "create" or (a.mode == "write" and a.path in user_owned):
@@ -739,6 +748,7 @@ def verify(actions, project_root: pathlib.Path, user_owned=frozenset()) -> tuple
             continue
         if a.mode in ("write", "create", "merge") and not _is_contained(project_root, a.path):
             ok = False
+            escaped_paths.append(a.path)
             lines.append(f"  ESCAPED {a.path} (resolves outside the project via a symlink; "
                          "remove or fix the symlink, re-running install will not change this)")
             continue
@@ -746,11 +756,13 @@ def verify(actions, project_root: pathlib.Path, user_owned=frozenset()) -> tuple
             lines.append(f"  ok      {a.path}")
         elif status == "create":
             ok = False
+            missing_or_drifted = True
             lines.append(f"  MISSING {a.path}")
         else:  # update | overwrite
             ok = False
+            missing_or_drifted = True
             lines.append(f"  DRIFTED {a.path}")
-    return ok, lines
+    return ok, lines, escaped_paths, missing_or_drifted
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -829,7 +841,7 @@ def main(argv: list[str] | None = None) -> int:
             # a corrupt config (the Claude settings file) can't be planned against; say so cleanly
             print(f"error: {e}", file=sys.stderr)
             return 1
-        ok, lines = verify(actions, project_root, user_owned)
+        ok, lines, escaped_actions, missing_or_drifted = verify(actions, project_root, user_owned)
         for line in lines:
             print(line)
         for path in orphans:
@@ -867,8 +879,15 @@ def main(argv: list[str] | None = None) -> int:
             if note:
                 print(note)
             return 0
-        if not ok:
+        if missing_or_drifted:
             print("DRIFT: re-run install to restore the kit files")
+        if escaped_actions:
+            # Distinct from the message above on purpose: verify()'s own per-path ESCAPED line
+            # already says re-running install will not change this, so the summary must not
+            # contradict it by folding an escape into the generic re-run-install drift line.
+            print(f"DRIFT: {len(escaped_actions)} kit-owned path(s) resolve outside the project "
+                  "via a symlink; remove or fix the symlink, re-running install will not change "
+                  "this")
         if orphans:
             print(f"DRIFT: {len(orphans)} kit-owned prompt file(s) on disk are not in the manifest; "
                   "re-install the full pack or remove them")

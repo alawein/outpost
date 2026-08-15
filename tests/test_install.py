@@ -1570,11 +1570,15 @@ def test_verify_reports_escaped_distinctly_from_missing(tmp_path):
         pytest.skip("symlink creation not permitted in this environment")
 
     action = install.Action(path="escaped.md", mode="write", content="hello", note="test")
-    ok, lines = install.verify([action], project)
+    ok, lines, escaped_paths, missing_or_drifted = install.verify([action], project)
 
     assert ok is False
     assert any("ESCAPED" in line and "escaped.md" in line for line in lines)
     assert not any("MISSING" in line and "escaped.md" in line for line in lines)
+    # the caller (main()'s --verify summary) uses this split to avoid telling a symlink escape
+    # to re-run install: an escaped-only verify has nothing a re-install would actually restore
+    assert escaped_paths == ["escaped.md"]
+    assert missing_or_drifted is False
 
 
 def test_verify_reports_ok_for_a_user_owned_or_create_path_that_escapes_via_a_symlink(tmp_path):
@@ -1595,12 +1599,15 @@ def test_verify_reports_ok_for_a_user_owned_or_create_path_that_escapes_via_a_sy
         install.Action(path="CLAUDE.md", mode="create", content="guide", note="test"),
         install.Action(path="mine.md", mode="write", content="kit content", note="test"),
     ]
-    ok, lines = install.verify(actions, project, user_owned={"mine.md"})
+    ok, lines, escaped_paths, missing_or_drifted = install.verify(
+        actions, project, user_owned={"mine.md"})
 
     assert ok is True
     assert not any("ESCAPED" in line for line in lines)
     assert any("ok" in line and "CLAUDE.md" in line for line in lines)
     assert any("ok" in line and "mine.md" in line for line in lines)
+    assert escaped_paths == []
+    assert missing_or_drifted is False
 
 
 def test_orphans_splits_an_escaping_path_into_its_own_list(tmp_path):
@@ -1650,6 +1657,71 @@ def test_verify_does_not_instruct_removing_an_orphan_that_escapes_via_a_symlink(
     assert not any("EXTRA" in ln and "grill" in ln for ln in lines), (
         "verify must not instruct removing a path outside the project")
     assert any("ESCAPED" in ln and "grill" in ln for ln in lines)
+
+
+def test_verify_summary_does_not_claim_reinstall_fixes_an_escaped_path(tmp_path, capsys):
+    # When the only reason --verify fails is a kit-owned file that now resolves outside the
+    # project via a symlink, the summary must not send the user to re-run install: verify()'s own
+    # per-path ESCAPED line already says the opposite (re-running install will not change this),
+    # and apply() genuinely refuses to write an escaping path. The generic drift line would
+    # flatly contradict the line printed just above it in the same --verify output.
+    project = tmp_path / "project"
+    project.mkdir()
+    install.main(["--tool", "claude", "--project", str(project)])
+    skill = project / ".claude" / "skills" / "plan-change" / "SKILL.md"
+    outside = tmp_path / "outside-plan-change.md"
+    outside.write_text(skill.read_text(encoding="utf-8"), encoding="utf-8")
+    skill.unlink()
+    try:
+        # Absolute target: a relative multi-level target ("../../../../...") resolves correctly
+        # through Path.resolve() on this Windows/Python 3.14 box, but exists()/stat()/unlink()
+        # raise WinError 123 against it (see the note in
+        # test_remove_for_tools_skips_a_path_that_escapes_via_a_symlink above).
+        skill.symlink_to(outside)
+    except OSError:
+        pytest.skip("symlink creation not permitted in this environment")
+    capsys.readouterr()
+
+    rc = install.main(["--tool", "claude", "--project", str(project), "--verify"])
+    out = capsys.readouterr().out
+    lines = out.splitlines()
+
+    assert rc == 1  # still a real problem, just not one a re-install fixes
+    assert any("ESCAPED" in ln and "plan-change" in ln for ln in lines)
+    assert "re-run install to restore the kit files" not in out
+
+
+def test_verify_summary_still_flags_reinstallable_drift_alongside_an_escaped_path(tmp_path, capsys):
+    # Mixed case: one kit-owned file escapes via a symlink (a re-install cannot fix it) and a
+    # different kit-owned file is genuinely drifted (a re-install does fix it), in the same
+    # --verify run. Both summary lines must appear, each scoped to what it actually describes;
+    # suppressing the generic "re-run install" line just because an escape is ALSO present would
+    # wrongly hide real, fixable drift from the user.
+    project = tmp_path / "project"
+    project.mkdir()
+    install.main(["--tool", "claude", "--project", str(project)])
+    escaped_skill = project / ".claude" / "skills" / "plan-change" / "SKILL.md"
+    outside = tmp_path / "outside-plan-change.md"
+    outside.write_text(escaped_skill.read_text(encoding="utf-8"), encoding="utf-8")
+    escaped_skill.unlink()
+    try:
+        escaped_skill.symlink_to(outside)  # absolute target; see the note above
+    except OSError:
+        pytest.skip("symlink creation not permitted in this environment")
+    drifted_skill = project / ".claude" / "skills" / "code-review" / "SKILL.md"
+    drifted_skill.write_text("hand-edited, drifted from the kit version", encoding="utf-8")
+    capsys.readouterr()
+
+    rc = install.main(["--tool", "claude", "--project", str(project), "--verify"])
+    out = capsys.readouterr().out
+    lines = out.splitlines()
+
+    assert rc == 1
+    assert any("ESCAPED" in ln and "plan-change" in ln for ln in lines)
+    assert any("DRIFTED" in ln and "code-review" in ln for ln in lines)
+    assert "DRIFT: re-run install to restore the kit files" in out  # genuine drift: re-install helps
+    assert any(ln.startswith("DRIFT:") and "resolve outside the project via a symlink" in ln
+               for ln in lines)  # the escape gets its own distinct summary line, not folded in
 
 
 def test_render_plan_shows_an_escape_not_a_false_create(tmp_path):
