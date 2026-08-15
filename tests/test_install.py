@@ -1765,6 +1765,39 @@ def test_apply_stale_terse_skips_a_remove_through_a_symlink(tmp_path):
     assert real_terse.read_text(encoding="utf-8") == outside_content
 
 
+def test_dry_run_shows_an_escape_not_an_unconditional_stale_terse_withdrawal(tmp_path, capsys):
+    # main()'s --dry-run branch renders the stale-terse withdrawal preview in its own loop,
+    # separate from render_plan(): it was never given the containment check
+    # apply_stale_terse() already has, so a dry-run over a project whose .claude is now a
+    # directory symlink still showed an unconditional [remove]/[clear] for a path a real
+    # install would actually warn about and leave alone. Same ancestor-directory-symlink
+    # repro as test_apply_stale_terse_skips_a_remove_through_a_symlink: a real --terse
+    # install first, so the withdrawal is genuinely triggered by a recorded prior install,
+    # not hand-built stale state.
+    project = tmp_path / "project"
+    project.mkdir()
+    install.main(["--tool", "claude", "--project", str(project), "--terse"])
+
+    outside = tmp_path / "outside-claude"
+    (project / ".claude").rename(outside)
+    try:
+        (project / ".claude").symlink_to(outside, target_is_directory=True)
+    except OSError:
+        pytest.skip("symlink creation not permitted in this environment")
+
+    capsys.readouterr()
+    rc = install.main(["--tool", "claude", "--project", str(project), "--dry-run"])
+    out = capsys.readouterr().out
+
+    assert rc == 0
+    withdrawal_lines = [ln for ln in out.splitlines() if "] clean  " in ln]
+    assert len(withdrawal_lines) == 2, withdrawal_lines  # terse.md remove + settings.json clear
+    assert not any("terse withdrawn by this install" in ln for ln in withdrawal_lines), (
+        "dry-run must not show an unconditional remove/clear for a path that escapes the "
+        "project via a symlink")
+    assert all("skip (escapes)" in ln for ln in withdrawal_lines)
+
+
 def test_apply_checks_containment_before_the_pre_existing_and_warn_logic(tmp_path, capsys):
     # Task 1's review found that checking containment AFTER the WARN/protected logic (where it
     # originally shipped) misreports an escaping path two different ways: a content-matching

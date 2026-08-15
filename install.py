@@ -1027,7 +1027,15 @@ def main(argv: list[str] | None = None) -> int:
         print(f"dry-run: install '{args.tool}' into {project_root} (no files written)")
         for line in render_plan(actions, project_root, protected):
             print(line)
+        # Mirror apply_stale_terse()'s containment check: a "remove"/"clear" op whose path
+        # escapes the project via a symlink is left alone, not previewed as an unconditional
+        # write ("keep" never writes, so it needs no check, matching apply_stale_terse()).
         for op, path in _withdrawn_terse(project_root, prev_manifest, args.tool, args.terse):
+            if op in ("remove", "clear") and not _is_contained(project_root, path):
+                status = "skip (escapes)"
+                print(f"  [{status:14}] clean  {path}  - resolves outside the project via a "
+                      "symlink; left alone")
+                continue
             verb = {"remove": "remove stale terse style", "clear": "clear stale outputStyle",
                     "keep": "keep edited terse style"}[op]
             print(f"  [{op:14}] clean  {path}  - {verb} (terse withdrawn by this install)")
