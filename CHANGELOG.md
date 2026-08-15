@@ -14,6 +14,10 @@ Format follows Keep a Changelog (https://keepachangelog.com). The kit uses SemVe
 
 ### Added
 
+- A 9th piloted behavioral eval, `evals/code-review/`, covering the read-only `code-review`
+  prompt: asserts no file was modified, no edit tool was called, and the review's own transcript
+  engages with the planted fixture (a percentage-discount helper with no bounds check on `pct`,
+  and no test file).
 - `cross-doc-check`, comparing two named docs that are each supposed to state the same policy and
   flagging a real contradiction or an unexplained scope gap, never a wording difference. ADR-0029.
 - `risk-review`, a second-gear review for a change to install/adapter write paths or anything
