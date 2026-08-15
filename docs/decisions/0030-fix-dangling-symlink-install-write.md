@@ -33,19 +33,26 @@ failure mode there is plausibly a silent write outside the project root rather t
 is a reasoned hypothesis from documented POSIX behavior, not reproduced here, and named as such.
 
 Two smaller instances of the identical missing-containment-check shape were found while locating
-every `write_bytes` call site in the file: `apply_stale_terse`'s clear branch and
-`unmerge_kit_settings`'s write-back. Both are narrower in practice (each only reaches
-`write_bytes` after a prior read on the same target succeeds) but share the same gap.
+every `write_bytes` call site that acts on a plan- or record-derived path: `apply_stale_terse`'s
+clear branch and `unmerge_kit_settings`'s write-back. Both are narrower in practice (each only
+reaches `write_bytes` after a prior read on the same target succeeds) but share the same gap. Two
+further `write_bytes` sites exist (the manifest-persist writes in `--prune` and `--remove`), both
+at the fixed constant path `.outpost/manifest.json`; these share ADR-0028's own out-of-scope
+category (a fixed, kit-owned location, not a plan- or manifest-derived one) rather than this fix's
+target, and stay open the same way ADR-0028 left its own version of this question open.
 
 ## Decision
 
 Reuse `_is_contained` (ADR-0028), already proven for the delete side, as a pre-write containment
 guard at all three unguarded `write_bytes` call sites: `apply` (the single choke point every
 `write`, `create`, and `merge`-mode action funnels through), `apply_stale_terse`'s clear branch,
-and `unmerge_kit_settings`'s write-back. An escaping path is silently skipped with a printed
-message, consistent with this file's existing skip-and-continue philosophy for every other
-per-file problem (an edited file, a permission failure, a lock), rather than aborting an install
-that has other, legitimate files to write.
+and `unmerge_kit_settings`'s write-back. An escaping path is silently skipped, consistent with
+this file's existing skip-and-continue philosophy for every other per-file problem (an edited
+file, a permission failure, a lock), rather than aborting an install that has other, legitimate
+files to write. Two of the three sites print a message naming the skip; the third
+(`unmerge_kit_settings`) records it internally as a `"skipped"` outcome, matching how that
+function already handles its other skip reasons without printing them directly (its one caller
+only prints `"removed"`/`"unmerged"`/`"failed"` outcomes).
 
 Three new regression tests in tests/test_install.py:
 `test_install_skips_a_plan_derived_path_behind_a_dangling_symlink` (end-to-end, reproduces the
