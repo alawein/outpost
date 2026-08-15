@@ -272,21 +272,29 @@ def _check_manifest_names(manifest: dict, catalog_names) -> None:
 
 
 def _orphans(project_root: pathlib.Path, tool: str, select_set, terse: bool,
-             user_owned=frozenset()) -> list[str]:
-    """Kit-owned prompt files on disk that the manifest no longer selects. Narrowing an install
-    (`--only`/`--exclude` after a broader one) leaves the de-selected prompt files behind, since the
-    installer never deletes. The full plan minus the selected plan gives the de-selected prompt
-    paths; the ones that exist on disk are orphans, unless the manifest records them as the user's
-    pre-existing files. Empty when nothing was narrowed."""
+             user_owned=frozenset()) -> tuple[list[str], list[str]]:
+    """Kit-owned prompt files on disk that the manifest no longer selects, split into (extras,
+    escaped). Narrowing an install (`--only`/`--exclude` after a broader one) leaves the
+    de-selected prompt files behind, since the installer never deletes. The full plan minus the
+    selected plan gives the de-selected prompt paths; the ones that exist on disk are candidates,
+    unless the manifest records them as the user's pre-existing files. A candidate that resolves
+    outside the project root via a symlink (the same shared-dotfiles config apply()'s "skip
+    (escapes)" and verify()'s ESCAPED already defend) is never something the kit can tell a human
+    to delete: it is reported separately as escaped, not folded into extras, so --verify never
+    instructs removing a path outside this project. Both lists empty when nothing was narrowed."""
     if select_set is None:
-        return []  # full pack: nothing to de-select
+        return [], []  # full pack: nothing to de-select
     keep = {a.path for a in plan_for(tool, KIT_ROOT, project_root, terse=terse, select=select_set)}
     extras = []
+    escaped = []
     for a in plan_for(tool, KIT_ROOT, project_root, terse=terse, select=None):
         if (a.mode == "write" and a.path not in keep and a.path not in user_owned
                 and (project_root / a.path).exists()):
-            extras.append(a.path)
-    return extras
+            if _is_contained(project_root, a.path):
+                extras.append(a.path)
+            else:
+                escaped.append(a.path)
+    return extras, escaped
 
 
 def _retired_paths(project_root: pathlib.Path, tool: str, manifest: dict, terse: bool,
@@ -699,11 +707,19 @@ def apply(actions, project_root: pathlib.Path, protected=frozenset()) -> dict:
 
 
 def render_plan(actions, project_root: pathlib.Path, protected=frozenset()) -> list[str]:
+    """The dry-run preview, one line per action. Mirrors apply()'s own decision order exactly (the
+    containment check first, ahead of status() and the protected/pre-existing check) so a dry-run
+    never shows [create] or [update] for a path apply() would actually skip for escaping the
+    project via a symlink; matches apply()'s "skip (escapes)" wording, the same small pattern used
+    at verify()'s ESCAPED status."""
     lines: list[str] = []
     for a in actions:
-        status = a.status(project_root)
-        if a.mode == "write" and a.path in protected and (project_root / a.path).exists():
-            status = "skip (exists)"  # a pre-existing user file: apply will not touch it
+        if a.mode in ("write", "create", "merge") and not _is_contained(project_root, a.path):
+            status = "skip (escapes)"
+        else:
+            status = a.status(project_root)
+            if a.mode == "write" and a.path in protected and (project_root / a.path).exists():
+                status = "skip (exists)"  # a pre-existing user file: apply will not touch it
         lines.append(f"  [{status:14}] {a.mode:6} {a.path}  - {a.note}")
     return lines
 
@@ -795,6 +811,7 @@ def main(argv: list[str] | None = None) -> int:
             return 1
         actions = []
         orphans: list[str] = []
+        escaped_orphans: list[str] = []
         leftovers: list[str] = []
         user_owned = _user_owned_paths(manifest, _tools_for(args.tool))
         try:
@@ -802,7 +819,9 @@ def main(argv: list[str] | None = None) -> int:
                 sel = _selection_for(manifest, t)
                 terse = _terse_for(manifest, t, args.terse)
                 actions.extend(plan_for(t, KIT_ROOT, project_root, terse=terse, select=sel))
-                orphans.extend(_orphans(project_root, t, sel, terse, user_owned))
+                extra, escaped = _orphans(project_root, t, sel, terse, user_owned)
+                orphans.extend(extra)
+                escaped_orphans.extend(escaped)
                 # a plan-derived check cannot see a kit-created file whose prompt no longer ships
                 # to this host; the manifest's file records surface it as a leftover
                 leftovers.extend(_retired_paths(project_root, t, manifest, terse))
@@ -815,6 +834,9 @@ def main(argv: list[str] | None = None) -> int:
             print(line)
         for path in orphans:
             print(f"  EXTRA   {path} (installed but not in the manifest; re-install or remove)")
+        for path in escaped_orphans:
+            print(f"  ESCAPED {path} (looks orphaned, but resolves outside the project via a "
+                  "symlink; remove or fix the symlink, not reported as an extra to delete)")
         for path in leftovers:
             print(f"  LEFTOVER {path} (kit-installed, but the prompt no longer ships to this "
                   "host; --prune removes it)")
@@ -840,7 +862,7 @@ def main(argv: list[str] | None = None) -> int:
         note = _version_note(manifest, cat.version)
         # An orphan is drift the other way: a kit-owned prompt the recorded selection excludes is
         # still on disk. verify is a gate, so extras fail it just like a missing or modified file.
-        if ok and not orphans and not stale and not leftovers:
+        if ok and not orphans and not stale and not leftovers and not escaped_orphans:
             print("in sync (kit files present and unmodified)")
             if note:
                 print(note)
@@ -850,6 +872,9 @@ def main(argv: list[str] | None = None) -> int:
         if orphans:
             print(f"DRIFT: {len(orphans)} kit-owned prompt file(s) on disk are not in the manifest; "
                   "re-install the full pack or remove them")
+        if escaped_orphans:
+            print(f"DRIFT: {len(escaped_orphans)} path(s) that look orphaned resolve outside the "
+                  "project via a symlink; remove or fix the symlink")
         if leftovers:
             print(f"DRIFT: {len(leftovers)} kit-installed file(s) belong to a prompt that no "
                   "longer ships to this host; run --prune to remove them")

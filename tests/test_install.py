@@ -1603,6 +1603,92 @@ def test_verify_reports_ok_for_a_user_owned_or_create_path_that_escapes_via_a_sy
     assert any("ok" in line and "mine.md" in line for line in lines)
 
 
+def test_orphans_splits_an_escaping_path_into_its_own_list(tmp_path):
+    # A project whose .claude directory is a symlink to a location shared with another project
+    # (ADR-0030's own non-malicious scenario): a file genuinely present there, from an earlier
+    # real install before the symlink was planted, reads as an ordinary de-selected orphan
+    # unless _orphans() checks containment the same way apply()/verify() already do.
+    shared = tmp_path / "shared-claude"
+    grill = shared / "skills" / "grill" / "SKILL.md"
+    grill.parent.mkdir(parents=True)
+    grill.write_text("kit content", encoding="utf-8")
+    project = tmp_path / "project"
+    project.mkdir()
+    try:
+        (project / ".claude").symlink_to(shared, target_is_directory=True)
+    except OSError:
+        pytest.skip("symlink creation not permitted in this environment")
+
+    extras, escaped = install._orphans(project, "claude", set(), terse=False)
+
+    assert ".claude/skills/grill/SKILL.md" not in extras
+    assert ".claude/skills/grill/SKILL.md" in escaped
+
+
+def test_verify_does_not_instruct_removing_an_orphan_that_escapes_via_a_symlink(tmp_path, capsys):
+    # Live-reproduces the reviewer's I1: --verify must never tell a human to hand-delete a path
+    # that resolves outside the project, the way an ordinary EXTRA/DRIFT line would.
+    shared = tmp_path / "shared-claude"
+    grill = shared / "skills" / "grill" / "SKILL.md"
+    grill.parent.mkdir(parents=True)
+    grill.write_text("kit content", encoding="utf-8")
+    project = tmp_path / "project"
+    project.mkdir()
+    try:
+        (project / ".claude").symlink_to(shared, target_is_directory=True)
+    except OSError:
+        pytest.skip("symlink creation not permitted in this environment")
+    (project / ".outpost").mkdir()
+    manifest = {"tools": {"claude": {"selection": "only", "prompts": []}}}
+    (project / ".outpost" / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+
+    rc = install.main(["--tool", "claude", "--project", str(project), "--verify"])
+    out = capsys.readouterr().out
+
+    assert rc == 1  # still surfaced, just not as an ordinary orphan
+    lines = out.splitlines()
+    assert not any("EXTRA" in ln and "grill" in ln for ln in lines), (
+        "verify must not instruct removing a path outside the project")
+    assert any("ESCAPED" in ln and "grill" in ln for ln in lines)
+
+
+def test_render_plan_shows_an_escape_not_a_false_create(tmp_path):
+    project = tmp_path / "project"
+    project.mkdir()
+    try:
+        (project / "escaped.md").symlink_to("../outside.txt")
+    except OSError:
+        pytest.skip("symlink creation not permitted in this environment")
+
+    action = install.Action(path="escaped.md", mode="write", content="hello", note="test")
+    lines = install.render_plan([action], project)
+
+    assert any("skip (escapes)" in ln and "escaped.md" in ln for ln in lines)
+    assert not any(ln.strip().startswith("[create") for ln in lines)
+
+
+def test_dry_run_shows_an_escape_not_a_false_create(tmp_path, capsys):
+    # Live-reproduces the reviewer's I2: --dry-run must agree with what a real install would do,
+    # matching this file's own docstring and docs/adapters.md's "the preview is exact" claim.
+    shared = tmp_path / "shared-claude"
+    shared.mkdir()
+    project = tmp_path / "project"
+    project.mkdir()
+    try:
+        (project / ".claude").symlink_to(shared, target_is_directory=True)
+    except OSError:
+        pytest.skip("symlink creation not permitted in this environment")
+
+    rc = install.main(["--tool", "claude", "--project", str(project), "--dry-run"])
+    out = capsys.readouterr().out
+
+    assert rc == 0
+    claude_lines = [ln for ln in out.splitlines() if ".claude/" in ln]
+    assert claude_lines, "expected at least one .claude/ line in the dry-run plan"
+    assert all("skip (escapes)" in ln for ln in claude_lines)
+    assert not any(ln.strip().startswith("[create") for ln in claude_lines)
+
+
 def test_install_summary_notes_an_escape_when_one_occurs(tmp_path, capsys):
     project = tmp_path / "project"
     project.mkdir()
