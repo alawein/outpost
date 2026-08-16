@@ -2033,3 +2033,44 @@ def test_apply_checks_containment_before_the_pre_existing_and_warn_logic(tmp_pat
     assert "WARN" not in out
     assert "skip   escaped-matching.md (resolves outside the project via a symlink" in out
     assert "skip   escaped-drifted.md (resolves outside the project via a symlink" in out
+
+
+# Post-merge review of PR #36: a real symlink loop makes pathlib.Path.resolve(strict=False) raise
+# RuntimeError on Python 3.9-3.12 (dropped in 3.13, confirmed empirically: 3.12 raises, 3.13 and
+# this repo's own 3.14 do not), and nothing in _is_contained or main() caught it, so a symlink
+# loop at any plan-derived path crashed --dry-run, install, --verify, and --remove with a raw
+# traceback on 4 of this repo's declared-supported versions. Mocking resolve() to raise the same
+# exception type tests the actual exception-handling branch regardless of which Python version
+# runs this suite.
+
+def test_is_contained_treats_a_symlink_loop_as_not_contained(tmp_path, monkeypatch):
+    real_resolve = pathlib.Path.resolve
+    loop = tmp_path / "loop"
+
+    def fake_resolve(self, *args, **kwargs):
+        if self == loop:
+            raise RuntimeError(f"Symlink loop from '{self}'")
+        return real_resolve(self, *args, **kwargs)
+
+    monkeypatch.setattr(pathlib.Path, "resolve", fake_resolve)
+    # unresolvable fails closed, the same as an ordinary escape: never treated as contained
+    assert install._is_contained(tmp_path, "loop") is False
+
+
+def test_apply_skips_a_symlink_loop_instead_of_crashing(tmp_path, monkeypatch, capsys):
+    real_resolve = pathlib.Path.resolve
+    loop = tmp_path / "loop.md"
+
+    def fake_resolve(self, *args, **kwargs):
+        if self == loop:
+            raise RuntimeError(f"Symlink loop from '{self}'")
+        return real_resolve(self, *args, **kwargs)
+
+    monkeypatch.setattr(pathlib.Path, "resolve", fake_resolve)
+    action = install.Action(path="loop.md", mode="write", content="hello", note="test")
+    capsys.readouterr()
+    tally = install.apply([action], tmp_path)
+    out = capsys.readouterr().out
+
+    assert tally["skip (escapes)"] == 1
+    assert "loop.md (resolves outside the project via a symlink; left alone)" in out

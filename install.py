@@ -109,9 +109,16 @@ def _is_contained(project_root: pathlib.Path, path: str) -> bool:
     no backslash or colon); a symlink already sitting in the project can still redirect a
     clean-looking relative key outside the root once the filesystem actually resolves it. Used
     before any delete or write this file performs on a project-relative path, so a pre-planted
-    symlink can redirect neither."""
+    symlink can redirect neither.
+
+    A real symlink loop makes resolve() raise RuntimeError on Python 3.9-3.12 (the behavior was
+    dropped in 3.13); an unresolvable path is never contained, so it fails closed the same way an
+    escaping ValueError already does, instead of crashing the install."""
     root = project_root.resolve()
-    target = (project_root / path).resolve()
+    try:
+        target = (project_root / path).resolve()
+    except (OSError, RuntimeError):
+        return False  # unresolvable (e.g. a symlink loop): never treat as contained
     try:
         target.relative_to(root)
         return True
