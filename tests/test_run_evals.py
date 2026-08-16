@@ -1,7 +1,10 @@
 """tools/run_evals.py's filesystem-hashing, eval-discovery, and stream-json-parsing helpers are
-pure and testable without a live claude call. The actual subprocess orchestration (run_one_eval's
-claude -p call) is exercised only by python tools/run_evals.py itself, run by hand or in the
-dogfood record, not by pytest -q, which stays fast, free, and deterministic."""
+pure and testable without a live claude call. run_one_eval's real subprocess.run call for the
+claude -p step is exercised too, via a monkeypatched stdlib substitute for the `claude` command
+(a real subprocess, not a live claude call) -- see test_run_one_eval_decodes_claude_stdout_as_utf8.
+Only a genuine `claude -p` invocation stays out of pytest -q: that path is run by hand via
+python tools/run_evals.py, or in the dogfood record, which keeps this suite fast, free, and
+deterministic."""
 import hashlib
 import json
 import pathlib
@@ -85,6 +88,66 @@ def test_run_one_eval_handles_missing_fixture():
 
         # Verify the temp directory exists (was created before the error)
         assert pathlib.Path(outcome["tmp_dir"]).exists()
+
+
+def test_run_one_eval_decodes_claude_stdout_as_utf8(tmp_path, monkeypatch):
+    """Regression test for af79812 (the encoding="utf-8" fix on run_one_eval's claude -p
+    subprocess.run call). Redirects only the "claude"-prefixed command to a small stdlib Python
+    substitute -- a real .py file, invoked via sys.executable as a list arg, never through a
+    shell or a -c string, so there is no argv-encoding ambiguity -- that emits a stream-json
+    result line containing a right double curly quote (U+201D) as raw UTF-8 bytes. Every other
+    kwarg (cwd, capture_output, text, timeout) passes through unchanged to the real
+    subprocess.run, and install.py runs for real against a real catalog prompt, so this exercises
+    run_one_eval's actual code path end to end, not a disconnected substitute with its own kwargs.
+
+    U+201D is not an arbitrary "curly quote": its UTF-8 encoding is b"\\xe2\\x80\\x9d", and 0x9d
+    is one of only five bytes cp1252 (this platform's locale.getencoding(), what subprocess.run
+    falls back to when no encoding= is given) leaves undefined, so decoding it under cp1252
+    raises UnicodeDecodeError while decoding it as UTF-8 does not. Confirmed live before writing
+    this test: the more obvious choice, U+2019 (the apostrophe-style curly quote), does NOT
+    reproduce the crash -- its UTF-8 bytes are all defined in cp1252, so it silently mis-decodes
+    instead of raising, which would make a test built on it pass whether or not the fix is
+    present.
+    """
+    # The curly quote is a real U+201D character in this source file (not a \uXXXX escape), read
+    # by Python's own source decoder (UTF-8 by default, independent of locale/console codepage --
+    # unlike argv or console I/O, this is not the ambiguous layer). It is written here with an
+    # explicit encoding="utf-8" and read back the same way, so the only encoding this test leaves
+    # to chance is the one line under test: run_one_eval's claude -p subprocess.run call.
+    fake_claude = tmp_path / "fake_claude.py"
+    fake_claude.write_text(
+        'import sys\n'
+        'line = \'{"type": "result", "result": "value”"}\\n\'\n'
+        'sys.stdout.buffer.write(line.encode("utf-8"))\n'
+        'sys.stdout.buffer.flush()\n',
+        encoding="utf-8",
+    )
+
+    real_subprocess_run = run_evals.subprocess.run
+
+    def fake_subprocess_run(cmd, *args, **kwargs):
+        if cmd[0] == "claude":
+            cmd = [sys.executable, str(fake_claude)]
+        return real_subprocess_run(cmd, *args, **kwargs)
+
+    monkeypatch.setattr(run_evals.subprocess, "run", fake_subprocess_run)
+
+    evals_dir = tmp_path / "evals"
+    eval_dir = evals_dir / "debt-log"
+    eval_dir.mkdir(parents=True)
+    (eval_dir / "task.txt").write_text(
+        "unused: fake_claude.py ignores this and always emits a fixed result line",
+        encoding="utf-8",
+    )
+    (eval_dir / "assertions.json").write_text(
+        json.dumps([{"type": "text_contains", "value": "value”"}]), encoding="utf-8",
+    )
+    (eval_dir / "fixture").mkdir()
+
+    outcome = run_evals.run_one_eval("debt-log", evals_dir, ROOT, timeout=30)
+
+    assert outcome["status"] == "pass", outcome
+    assert outcome["results"][0][1] is True, outcome["results"]
 
 
 def test_parse_stream_json_single_tool_use():
