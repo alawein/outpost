@@ -1243,6 +1243,222 @@ def test_remove_does_not_delete_a_file_outside_the_project_via_a_symlink(tmp_pat
     assert secret.read_text(encoding="utf-8") == "do not delete me"
 
 
+def test_install_skips_a_plan_derived_path_behind_a_dangling_symlink(tmp_path):
+    project = tmp_path / "project"
+    project.mkdir()
+    outside_target = tmp_path / "outside-target.txt"
+    try:
+        (project / "CLAUDE.md").symlink_to("../outside-target.txt")
+    except OSError:
+        pytest.skip("symlink creation not permitted in this environment")
+
+    result = install.main(["--tool", "claude", "--project", str(project)])
+
+    assert result == 0
+    assert not outside_target.exists()
+    assert (project / ".claude" / "skills" / "code-review" / "SKILL.md").is_file()
+    assert (project / "CLAUDE.md").is_symlink()
+    assert not (project / "CLAUDE.md").exists()  # still dangling; never followed or overwritten
+
+
+def test_apply_skips_a_write_action_whose_target_escapes_via_a_symlink(tmp_path):
+    project = tmp_path / "project"
+    project.mkdir()
+    try:
+        (project / "escaped.md").symlink_to("../outside.txt")
+    except OSError:
+        pytest.skip("symlink creation not permitted in this environment")
+
+    action = install.Action(path="escaped.md", mode="write", content="hello", note="test")
+    tally = install.apply([action], project)
+
+    assert not (project.parent / "outside.txt").exists()
+    assert tally["skip (escapes)"] == 1
+
+
+def test_unmerge_settings_skips_a_write_back_through_a_symlink(tmp_path):
+    project = tmp_path / "project"
+    project.mkdir()
+    outside = project.parent / "outside-settings.json"
+    outside_content = '{"permissions": {"deny": ["Read(./.env)", "my-own-rule"]}}\n'
+    outside.write_text(outside_content, encoding="utf-8")
+    settings_dir = project / ".claude"
+    settings_dir.mkdir()
+    try:
+        # Absolute target: see the note in test_apply_stale_terse_skips_a_clear_through_a_symlink.
+        # The identical backslash-relative bug was here first (this is presumably where it got
+        # copied from), silently passing on 3 of this repo's 4 CI legs for the same reason.
+        (settings_dir / "settings.json").symlink_to(outside)
+    except OSError:
+        pytest.skip("symlink creation not permitted in this environment")
+
+    manifest = {"tools": {"claude": {"selection": "full", "prompts": []}}}  # legacy manifest, files=None
+    install.unmerge_kit_settings(project, ["claude"], manifest, args_terse=False)
+
+    assert outside.read_text(encoding="utf-8") == outside_content  # untouched
+
+
+def test_manifest_records_no_ownership_for_a_symlink_escaped_path(tmp_path):
+    shared = tmp_path / "shared-claude"
+    shared.mkdir()
+    project = tmp_path / "project"
+    project.mkdir()
+    try:
+        (project / ".claude").symlink_to(shared, target_is_directory=True)
+    except OSError:
+        pytest.skip("symlink creation not permitted in this environment")
+
+    result = install.main(["--tool", "claude", "--project", str(project)])
+    assert result == 0
+
+    manifest = json.loads((project / ".outpost" / "manifest.json").read_text(encoding="utf-8"))
+    files = manifest.get("tools", {}).get("claude", {}).get("files") or {}
+    escaped_paths = [p for p in files if p.startswith(".claude/")]
+    assert escaped_paths == [], (
+        f"manifest claims ownership of escaped paths it never wrote: {escaped_paths}")
+
+    # simulate a real kit file legitimately arriving at the shared location later (another
+    # project's own install), then confirm --remove in THIS project cannot delete it there
+    real_skill = shared / "skills" / "code-review" / "SKILL.md"
+    real_skill.parent.mkdir(parents=True)
+    kit_content = (
+        pathlib.Path(__file__).resolve().parents[1] / "plugins" / "outpost" / "skills"
+        / "code-review" / "SKILL.md"
+    ).read_text(encoding="utf-8")
+    real_skill.write_text(kit_content, encoding="utf-8")
+
+    remove_result = install.main(["--tool", "claude", "--project", str(project), "--remove"])
+    assert remove_result == 0
+    assert real_skill.exists(), "a file outside the project was deleted through the symlink"
+
+
+def test_remove_for_tools_skips_a_path_that_escapes_via_a_symlink(tmp_path):
+    project = tmp_path / "project"
+    project.mkdir()
+    outside = tmp_path / "outside-skill.md"
+    # Byte-identical to the kit's own rendering: remove_for_tools's byte-match guard would
+    # otherwise skip this path on content grounds alone, which would pass regardless of the
+    # containment check this test targets and prove nothing about it.
+    kit_content = (ROOT / "plugins" / "outpost" / "skills" / "code-review" / "SKILL.md").read_text(
+        encoding="utf-8")
+    outside.write_text(kit_content, encoding="utf-8")
+    skills_dir = project / ".claude" / "skills" / "code-review"
+    skills_dir.mkdir(parents=True)
+    try:
+        # An absolute target: a relative multi-level target string ("../../../../...") resolves
+        # correctly through Path.resolve() on this Windows/Python 3.14 box, but exists()/stat()/
+        # unlink() raise WinError 123 against it, which would exit this loop through the plain
+        # "not target.exists(): continue" above the guard under test, for the wrong reason, and
+        # pass without ever exercising it. Same quirk as commit 97b39f5 and Task 1's own fix.
+        (skills_dir / "SKILL.md").symlink_to(outside)
+    except OSError:
+        pytest.skip("symlink creation not permitted in this environment")
+
+    manifest = {"tools": {"claude": {"selection": "full", "prompts": []}}}  # legacy manifest, files=None
+    removed, skipped, failed, retired = install.remove_for_tools(
+        project, ["claude"], manifest, args_terse=False)
+
+    assert ".claude/skills/code-review/SKILL.md" not in removed
+    assert ".claude/skills/code-review/SKILL.md" in skipped
+    assert outside.read_text(encoding="utf-8") == kit_content
+
+
+def test_prune_orphans_skips_a_path_that_escapes_via_a_symlink(tmp_path):
+    project = tmp_path / "project"
+    project.mkdir()
+    outside = tmp_path / "outside-skill.md"
+    kit_content = (ROOT / "plugins" / "outpost" / "skills" / "code-review" / "SKILL.md").read_text(
+        encoding="utf-8")
+    outside.write_text(kit_content, encoding="utf-8")
+    skills_dir = project / ".claude" / "skills" / "code-review"
+    skills_dir.mkdir(parents=True)
+    try:
+        (skills_dir / "SKILL.md").symlink_to(outside)  # absolute target; see the note above
+    except OSError:
+        pytest.skip("symlink creation not permitted in this environment")
+
+    # A legacy manifest (no "files" map at all) that narrows the selection to nothing, so
+    # code-review's SKILL.md reads as a de-selected orphan and falls to the byte-match-only
+    # legacy path. An empty "files": {} map (present but empty) would instead skip this path
+    # via the separate "no record for this path" rule, regardless of the containment check.
+    manifest = {"tools": {"claude": {"selection": "only", "prompts": []}}}
+    removed, skipped, failed, retired = install.prune_orphans(
+        project, ["claude"], manifest, args_terse=False)
+
+    assert ".claude/skills/code-review/SKILL.md" not in removed
+    assert ".claude/skills/code-review/SKILL.md" in skipped
+    assert outside.read_text(encoding="utf-8") == kit_content
+
+
+def test_prune_does_not_persist_the_manifest_through_an_escaping_symlink(tmp_path):
+    project = tmp_path / "project"
+    project.mkdir()
+    install.main(["--tool", "claude", "--project", str(project)])  # full pack
+    install.main(["--tool", "claude", "--project", str(project), "--exclude", "grill"])  # orphans grill
+    real_manifest = (project / ".outpost" / "manifest.json").read_text(encoding="utf-8")
+    outside_manifest = tmp_path / "outside-manifest.json"
+    outside_manifest.write_text(real_manifest, encoding="utf-8")
+    (project / ".outpost" / "manifest.json").unlink()
+    try:
+        (project / ".outpost" / "manifest.json").symlink_to(outside_manifest)  # absolute target
+    except OSError:
+        pytest.skip("symlink creation not permitted in this environment")
+
+    # prune_orphans() itself never writes the manifest; only main()'s --prune block does, and
+    # only when something was retired or removed. The grill orphan above is what drives
+    # execution into the guarded write call this test targets, via a real main() --prune run.
+    result = install.main(["--tool", "claude", "--project", str(project), "--prune"])
+
+    assert result == 0
+    assert not (project / ".claude" / "skills" / "grill").exists()  # the orphan is still pruned
+    assert outside_manifest.read_text(encoding="utf-8") == real_manifest, (
+        "the manifest outside the project was overwritten")
+
+
+def test_remove_does_not_delete_the_manifest_through_an_escaping_symlink(tmp_path):
+    project = tmp_path / "project"
+    project.mkdir()
+    install.main(["--tool", "claude", "--project", str(project)])
+    real_manifest = (project / ".outpost" / "manifest.json").read_text(encoding="utf-8")
+    outside_manifest = tmp_path / "outside-manifest.json"
+    outside_manifest.write_text(real_manifest, encoding="utf-8")
+    (project / ".outpost" / "manifest.json").unlink()
+    try:
+        (project / ".outpost" / "manifest.json").symlink_to("../../outside-manifest.json")
+    except OSError:
+        pytest.skip("symlink creation not permitted in this environment")
+
+    result = install.main(["--tool", "claude", "--project", str(project), "--remove"])
+
+    assert result == 0
+    assert outside_manifest.exists(), "the manifest outside the project was deleted"
+
+
+def test_remove_does_not_overwrite_the_manifest_through_an_escaping_symlink(tmp_path):
+    # Removing one tool out of several leaves manifest["tools"] non-empty, so main()'s --remove
+    # block takes the WRITE branch (mpath.write_bytes) rather than the delete branch. write_bytes
+    # follows a symlink to its target's content on this platform (unlink does not: it only
+    # removes the link itself), so this is the branch of the guard under test that a
+    # single-tool-installed fixture (the delete-branch test above) can never exercise.
+    project = tmp_path / "project"
+    project.mkdir()
+    install.main(["--tool", "all", "--project", str(project)])  # several tools stay after one goes
+    real_manifest = (project / ".outpost" / "manifest.json").read_text(encoding="utf-8")
+    outside_manifest = tmp_path / "outside-manifest.json"
+    outside_manifest.write_text(real_manifest, encoding="utf-8")
+    (project / ".outpost" / "manifest.json").unlink()
+    try:
+        (project / ".outpost" / "manifest.json").symlink_to(outside_manifest)  # absolute target
+    except OSError:
+        pytest.skip("symlink creation not permitted in this environment")
+
+    result = install.main(["--tool", "claude", "--project", str(project), "--remove"])
+
+    assert result == 0
+    assert outside_manifest.read_text(encoding="utf-8") == real_manifest, (
+        "the manifest outside the project was overwritten")
+
+
 def test_retired_paths_excludes_a_path_that_escapes_through_a_symlink(tmp_path):
     outside = tmp_path / "outside"
     outside.mkdir()
@@ -1328,3 +1544,564 @@ def test_records_less_fallback_claims_the_recorded_footprint(tmp_path):
     for path in (".github/prompts/plan-change.prompt.md", ".github/copilot-instructions.md"):
         assert files[path]["existed"] is False
         assert files[path]["kit_hash"].startswith("sha256:")
+
+
+def test_install_reports_a_symlink_escape_distinctly_from_an_ordinary_skip(tmp_path):
+    project = tmp_path / "project"
+    project.mkdir()
+    try:
+        (project / "escaped.md").symlink_to("../outside-target.txt")
+    except OSError:
+        pytest.skip("symlink creation not permitted in this environment")
+
+    action = install.Action(path="escaped.md", mode="write", content="hello", note="test")
+    tally = install.apply([action], project)
+
+    assert tally.get("skip (escapes)") == 1
+    assert tally.get("skip (exists)", 0) == 0
+
+
+def test_verify_reports_escaped_distinctly_from_missing(tmp_path):
+    project = tmp_path / "project"
+    project.mkdir()
+    try:
+        (project / "escaped.md").symlink_to("../outside.txt")
+    except OSError:
+        pytest.skip("symlink creation not permitted in this environment")
+
+    action = install.Action(path="escaped.md", mode="write", content="hello", note="test")
+    ok, lines, escaped_paths, missing_or_drifted = install.verify([action], project)
+
+    assert ok is False
+    assert any("ESCAPED" in line and "escaped.md" in line for line in lines)
+    assert not any("MISSING" in line and "escaped.md" in line for line in lines)
+    # the caller (main()'s --verify summary) uses this split to avoid telling a symlink escape
+    # to re-run install: an escaped-only verify has nothing a re-install would actually restore
+    assert escaped_paths == ["escaped.md"]
+    assert missing_or_drifted is False
+
+
+def test_verify_reports_ok_for_a_user_owned_or_create_path_that_escapes_via_a_symlink(tmp_path):
+    # A user who symlinks their own CLAUDE.md (or a manifest-recorded pre-existing file) to a
+    # shared dotfiles location is not an attack: the kit never writes these paths regardless of
+    # whether they escape, so there was never anything for re-running install to change. The
+    # ESCAPED check must not fire here; verify()'s own docstring says a user-owned target is
+    # "fine present or absent," which a false ESCAPED would contradict.
+    project = tmp_path / "project"
+    project.mkdir()
+    try:
+        (project / "CLAUDE.md").symlink_to("../outside-claude.md")
+        (project / "mine.md").symlink_to("../outside-mine.md")
+    except OSError:
+        pytest.skip("symlink creation not permitted in this environment")
+
+    actions = [
+        install.Action(path="CLAUDE.md", mode="create", content="guide", note="test"),
+        install.Action(path="mine.md", mode="write", content="kit content", note="test"),
+    ]
+    ok, lines, escaped_paths, missing_or_drifted = install.verify(
+        actions, project, user_owned={"mine.md"})
+
+    assert ok is True
+    assert not any("ESCAPED" in line for line in lines)
+    assert any("ok" in line and "CLAUDE.md" in line for line in lines)
+    assert any("ok" in line and "mine.md" in line for line in lines)
+    assert escaped_paths == []
+    assert missing_or_drifted is False
+
+
+def test_orphans_splits_an_escaping_path_into_its_own_list(tmp_path):
+    # A project whose .claude directory is a symlink to a location shared with another project
+    # (ADR-0030's own non-malicious scenario): a file genuinely present there, from an earlier
+    # real install before the symlink was planted, reads as an ordinary de-selected orphan
+    # unless _orphans() checks containment the same way apply()/verify() already do.
+    shared = tmp_path / "shared-claude"
+    grill = shared / "skills" / "grill" / "SKILL.md"
+    grill.parent.mkdir(parents=True)
+    grill.write_text("kit content", encoding="utf-8")
+    project = tmp_path / "project"
+    project.mkdir()
+    try:
+        (project / ".claude").symlink_to(shared, target_is_directory=True)
+    except OSError:
+        pytest.skip("symlink creation not permitted in this environment")
+
+    extras, escaped = install._orphans(project, "claude", set(), terse=False)
+
+    assert ".claude/skills/grill/SKILL.md" not in extras
+    assert ".claude/skills/grill/SKILL.md" in escaped
+
+
+def test_verify_does_not_instruct_removing_an_orphan_that_escapes_via_a_symlink(tmp_path, capsys):
+    # Live-reproduces the reviewer's I1: --verify must never tell a human to hand-delete a path
+    # that resolves outside the project, the way an ordinary EXTRA/DRIFT line would.
+    shared = tmp_path / "shared-claude"
+    grill = shared / "skills" / "grill" / "SKILL.md"
+    grill.parent.mkdir(parents=True)
+    grill.write_text("kit content", encoding="utf-8")
+    project = tmp_path / "project"
+    project.mkdir()
+    try:
+        (project / ".claude").symlink_to(shared, target_is_directory=True)
+    except OSError:
+        pytest.skip("symlink creation not permitted in this environment")
+    (project / ".outpost").mkdir()
+    manifest = {"tools": {"claude": {"selection": "only", "prompts": []}}}
+    (project / ".outpost" / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+
+    rc = install.main(["--tool", "claude", "--project", str(project), "--verify"])
+    out = capsys.readouterr().out
+
+    assert rc == 1  # still surfaced, just not as an ordinary orphan
+    lines = out.splitlines()
+    assert not any("EXTRA" in ln and "grill" in ln for ln in lines), (
+        "verify must not instruct removing a path outside the project")
+    assert any("ESCAPED" in ln and "grill" in ln for ln in lines)
+
+
+def test_verify_summary_does_not_claim_reinstall_fixes_an_escaped_path(tmp_path, capsys):
+    # When the only reason --verify fails is a kit-owned file that now resolves outside the
+    # project via a symlink, the summary must not send the user to re-run install: verify()'s own
+    # per-path ESCAPED line already says the opposite (re-running install will not change this),
+    # and apply() genuinely refuses to write an escaping path. The generic drift line would
+    # flatly contradict the line printed just above it in the same --verify output.
+    project = tmp_path / "project"
+    project.mkdir()
+    install.main(["--tool", "claude", "--project", str(project)])
+    skill = project / ".claude" / "skills" / "plan-change" / "SKILL.md"
+    outside = tmp_path / "outside-plan-change.md"
+    outside.write_text(skill.read_text(encoding="utf-8"), encoding="utf-8")
+    skill.unlink()
+    try:
+        # Absolute target: a relative multi-level target ("../../../../...") resolves correctly
+        # through Path.resolve() on this Windows/Python 3.14 box, but exists()/stat()/unlink()
+        # raise WinError 123 against it (see the note in
+        # test_remove_for_tools_skips_a_path_that_escapes_via_a_symlink above).
+        skill.symlink_to(outside)
+    except OSError:
+        pytest.skip("symlink creation not permitted in this environment")
+    capsys.readouterr()
+
+    rc = install.main(["--tool", "claude", "--project", str(project), "--verify"])
+    out = capsys.readouterr().out
+    lines = out.splitlines()
+
+    assert rc == 1  # still a real problem, just not one a re-install fixes
+    assert any("ESCAPED" in ln and "plan-change" in ln for ln in lines)
+    assert "re-run install to restore the kit files" not in out
+
+
+def test_verify_summary_still_flags_reinstallable_drift_alongside_an_escaped_path(tmp_path, capsys):
+    # Mixed case: one kit-owned file escapes via a symlink (a re-install cannot fix it) and a
+    # different kit-owned file is genuinely drifted (a re-install does fix it), in the same
+    # --verify run. Both summary lines must appear, each scoped to what it actually describes;
+    # suppressing the generic "re-run install" line just because an escape is ALSO present would
+    # wrongly hide real, fixable drift from the user.
+    project = tmp_path / "project"
+    project.mkdir()
+    install.main(["--tool", "claude", "--project", str(project)])
+    escaped_skill = project / ".claude" / "skills" / "plan-change" / "SKILL.md"
+    outside = tmp_path / "outside-plan-change.md"
+    outside.write_text(escaped_skill.read_text(encoding="utf-8"), encoding="utf-8")
+    escaped_skill.unlink()
+    try:
+        escaped_skill.symlink_to(outside)  # absolute target; see the note above
+    except OSError:
+        pytest.skip("symlink creation not permitted in this environment")
+    drifted_skill = project / ".claude" / "skills" / "code-review" / "SKILL.md"
+    drifted_skill.write_text("hand-edited, drifted from the kit version", encoding="utf-8")
+    capsys.readouterr()
+
+    rc = install.main(["--tool", "claude", "--project", str(project), "--verify"])
+    out = capsys.readouterr().out
+    lines = out.splitlines()
+
+    assert rc == 1
+    assert any("ESCAPED" in ln and "plan-change" in ln for ln in lines)
+    assert any("DRIFTED" in ln and "code-review" in ln for ln in lines)
+    assert "DRIFT: re-run install to restore the kit files" in out  # genuine drift: re-install helps
+    assert any(ln.startswith("DRIFT:") and "resolve outside the project via a symlink" in ln
+               for ln in lines)  # the escape gets its own distinct summary line, not folded in
+
+
+def test_verify_summary_does_not_claim_reinstall_fixes_a_stale_terse_escape(tmp_path, capsys):
+    # Live-reproduced contradiction: a genuinely stale outputStyle key (the style file already
+    # went, same setup as _withdraw_terse_but_leave_the_key above) sitting in a settings.json that
+    # now resolves outside the project via a symlink. stale_terse_state() had no containment
+    # check, so it queued a "clear" op from the JSON content read straight through the symlink,
+    # and --verify's stale-terse loop printed DRIFTED plus "re-run install to clean it" for the
+    # same path its own ESCAPED line, from the ordinary verify() pass over the settings merge
+    # action, already says re-running install will not change.
+    project = tmp_path / "project"
+    project.mkdir()
+    install.main(["--tool", "claude", "--project", str(project), "--terse"])
+    (project / ".claude" / "output-styles" / "terse.md").unlink()
+    mpath = project / ".outpost" / "manifest.json"
+    data = json.loads(mpath.read_text(encoding="utf-8"))
+    data["tools"]["claude"]["terse"] = False
+    mpath.write_text(json.dumps(data), encoding="utf-8")
+
+    settings = project / ".claude" / "settings.json"
+    outside = tmp_path / "outside-settings.json"
+    outside.write_text(settings.read_text(encoding="utf-8"), encoding="utf-8")
+    settings.unlink()
+    try:
+        # Absolute target; see the note in
+        # test_verify_summary_does_not_claim_reinstall_fixes_an_escaped_path above.
+        settings.symlink_to(outside)
+    except OSError:
+        pytest.skip("symlink creation not permitted in this environment")
+    capsys.readouterr()
+
+    rc = install.main(["--tool", "claude", "--project", str(project), "--verify"])
+    out = capsys.readouterr().out
+    lines = out.splitlines()
+
+    assert rc == 1  # still a real problem, just not one a re-install fixes
+    assert any("ESCAPED" in ln and "outputStyle" in ln for ln in lines)
+    assert not any(ln.strip().startswith("DRIFTED") and "settings.json" in ln for ln in lines)
+    assert "re-run install to clean it" not in out
+    assert "DRIFT: stale terse state left by an earlier terse install" not in out
+
+
+def test_verify_summary_still_flags_reinstallable_stale_terse_alongside_an_escaped_one(
+        tmp_path, capsys):
+    # Mixed case scoped to stale-terse state alone: the style file is genuine, fixable leftover
+    # state (a re-install removes it) while the settings.json outputStyle key is the same
+    # escaping key as the test above. Both summary lines must appear, each scoped to what it
+    # actually found; suppressing the genuine "re-run install to clean it" line just because an
+    # escape is ALSO present would wrongly hide real, fixable stale-terse state from the user.
+    project = tmp_path / "project"
+    project.mkdir()
+    install.main(["--tool", "claude", "--project", str(project), "--terse"])
+    mpath = project / ".outpost" / "manifest.json"
+    data = json.loads(mpath.read_text(encoding="utf-8"))
+    data["tools"]["claude"]["terse"] = False  # simulate a pre-fix withdrawal: state stays on disk
+    mpath.write_text(json.dumps(data), encoding="utf-8")
+
+    settings = project / ".claude" / "settings.json"
+    outside = tmp_path / "outside-settings.json"
+    outside.write_text(settings.read_text(encoding="utf-8"), encoding="utf-8")
+    settings.unlink()
+    try:
+        settings.symlink_to(outside)  # absolute target; see the note above
+    except OSError:
+        pytest.skip("symlink creation not permitted in this environment")
+    capsys.readouterr()
+
+    rc = install.main(["--tool", "claude", "--project", str(project), "--verify"])
+    out = capsys.readouterr().out
+    lines = out.splitlines()
+
+    assert rc == 1
+    assert any(ln.strip().startswith("DRIFTED") and "terse.md" in ln for ln in lines)
+    assert any("ESCAPED" in ln and "outputStyle" in ln for ln in lines)
+    assert "DRIFT: stale terse state left by an earlier terse install; re-run install" in out
+    assert any(ln.startswith("DRIFT:") and "stale terse path(s)" in ln for ln in lines)
+
+
+def test_verify_summary_does_not_claim_in_sync_over_an_escaped_stale_terse_style(
+        tmp_path, capsys):
+    # The in-sync gate's "and not escaped_stale" clause has no dedicated coverage: both escaped
+    # stale-terse tests above symlink settings.json itself, which also fails the ordinary
+    # verify() pass over the settings merge action, so `ok` is already False there and the gate
+    # is closed regardless of the clause. Escaping the style file's own directory instead keeps
+    # every ordinary action clean (a non-terse verify's plan never includes the style path at
+    # all, see kit/adapters/claude.py), so escaped_stale is the only thing keeping the gate
+    # closed. Without the clause, --verify prints an ESCAPED line for the style file and then, in
+    # the same breath, claims "in sync" and exits 0.
+    project = tmp_path / "project"
+    project.mkdir()
+    install.main(["--tool", "claude", "--project", str(project), "--terse"])
+
+    # A user replaces the local output-styles directory with a symlink to a location shared with
+    # another project (the same non-malicious shared-dotfiles setup as the ancestor-directory
+    # symlink tests above), empty at this point: the terse install's own style file goes with it.
+    styles_dir = project / ".claude" / "output-styles"
+    (styles_dir / "terse.md").unlink()
+    styles_dir.rmdir()
+    shared = tmp_path / "shared-output-styles"
+    shared.mkdir()
+    try:
+        styles_dir.symlink_to(shared, target_is_directory=True)
+    except OSError:
+        pytest.skip("symlink creation not permitted in this environment")
+
+    # A plain reinstall withdraws terse. The style file is not reachable through the (still
+    # empty) symlink target, so no remove op is queued for it and its manifest ownership record
+    # survives untouched; settings.json, not itself behind any symlink, has its outputStyle key
+    # cleared normally.
+    install.main(["--tool", "claude", "--project", str(project)])
+    settings = json.loads((project / ".claude" / "settings.json").read_text(encoding="utf-8"))
+    assert "outputStyle" not in settings
+
+    # The shared location later gains a real terse.md, as if a sibling project also using this
+    # kit with --terse installed into it: the survived ownership record now points at kit
+    # content again, but only reachable outside the project via the symlink.
+    (shared / "terse.md").write_text(install.TERSE_OUTPUT_STYLE, encoding="utf-8")
+    capsys.readouterr()
+
+    rc = install.main(["--tool", "claude", "--project", str(project), "--verify"])
+    out = capsys.readouterr().out
+    lines = out.splitlines()
+
+    assert any("ESCAPED" in ln and "output-styles/terse.md" in ln for ln in lines)
+    assert rc == 1  # a real, unfixed-by-reinstall problem: must not be reported as in sync
+    assert "in sync" not in out  # would directly contradict the ESCAPED line above it
+
+
+def test_render_plan_shows_an_escape_not_a_false_create(tmp_path):
+    project = tmp_path / "project"
+    project.mkdir()
+    try:
+        (project / "escaped.md").symlink_to("../outside.txt")
+    except OSError:
+        pytest.skip("symlink creation not permitted in this environment")
+
+    action = install.Action(path="escaped.md", mode="write", content="hello", note="test")
+    lines = install.render_plan([action], project)
+
+    assert any("skip (escapes)" in ln and "escaped.md" in ln for ln in lines)
+    assert not any(ln.strip().startswith("[create") for ln in lines)
+
+
+def test_dry_run_shows_an_escape_not_a_false_create(tmp_path, capsys):
+    # Live-reproduces the reviewer's I2: --dry-run must agree with what a real install would do,
+    # matching this file's own docstring and docs/adapters.md's "the preview is exact" claim.
+    shared = tmp_path / "shared-claude"
+    shared.mkdir()
+    project = tmp_path / "project"
+    project.mkdir()
+    try:
+        (project / ".claude").symlink_to(shared, target_is_directory=True)
+    except OSError:
+        pytest.skip("symlink creation not permitted in this environment")
+
+    rc = install.main(["--tool", "claude", "--project", str(project), "--dry-run"])
+    out = capsys.readouterr().out
+
+    assert rc == 0
+    claude_lines = [ln for ln in out.splitlines() if ".claude/" in ln]
+    assert claude_lines, "expected at least one .claude/ line in the dry-run plan"
+    assert all("skip (escapes)" in ln for ln in claude_lines)
+    assert not any(ln.strip().startswith("[create") for ln in claude_lines)
+
+
+def test_install_summary_notes_an_escape_when_one_occurs(tmp_path, capsys):
+    project = tmp_path / "project"
+    project.mkdir()
+    try:
+        (project / "CLAUDE.md").symlink_to("../outside-claude-guide.md")
+    except OSError:
+        pytest.skip("symlink creation not permitted in this environment")
+
+    capsys.readouterr()
+    rc = install.main(["--tool", "claude", "--project", str(project)])
+    out = capsys.readouterr().out
+
+    assert rc == 0
+    assert "1 left alone (escaping the project via a symlink)" in out
+
+
+def test_install_summary_omits_the_escape_note_when_nothing_escapes(tmp_path, capsys):
+    capsys.readouterr()
+    rc = install.main(["--tool", "claude", "--project", str(tmp_path)])
+    out = capsys.readouterr().out
+
+    assert rc == 0
+    assert "left alone (escaping the project via a symlink)" not in out
+
+
+def test_apply_stale_terse_skips_a_clear_through_a_symlink(tmp_path):
+    project = tmp_path / "project"
+    project.mkdir()
+    outside = project.parent / "outside-style.json"
+    outside_content = '{"outputStyle": "terse", "other": "value"}\n'
+    outside.write_text(outside_content, encoding="utf-8")
+    settings_dir = project / ".claude"
+    settings_dir.mkdir()
+    try:
+        # Absolute target: a backslash-relative string ("..\\..\\...") is a path separator only
+        # on Windows. On POSIX, backslash is a literal filename character, so the whole string
+        # reads as one nonexistent path component still inside the project. _is_contained sees
+        # it as contained, the guard never fires, and the resulting FileNotFoundError from
+        # read_text() gets caught by this branch's own except (ValueError, OSError), so the test
+        # would pass for the wrong reason on 3 of this repo's 4 CI legs (every ubuntu job).
+        (settings_dir / "settings.json").symlink_to(outside)
+    except OSError:
+        pytest.skip("symlink creation not permitted in this environment")
+
+    install.apply_stale_terse(project, [("clear", ".claude/settings.json")])
+
+    assert outside.read_text(encoding="utf-8") == outside_content
+
+
+def test_apply_stale_terse_skips_a_remove_through_a_symlink(tmp_path):
+    # A leaf symlink (terse.md -> an outside file) cannot reproduce the reviewer's C1 finding:
+    # Path.unlink() on a file symlink removes the link itself, never the target it points to, on
+    # every platform (confirmed empirically here, not a Windows-only quirk). The reviewer's real
+    # repro moved .claude itself out and replaced it with a directory symlink, so the leaf
+    # terse.md the unlink() call reaches is a genuine file living outside the project, not a
+    # symlink. Matches the ancestor-directory-symlink pattern already used in this file (see
+    # test_remove_does_not_delete_a_file_outside_the_project_via_a_symlink above).
+    outside = tmp_path / "outside-claude"
+    (outside / "output-styles").mkdir(parents=True)
+    real_terse = outside / "output-styles" / "terse.md"
+    outside_content = "not the kit's terse style file, do not delete"
+    real_terse.write_text(outside_content, encoding="utf-8")
+
+    project = tmp_path / "project"
+    project.mkdir()
+    try:
+        (project / ".claude").symlink_to(outside, target_is_directory=True)
+    except OSError:
+        pytest.skip("symlink creation not permitted in this environment")
+
+    install.apply_stale_terse(project, [("remove", ".claude/output-styles/terse.md")])
+
+    assert real_terse.exists()
+    assert real_terse.read_text(encoding="utf-8") == outside_content
+
+
+def test_reinstall_keeps_terse_ownership_record_when_withdrawal_escapes_via_a_symlink(tmp_path):
+    # Post-merge review of PR #36: the ownership-record pop for a completed terse withdrawal (the
+    # F32 residual fix, test_completed_withdrawal_releases_style_ownership above) had no
+    # containment check of its own, unlike apply_stale_terse's sibling remove/clear branches.
+    # apply_stale_terse correctly refuses to delete the escaping style file here (see the test
+    # just above), but the pop ran anyway and dropped the manifest's ownership record regardless
+    # of whether the withdrawal actually reached the file -- so --verify silently stopped
+    # mentioning a still-active terse style sitting at the shared, escaped location, instead of
+    # reporting it ESCAPED like its settings.json sibling does.
+    project = tmp_path / "project"
+    project.mkdir()
+    install.main(["--tool", "claude", "--project", str(project), "--terse"])
+
+    outside = tmp_path / "outside-claude"
+    (project / ".claude").rename(outside)
+    try:
+        (project / ".claude").symlink_to(outside, target_is_directory=True)
+    except OSError:
+        pytest.skip("symlink creation not permitted in this environment")
+
+    install.main(["--tool", "claude", "--project", str(project)])  # plain reinstall: withdraws terse
+
+    real_terse = outside / "output-styles" / "terse.md"
+    assert real_terse.is_file()  # never deleted: apply_stale_terse's own guard skips it
+
+    mpath = project / ".outpost" / "manifest.json"
+    files = json.loads(mpath.read_text(encoding="utf-8"))["tools"]["claude"]["files"]
+    assert install.TERSE_STYLE_PATH in files, (
+        "the manifest dropped ownership of a terse style the withdrawal never actually reached")
+
+
+def test_dry_run_shows_an_escape_not_an_unconditional_stale_terse_withdrawal(tmp_path, capsys):
+    # main()'s --dry-run branch renders the stale-terse withdrawal preview in its own loop,
+    # separate from render_plan(): it was never given the containment check
+    # apply_stale_terse() already has, so a dry-run over a project whose .claude is now a
+    # directory symlink still showed an unconditional [remove]/[clear] for a path a real
+    # install would actually warn about and leave alone. Same ancestor-directory-symlink
+    # repro as test_apply_stale_terse_skips_a_remove_through_a_symlink: a real --terse
+    # install first, so the withdrawal is genuinely triggered by a recorded prior install,
+    # not hand-built stale state.
+    project = tmp_path / "project"
+    project.mkdir()
+    install.main(["--tool", "claude", "--project", str(project), "--terse"])
+
+    outside = tmp_path / "outside-claude"
+    (project / ".claude").rename(outside)
+    try:
+        (project / ".claude").symlink_to(outside, target_is_directory=True)
+    except OSError:
+        pytest.skip("symlink creation not permitted in this environment")
+
+    capsys.readouterr()
+    rc = install.main(["--tool", "claude", "--project", str(project), "--dry-run"])
+    out = capsys.readouterr().out
+
+    assert rc == 0
+    withdrawal_lines = [ln for ln in out.splitlines() if "] clean  " in ln]
+    assert len(withdrawal_lines) == 2, withdrawal_lines  # terse.md remove + settings.json clear
+    assert not any("terse withdrawn by this install" in ln for ln in withdrawal_lines), (
+        "dry-run must not show an unconditional remove/clear for a path that escapes the "
+        "project via a symlink")
+    assert all("skip (escapes)" in ln for ln in withdrawal_lines)
+
+
+def test_apply_checks_containment_before_the_pre_existing_and_warn_logic(tmp_path, capsys):
+    # Task 1's review found that checking containment AFTER the WARN/protected logic (where it
+    # originally shipped) misreports an escaping path two different ways: a content-matching
+    # escape reads straight through to "unchanged" (never flagged as an escape at all), and a
+    # drifted escape triggers a spurious WARN about an overwrite that is never going to happen.
+    # Moving the check to the top of the loop must guarantee neither ever prints for an escaping
+    # path. Only the escape skip does, regardless of what the outside content looks like.
+    # Absolute symlink targets throughout: status() has to read real content through the symlink
+    # for the pre-fix (reverted-ordering) comparison to mean anything, and a relative target's
+    # exists()/read_text() behavior is unreliable on this box (see the other fixes on this
+    # branch).
+    project = tmp_path / "project"
+    project.mkdir()
+    outside_matching = tmp_path / "outside-matching.md"
+    outside_matching.write_text("kit content", encoding="utf-8")
+    outside_drifted = tmp_path / "outside-drifted.md"
+    outside_drifted.write_text("hand-edited content", encoding="utf-8")
+    try:
+        (project / "escaped-matching.md").symlink_to(outside_matching)
+        (project / "escaped-drifted.md").symlink_to(outside_drifted)
+    except OSError:
+        pytest.skip("symlink creation not permitted in this environment")
+
+    actions = [
+        install.Action(path="escaped-matching.md", mode="write", content="kit content", note="t"),
+        install.Action(path="escaped-drifted.md", mode="write", content="kit content", note="t"),
+    ]
+    capsys.readouterr()
+    tally = install.apply(actions, project)
+    out = capsys.readouterr().out
+
+    assert tally["skip (escapes)"] == 2
+    assert tally["unchanged"] == 0
+    assert "(unchanged)" not in out
+    assert "WARN" not in out
+    assert "skip   escaped-matching.md (resolves outside the project via a symlink" in out
+    assert "skip   escaped-drifted.md (resolves outside the project via a symlink" in out
+
+
+# Post-merge review of PR #36: a real symlink loop makes pathlib.Path.resolve(strict=False) raise
+# RuntimeError on Python 3.9-3.12 (dropped in 3.13, confirmed empirically: 3.12 raises, 3.13 and
+# this repo's own 3.14 do not), and nothing in _is_contained or main() caught it, so a symlink
+# loop at any plan-derived path crashed --dry-run, install, --verify, and --remove with a raw
+# traceback on 4 of this repo's declared-supported versions. Mocking resolve() to raise the same
+# exception type tests the actual exception-handling branch regardless of which Python version
+# runs this suite.
+
+def test_is_contained_treats_a_symlink_loop_as_not_contained(tmp_path, monkeypatch):
+    real_resolve = pathlib.Path.resolve
+    loop = tmp_path / "loop"
+
+    def fake_resolve(self, *args, **kwargs):
+        if self == loop:
+            raise RuntimeError(f"Symlink loop from '{self}'")
+        return real_resolve(self, *args, **kwargs)
+
+    monkeypatch.setattr(pathlib.Path, "resolve", fake_resolve)
+    # unresolvable fails closed, the same as an ordinary escape: never treated as contained
+    assert install._is_contained(tmp_path, "loop") is False
+
+
+def test_apply_skips_a_symlink_loop_instead_of_crashing(tmp_path, monkeypatch, capsys):
+    real_resolve = pathlib.Path.resolve
+    loop = tmp_path / "loop.md"
+
+    def fake_resolve(self, *args, **kwargs):
+        if self == loop:
+            raise RuntimeError(f"Symlink loop from '{self}'")
+        return real_resolve(self, *args, **kwargs)
+
+    monkeypatch.setattr(pathlib.Path, "resolve", fake_resolve)
+    action = install.Action(path="loop.md", mode="write", content="hello", note="test")
+    capsys.readouterr()
+    tally = install.apply([action], tmp_path)
+    out = capsys.readouterr().out
+
+    assert tally["skip (escapes)"] == 1
+    assert "loop.md (resolves outside the project via a symlink; left alone)" in out

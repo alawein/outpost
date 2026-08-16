@@ -120,6 +120,21 @@ Format follows Keep a Changelog (https://keepachangelog.com). The kit uses SemVe
 
 ### Security
 
+- A dangling symlink pre-planted at a plan-derived install path (e.g. `CLAUDE.md`, a `SKILL.md`
+  path) could crash `install.py` outright, or on a platform where the underlying write call follows
+  a dangling symlink rather than raising, silently write kit content to a location outside the
+  project. Fixed: the same containment check ADR-0028 proved for deletes now guards every
+  install-time write too. A related, previously open question (whether a plan-derived delete path
+  could be redirected the same way) first looked closed by an existing byte-match guard alone, but
+  needed more: a project's kit-managed directory symlinked to a location shared with another
+  project, a real non-malicious setup, could still have `--remove`/`--prune` delete a file at that
+  shared location, because the installer's own manifest falsely recorded the skipped path as
+  kit-created. Fixed for real: the manifest no longer claims ownership of a path install skipped for
+  escaping the project, and `--remove`, `--prune`, and the manifest's own writes each check
+  containment independently, so a stale ownership record from before a symlink was planted can no
+  longer authorize a delete either. Install, `--dry-run`, and `--verify` now also say plainly when a
+  path was left alone for escaping the project, instead of reporting success, a false preview, or
+  unexplained drift. ADR-0030.
 - `install.py --prune`/`--remove` could be steered by a crafted `.outpost/manifest.json` plus a
   filesystem symlink to delete a file outside the project root, a variant of the exact threat
   model the v0.2.0 fix closed, through a mechanism (symlink indirection) that fix never checked.

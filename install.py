@@ -107,10 +107,18 @@ def _is_contained(project_root: pathlib.Path, path: str) -> bool:
     """True if project_root / path resolves, following any symlink, to somewhere still inside
     project_root. A manifest 'files' key is validated only as a string (no absolute path, no ..,
     no backslash or colon); a symlink already sitting in the project can still redirect a
-    clean-looking relative key outside the root once the filesystem actually resolves it. Anything
-    about to be treated as a kit-owned delete candidate from a manifest key must pass this first."""
+    clean-looking relative key outside the root once the filesystem actually resolves it. Used
+    before any delete or write this file performs on a project-relative path, so a pre-planted
+    symlink can redirect neither.
+
+    A real symlink loop makes resolve() raise RuntimeError on Python 3.9-3.12 (the behavior was
+    dropped in 3.13); an unresolvable path is never contained, so it fails closed the same way an
+    escaping ValueError already does, instead of crashing the install."""
     root = project_root.resolve()
-    target = (project_root / path).resolve()
+    try:
+        target = (project_root / path).resolve()
+    except (OSError, RuntimeError):
+        return False  # unresolvable (e.g. a symlink loop): never treat as contained
     try:
         target.relative_to(root)
         return True
@@ -271,21 +279,29 @@ def _check_manifest_names(manifest: dict, catalog_names) -> None:
 
 
 def _orphans(project_root: pathlib.Path, tool: str, select_set, terse: bool,
-             user_owned=frozenset()) -> list[str]:
-    """Kit-owned prompt files on disk that the manifest no longer selects. Narrowing an install
-    (`--only`/`--exclude` after a broader one) leaves the de-selected prompt files behind, since the
-    installer never deletes. The full plan minus the selected plan gives the de-selected prompt
-    paths; the ones that exist on disk are orphans, unless the manifest records them as the user's
-    pre-existing files. Empty when nothing was narrowed."""
+             user_owned=frozenset()) -> tuple[list[str], list[str]]:
+    """Kit-owned prompt files on disk that the manifest no longer selects, split into (extras,
+    escaped). Narrowing an install (`--only`/`--exclude` after a broader one) leaves the
+    de-selected prompt files behind, since the installer never deletes. The full plan minus the
+    selected plan gives the de-selected prompt paths; the ones that exist on disk are candidates,
+    unless the manifest records them as the user's pre-existing files. A candidate that resolves
+    outside the project root via a symlink (the same shared-dotfiles config apply()'s "skip
+    (escapes)" and verify()'s ESCAPED already defend) is never something the kit can tell a human
+    to delete: it is reported separately as escaped, not folded into extras, so --verify never
+    instructs removing a path outside this project. Both lists empty when nothing was narrowed."""
     if select_set is None:
-        return []  # full pack: nothing to de-select
+        return [], []  # full pack: nothing to de-select
     keep = {a.path for a in plan_for(tool, KIT_ROOT, project_root, terse=terse, select=select_set)}
     extras = []
+    escaped = []
     for a in plan_for(tool, KIT_ROOT, project_root, terse=terse, select=None):
         if (a.mode == "write" and a.path not in keep and a.path not in user_owned
                 and (project_root / a.path).exists()):
-            extras.append(a.path)
-    return extras
+            if _is_contained(project_root, a.path):
+                extras.append(a.path)
+            else:
+                escaped.append(a.path)
+    return extras, escaped
 
 
 def _retired_paths(project_root: pathlib.Path, tool: str, manifest: dict, terse: bool,
@@ -378,6 +394,9 @@ def prune_orphans(project_root: pathlib.Path, tools, manifest: dict, args_terse:
             if a.mode != "write" or a.path in keep:
                 continue
             target = project_root / a.path
+            if not _is_contained(project_root, a.path):
+                skipped.append(a.path)  # resolves outside the project via a symlink; never deleted
+                continue
             if not target.exists():
                 continue
             rec = files.get(a.path) if files is not None else None
@@ -463,6 +482,9 @@ def remove_for_tools(project_root: pathlib.Path, tools, manifest: dict, args_ter
             if a.mode not in ("write", "create"):
                 continue  # the settings merge is un-installed by unmerge_kit_settings
             target = project_root / a.path
+            if not _is_contained(project_root, a.path):
+                skipped.append(a.path)  # resolves outside the project via a symlink; never deleted
+                continue
             if not target.exists():
                 continue
             rec = files.get(a.path) if files is not None else None
@@ -511,6 +533,9 @@ def unmerge_kit_settings(project_root: pathlib.Path, tools, manifest: dict, args
             if a.mode != "merge":
                 continue
             target = project_root / a.path
+            if not _is_contained(project_root, a.path):
+                results.append((a.path, "skipped"))
+                continue
             if not target.exists():
                 continue
             try:
@@ -608,6 +633,10 @@ def apply_stale_terse(project_root: pathlib.Path, stale) -> None:
         if op == "keep":
             print(f"  skip   {path} (edited terse style; left in place, remove it by hand)")
         elif op == "remove":
+            if not _is_contained(project_root, path):
+                print(f"warning: {path} resolves outside the project via a symlink; left alone",
+                      file=sys.stderr)
+                continue
             try:
                 target.unlink()
                 _remove_empty_parents(target, project_root)
@@ -616,6 +645,10 @@ def apply_stale_terse(project_root: pathlib.Path, stale) -> None:
             else:
                 print(f"  remove {path} (terse withdrawn by this install)")
         else:  # clear
+            if not _is_contained(project_root, path):
+                print(f"warning: {path} resolves outside the project via a symlink; left alone",
+                      file=sys.stderr)
+                continue
             try:
                 data = json.loads(target.read_text(encoding="utf-8"))
                 data.pop("outputStyle", None)
@@ -645,9 +678,13 @@ def apply(actions, project_root: pathlib.Path, protected=frozenset()) -> dict:
     write fails. `protected` paths are recorded as pre-existing user files: they are skipped with
     a named warning, never overwritten. Returns a tally of outcomes by status. Raises OSError if a
     write fails; the caller reports the partial state and exits non-zero."""
-    tally = {"create": 0, "update": 0, "skip (exists)": 0, "unchanged": 0}
+    tally = {"create": 0, "update": 0, "skip (exists)": 0, "skip (escapes)": 0, "unchanged": 0}
     for a in actions:
         target = project_root / a.path
+        if a.mode in ("write", "create", "merge") and not _is_contained(project_root, a.path):
+            print(f"  skip   {a.path} (resolves outside the project via a symlink; left alone)")
+            tally["skip (escapes)"] += 1
+            continue
         status = a.status(project_root)
         if a.mode == "write" and a.path in protected and target.exists():
             print(f"  skip   {a.path} (pre-existing file, not the kit's; left alone, "
@@ -677,37 +714,62 @@ def apply(actions, project_root: pathlib.Path, protected=frozenset()) -> dict:
 
 
 def render_plan(actions, project_root: pathlib.Path, protected=frozenset()) -> list[str]:
+    """The dry-run preview, one line per action. Mirrors apply()'s own decision order exactly (the
+    containment check first, ahead of status() and the protected/pre-existing check) so a dry-run
+    never shows [create] or [update] for a path apply() would actually skip for escaping the
+    project via a symlink; matches apply()'s "skip (escapes)" wording, the same small pattern used
+    at verify()'s ESCAPED status."""
     lines: list[str] = []
     for a in actions:
-        status = a.status(project_root)
-        if a.mode == "write" and a.path in protected and (project_root / a.path).exists():
-            status = "skip (exists)"  # a pre-existing user file: apply will not touch it
+        if a.mode in ("write", "create", "merge") and not _is_contained(project_root, a.path):
+            status = "skip (escapes)"
+        else:
+            status = a.status(project_root)
+            if a.mode == "write" and a.path in protected and (project_root / a.path).exists():
+                status = "skip (exists)"  # a pre-existing user file: apply will not touch it
         lines.append(f"  [{status:14}] {a.mode:6} {a.path}  - {a.note}")
     return lines
 
 
-def verify(actions, project_root: pathlib.Path, user_owned=frozenset()) -> tuple[bool, list[str]]:
+def verify(actions, project_root: pathlib.Path,
+          user_owned=frozenset()) -> tuple[bool, list[str], list[str], bool]:
     """Check an existing install against the plan without writing. A kit-owned action (write or
     merge) that is missing or content-drifted is a failure; a user-owned target (a create action,
-    or a path the manifest records as pre-existing) is fine present or absent. Returns
-    (in_sync, report_lines)."""
+    or a path the manifest records as pre-existing) is fine present or absent. A kit-owned action
+    whose target resolves outside the project via a symlink is a failure too, but a distinct one:
+    apply() already refuses to write an escaping path, so re-running install cannot restore it the
+    way it restores a MISSING or DRIFTED path. The caller needs that distinction to avoid telling
+    a symlink escape to re-run install when nothing about re-running install touches it. Returns
+    (in_sync, report_lines, escaped_paths, missing_or_drifted): escaped_paths are the action paths
+    reported ESCAPED above, and missing_or_drifted is True when at least one action is genuinely
+    MISSING or DRIFTED, i.e. something a re-install actually fixes."""
     ok = True
+    missing_or_drifted = False
     lines: list[str] = []
+    escaped_paths: list[str] = []
     for a in actions:
         status = a.status(project_root)
         if a.mode == "create" or (a.mode == "write" and a.path in user_owned):
             where = "present" if (project_root / a.path).exists() else "absent (optional)"
             lines.append(f"  ok      {a.path} ({where})")
             continue
+        if a.mode in ("write", "create", "merge") and not _is_contained(project_root, a.path):
+            ok = False
+            escaped_paths.append(a.path)
+            lines.append(f"  ESCAPED {a.path} (resolves outside the project via a symlink; "
+                         "remove or fix the symlink, re-running install will not change this)")
+            continue
         if status == "unchanged":
             lines.append(f"  ok      {a.path}")
         elif status == "create":
             ok = False
+            missing_or_drifted = True
             lines.append(f"  MISSING {a.path}")
         else:  # update | overwrite
             ok = False
+            missing_or_drifted = True
             lines.append(f"  DRIFTED {a.path}")
-    return ok, lines
+    return ok, lines, escaped_paths, missing_or_drifted
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -768,6 +830,7 @@ def main(argv: list[str] | None = None) -> int:
             return 1
         actions = []
         orphans: list[str] = []
+        escaped_orphans: list[str] = []
         leftovers: list[str] = []
         user_owned = _user_owned_paths(manifest, _tools_for(args.tool))
         try:
@@ -775,7 +838,9 @@ def main(argv: list[str] | None = None) -> int:
                 sel = _selection_for(manifest, t)
                 terse = _terse_for(manifest, t, args.terse)
                 actions.extend(plan_for(t, KIT_ROOT, project_root, terse=terse, select=sel))
-                orphans.extend(_orphans(project_root, t, sel, terse, user_owned))
+                extra, escaped = _orphans(project_root, t, sel, terse, user_owned)
+                orphans.extend(extra)
+                escaped_orphans.extend(escaped)
                 # a plan-derived check cannot see a kit-created file whose prompt no longer ships
                 # to this host; the manifest's file records surface it as a leftover
                 leftovers.extend(_retired_paths(project_root, t, manifest, terse))
@@ -783,24 +848,38 @@ def main(argv: list[str] | None = None) -> int:
             # a corrupt config (the Claude settings file) can't be planned against; say so cleanly
             print(f"error: {e}", file=sys.stderr)
             return 1
-        ok, lines = verify(actions, project_root, user_owned)
+        ok, lines, escaped_actions, missing_or_drifted = verify(actions, project_root, user_owned)
         for line in lines:
             print(line)
         for path in orphans:
             print(f"  EXTRA   {path} (installed but not in the manifest; re-install or remove)")
+        for path in escaped_orphans:
+            print(f"  ESCAPED {path} (looks orphaned, but resolves outside the project via a "
+                  "symlink; remove or fix the symlink, not reported as an extra to delete)")
         for path in leftovers:
             print(f"  LEFTOVER {path} (kit-installed, but the prompt no longer ships to this "
                   "host; --prune removes it)")
         # Terse state left behind after the recorded install stopped being terse is drift too
         # (F32): a stale style file or outputStyle key would silently keep changing the agent.
-        # An edited style file ('keep') is the user's and is not drift.
+        # An edited style file ('keep') is the user's and is not drift. A remove/clear op whose
+        # path resolves outside the project via a symlink is split out from the rest, the same
+        # way _orphans() and verify() already split an escape from an ordinary finding:
+        # apply_stale_terse() genuinely cannot withdraw an escaping path (it has its own
+        # containment check, same as the dry-run preview), so telling the user re-running install
+        # will clean it would be the identical false promise those two guards already exist to
+        # avoid making.
         stale = []
+        escaped_stale = []
         claude_entry = manifest.get("tools", {}).get("claude")
         if ("claude" in _tools_for(args.tool) and claude_entry
                 and not _terse_for(manifest, "claude", args.terse)):
-            stale = [(op, p) for op, p
-                     in stale_terse_state(project_root, _kit_terse_proof(claude_entry))
-                     if op != "keep"]
+            for op, p in stale_terse_state(project_root, _kit_terse_proof(claude_entry)):
+                if op == "keep":
+                    continue
+                if _is_contained(project_root, p):
+                    stale.append((op, p))
+                else:
+                    escaped_stale.append((op, p))
         for op, path in stale:
             if op == "clear":
                 print(f"  DRIFTED {path} (kit-set outputStyle key lingers after terse was "
@@ -808,27 +887,58 @@ def main(argv: list[str] | None = None) -> int:
             else:
                 print(f"  DRIFTED {path} (stale terse state from an earlier terse install; "
                       "re-install to clean it)")
+        for op, path in escaped_stale:
+            if op == "clear":
+                print(f"  ESCAPED {path} (kit-set outputStyle key lingers, but resolves outside "
+                      "the project via a symlink; remove or fix the symlink, re-running install "
+                      "will not change this)")
+            else:
+                print(f"  ESCAPED {path} (stale terse state from an earlier terse install, but "
+                      "resolves outside the project via a symlink; remove or fix the symlink, "
+                      "re-running install will not change this)")
         # A stale version stamp is not file drift, so it never changes the verdict: print it as a
         # note after, whether the files are in sync or not.
         note = _version_note(manifest, cat.version)
         # An orphan is drift the other way: a kit-owned prompt the recorded selection excludes is
         # still on disk. verify is a gate, so extras fail it just like a missing or modified file.
-        if ok and not orphans and not stale and not leftovers:
+        if (ok and not orphans and not stale and not leftovers and not escaped_orphans
+                and not escaped_stale):
             print("in sync (kit files present and unmodified)")
             if note:
                 print(note)
             return 0
-        if not ok:
+        if missing_or_drifted:
             print("DRIFT: re-run install to restore the kit files")
+        if escaped_actions:
+            # Distinct from the message above on purpose: verify()'s own per-path ESCAPED line
+            # already says re-running install will not change this, so the summary must not
+            # contradict it by folding an escape into the generic re-run-install drift line.
+            print(f"DRIFT: {len(escaped_actions)} kit-owned path(s) resolve outside the project "
+                  "via a symlink; remove or fix the symlink, re-running install will not change "
+                  "this")
         if orphans:
             print(f"DRIFT: {len(orphans)} kit-owned prompt file(s) on disk are not in the manifest; "
                   "re-install the full pack or remove them")
+        if escaped_orphans:
+            print(f"DRIFT: {len(escaped_orphans)} path(s) that look orphaned resolve outside the "
+                  "project via a symlink; remove or fix the symlink")
         if leftovers:
             print(f"DRIFT: {len(leftovers)} kit-installed file(s) belong to a prompt that no "
                   "longer ships to this host; run --prune to remove them")
         if stale:
             print("DRIFT: stale terse state left by an earlier terse install; re-run install "
                   "to clean it")
+        if escaped_stale:
+            # Same reasoning as the escaped_actions line above. This can double-count a path
+            # escaped_actions already covers (settings.json is both a kit-owned merge action and
+            # separately inspected here for its outputStyle key), but never the reverse: the
+            # style file's stale state is invisible to the ordinary actions loop whenever terse
+            # itself is not selected, since a non-terse plan never puts it there to check. Both
+            # lines stay: each names what its own check actually found, and neither tells the
+            # user re-running install fixes a symlink escape.
+            print(f"DRIFT: {len(escaped_stale)} stale terse path(s) resolve outside the project "
+                  "via a symlink; remove or fix the symlink, re-running install will not change "
+                  "this")
         if note:
             print(note)
         return 1
@@ -852,10 +962,14 @@ def main(argv: list[str] | None = None) -> int:
             # persist the ended ownership claims: prune_orphans dropped the file records for both
             # retired files and de-selected orphans, so the manifest must be rewritten either way
             mpath = _existing_manifest_path(project_root) or (project_root / MANIFEST_PATH)
-            try:
-                mpath.write_bytes(manifest_dumps(manifest).encode("utf-8"))
-            except OSError as e:
-                print(f"warning: could not update the manifest: {e}", file=sys.stderr)
+            if not _is_contained(project_root, MANIFEST_PATH):
+                print("warning: .outpost/manifest.json resolves outside the project via a "
+                      "symlink; manifest not updated", file=sys.stderr)
+            else:
+                try:
+                    mpath.write_bytes(manifest_dumps(manifest).encode("utf-8"))
+                except OSError as e:
+                    print(f"warning: could not update the manifest: {e}", file=sys.stderr)
         for p in removed:
             print(f"  remove {p}")
         for p in retired:
@@ -890,15 +1004,19 @@ def main(argv: list[str] | None = None) -> int:
             for t in tools:
                 manifest = drop_tool(manifest, t)
             mpath = project_root / MANIFEST_PATH
-            try:
-                if manifest.get("tools"):
-                    mpath.parent.mkdir(parents=True, exist_ok=True)
-                    mpath.write_bytes(manifest_dumps(manifest).encode("utf-8"))
-                elif mpath.exists():
-                    mpath.unlink()
-                    _remove_empty_parents(mpath, project_root)
-            except OSError as e:
-                print(f"warning: could not update the manifest: {e}", file=sys.stderr)
+            if not _is_contained(project_root, MANIFEST_PATH):
+                print("warning: .outpost/manifest.json resolves outside the project via a "
+                      "symlink; manifest not updated", file=sys.stderr)
+            else:
+                try:
+                    if manifest.get("tools"):
+                        mpath.parent.mkdir(parents=True, exist_ok=True)
+                        mpath.write_bytes(manifest_dumps(manifest).encode("utf-8"))
+                    elif mpath.exists():
+                        mpath.unlink()
+                        _remove_empty_parents(mpath, project_root)
+                except OSError as e:
+                    print(f"warning: could not update the manifest: {e}", file=sys.stderr)
         for p in removed:
             print(f"  remove {p}")
         for p in retired:
@@ -939,11 +1057,26 @@ def main(argv: list[str] | None = None) -> int:
         prev_manifest = _read_manifest(project_root)
         records_by_tool = {t: _file_records(project_root, t, args.terse, select_set, prev_manifest)
                            for t in _tools_for(args.tool)}
+        # A path apply() will actually skip (it resolves outside the project via a symlink) must
+        # carry no ownership record at all: a false "the kit created this" claim is what lets a
+        # later --remove or --prune delete a file this install never touched (the F1/F3 finding
+        # from ADR-0030's own risk-review dogfood run). Every consuming guard already treats "no
+        # record" as "no proof of ownership, leave it alone", so removing the record is sufficient;
+        # no new guard vocabulary is needed downstream.
+        for t in _tools_for(args.tool):
+            for a in plan_for(t, KIT_ROOT, project_root, terse=args.terse, select=select_set):
+                if a.mode in ("write", "create", "merge") and not _is_contained(project_root, a.path):
+                    records_by_tool[t].pop(a.path, None)
         # A completed withdrawal (this run deletes the kit's own style file) ends the kit's
         # ownership claim on that path, so it never seizes a later hand-adopted style with the
-        # kit's own bytes and the user's own key (the F32 residual, PR 101).
-        if ("remove", TERSE_STYLE_PATH) in _withdrawn_terse(project_root, prev_manifest, args.tool,
-                                                            args.terse):
+        # kit's own bytes and the user's own key (the F32 residual, PR 101). Gated on containment,
+        # same as apply_stale_terse's own remove branch: when the style path escapes via a
+        # symlink, apply_stale_terse refuses to delete it, so the ownership claim must survive
+        # too, or --verify silently stops mentioning a still-active terse style at the escaped
+        # location instead of reporting it ESCAPED.
+        if (("remove", TERSE_STYLE_PATH) in _withdrawn_terse(project_root, prev_manifest, args.tool,
+                                                              args.terse)
+                and _is_contained(project_root, TERSE_STYLE_PATH)):
             records_by_tool.get("claude", {}).pop(TERSE_STYLE_PATH, None)
         actions.append(manifest_action(prev_manifest, args.tool, select_label, select_set, cat,
                                        args.terse, records_by_tool))
@@ -957,7 +1090,15 @@ def main(argv: list[str] | None = None) -> int:
         print(f"dry-run: install '{args.tool}' into {project_root} (no files written)")
         for line in render_plan(actions, project_root, protected):
             print(line)
+        # Mirror apply_stale_terse()'s containment check: a "remove"/"clear" op whose path
+        # escapes the project via a symlink is left alone, not previewed as an unconditional
+        # write ("keep" never writes, so it needs no check, matching apply_stale_terse()).
         for op, path in _withdrawn_terse(project_root, prev_manifest, args.tool, args.terse):
+            if op in ("remove", "clear") and not _is_contained(project_root, path):
+                status = "skip (escapes)"
+                print(f"  [{status:14}] clean  {path}  - resolves outside the project via a "
+                      "symlink; left alone")
+                continue
             verb = {"remove": "remove stale terse style", "clear": "clear stale outputStyle",
                     "keep": "keep edited terse style"}[op]
             print(f"  [{op:14}] clean  {path}  - {verb} (terse withdrawn by this install)")
@@ -973,8 +1114,11 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     apply_stale_terse(project_root,
                       _withdrawn_terse(project_root, prev_manifest, args.tool, args.terse))
+    escapes = tally.get("skip (escapes)", 0)
+    escape_note = (f", {escapes} left alone (escaping the project via a symlink)"
+                   if escapes else "")
     print(f"done. {tally['create']} created, {tally['update']} updated, "
-          f"{tally['skip (exists)']} skipped, {tally['unchanged']} unchanged. "
+          f"{tally['skip (exists)']} skipped, {tally['unchanged']} unchanged{escape_note}. "
           "restart your agent so it picks up the new files.")
     return 0
 
