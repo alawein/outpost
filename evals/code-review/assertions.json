@@ -1,5 +1,5 @@
 [
-  {"type": "file_not_modified", "path": "checkout.py"},
+  {"type": "workspace_unchanged"},
   {"type": "tool_not_used", "names": ["Edit", "Write", "MultiEdit"]},
-  {"type": "text_contains", "value": "pct"}
+  {"type": "text_contains_any", "values": ["bound", "negative", "range check", "out of range", "out-of-range"]}
 ]

@@ -191,6 +191,79 @@ def test_text_contains_is_case_sensitive():
     assert ok is False
 
 
+def test_text_contains_any_passes_when_one_value_matches():
+    transcript = {"result": "No bound check on the input.", "tool_calls": []}
+    ok, reason = evaluate_assertion(
+        {"type": "text_contains_any", "values": ["bound", "negative", "range"]},
+        transcript, {}, {},
+    )
+    assert ok is True
+    assert "bound" in reason
+
+
+def test_text_contains_any_fails_when_no_value_matches():
+    transcript = {"result": "Looks fine, no issues found.", "tool_calls": []}
+    ok, reason = evaluate_assertion(
+        {"type": "text_contains_any", "values": ["bound", "negative", "range"]},
+        transcript, {}, {},
+    )
+    assert ok is False
+
+
+def test_text_contains_any_missing_values_field_fails_loudly():
+    ok, reason = evaluate_assertion(
+        {"type": "text_contains_any"}, EMPTY_TRANSCRIPT, {}, {},
+    )
+    assert ok is False
+    assert "values" in reason
+
+
+def test_text_contains_any_empty_values_list_fails_loudly():
+    ok, reason = evaluate_assertion(
+        {"type": "text_contains_any", "values": []}, EMPTY_TRANSCRIPT, {}, {},
+    )
+    assert ok is False
+
+
+def test_workspace_unchanged_passes_when_before_equals_after():
+    before = {"a.py": "hash1", "sub/b.py": "hash2"}
+    after = {"a.py": "hash1", "sub/b.py": "hash2"}
+    ok, reason = evaluate_assertion(
+        {"type": "workspace_unchanged"}, EMPTY_TRANSCRIPT, before, after,
+    )
+    assert ok is True
+
+
+def test_workspace_unchanged_fails_on_a_new_file():
+    before = {"a.py": "hash1"}
+    after = {"a.py": "hash1", "new.py": "hash3"}
+    ok, reason = evaluate_assertion(
+        {"type": "workspace_unchanged"}, EMPTY_TRANSCRIPT, before, after,
+    )
+    assert ok is False
+    assert "new.py" in reason
+
+
+def test_workspace_unchanged_fails_on_a_deleted_file():
+    before = {"a.py": "hash1", "gone.py": "hash2"}
+    after = {"a.py": "hash1"}
+    ok, reason = evaluate_assertion(
+        {"type": "workspace_unchanged"}, EMPTY_TRANSCRIPT, before, after,
+    )
+    assert ok is False
+    assert "gone.py" in reason
+
+
+def test_workspace_unchanged_fails_on_a_modified_file():
+    before = {"a.py": "hash1"}
+    after = {"a.py": "hash1-changed"}
+    ok, reason = evaluate_assertion(
+        {"type": "workspace_unchanged"}, EMPTY_TRANSCRIPT, before, after,
+    )
+    assert ok is False
+    assert "a.py" in reason
+
+
 def test_unknown_assertion_type_fails_loudly_not_silently():
     ok, reason = evaluate_assertion(
         {"type": "nonexistent_type"}, EMPTY_TRANSCRIPT, {}, {},

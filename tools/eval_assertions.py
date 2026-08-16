@@ -15,6 +15,11 @@ Assertion types:
   tool_not_used     {"names": [str, ...]} - none of the named tools may appear in tool_calls.
   text_contains     {"value": str}        - the transcript's final result text must contain
                                             value as a case-sensitive substring.
+  text_contains_any {"values": [str, ...]}  - the transcript's final result text must contain at
+                                              least one of values as a case-sensitive substring.
+  workspace_unchanged {}                     - every file's hash in `after` must equal `before`
+                                              with no paths added or removed (the whole tree, not
+                                              one named path).
 """
 from __future__ import annotations
 
@@ -72,6 +77,22 @@ def _file_created(assertion: dict, before: dict, after: dict) -> tuple[bool, str
     return False, f"no new file matching {pattern!r} was created"
 
 
+def _workspace_unchanged(assertion: dict, before: dict, after: dict) -> tuple[bool, str]:
+    if before == after:
+        return True, "workspace unchanged (no files created, deleted, or modified)"
+    added = sorted(set(after) - set(before))
+    removed = sorted(set(before) - set(after))
+    changed = sorted(p for p in before.keys() & after.keys() if before[p] != after[p])
+    parts = []
+    if added:
+        parts.append(f"created: {', '.join(added)}")
+    if removed:
+        parts.append(f"deleted: {', '.join(removed)}")
+    if changed:
+        parts.append(f"modified: {', '.join(changed)}")
+    return False, "; ".join(parts)
+
+
 def _tool_not_used(assertion: dict, transcript: dict) -> tuple[bool, str]:
     names = assertion.get("names")
     if names is None:
@@ -93,12 +114,25 @@ def _text_contains(assertion: dict, transcript: dict) -> tuple[bool, str]:
     return False, f"{value!r} not found in result text"
 
 
+def _text_contains_any(assertion: dict, transcript: dict) -> tuple[bool, str]:
+    values = assertion.get("values")
+    if not values:
+        return False, "text_contains_any assertion missing required non-empty 'values' field"
+    text = transcript.get("result", "")
+    matched = [v for v in values if v in text]
+    if matched:
+        return True, f"found: {', '.join(repr(v) for v in matched)}"
+    return False, f"none of {values!r} found in result text"
+
+
 _HANDLERS = {
     "file_not_modified": lambda a, t, b, af: _file_not_modified(a, b, af),
     "file_modified": lambda a, t, b, af: _file_modified(a, b, af),
     "file_created": lambda a, t, b, af: _file_created(a, b, af),
     "tool_not_used": lambda a, t, b, af: _tool_not_used(a, t),
     "text_contains": lambda a, t, b, af: _text_contains(a, t),
+    "text_contains_any": lambda a, t, b, af: _text_contains_any(a, t),
+    "workspace_unchanged": lambda a, t, b, af: _workspace_unchanged(a, b, af),
 }
 
 
