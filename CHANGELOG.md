@@ -14,6 +14,10 @@ Format follows Keep a Changelog (https://keepachangelog.com). The kit uses SemVe
 
 ### Added
 
+- A 9th piloted behavioral eval, `evals/code-review/`, covering the read-only `code-review`
+  prompt: asserts the whole workspace was left unchanged, no edit tool was called, and the
+  review's transcript names the actual defect (a percentage-discount helper with no bounds check
+  on `pct`, and no test file), not just the parameter's own name.
 - `cross-doc-check`, comparing two named docs that are each supposed to state the same policy and
   flagging a real contradiction or an unexplained scope gap, never a wording difference. ADR-0029.
 - `risk-review`, a second-gear review for a change to install/adapter write paths or anything
@@ -36,10 +40,10 @@ Format follows Keep a Changelog (https://keepachangelog.com). The kit uses SemVe
   modified, no edit tool was called, and all three verification buckets (confirmed, doubtful,
   wrong) appear in the transcript.
 - A lightweight behavioral eval harness (`tools/run_evals.py`, `evals/`) for the first 5 pilot core
-  prompts (3 more piloted since, see the bullets above),
+  prompts (4 more piloted since, see the bullets above),
   running each through a real `claude -p` call against a seeded fixture and checking mechanical
-  assertions (file created/unmodified, a tool not used, text contains a value). Opt-in, not wired
-  into `validate.py` or CI. ADR-0026.
+  assertions (file created/unmodified, a tool not used, text contains a value, or the whole
+  workspace unchanged). Opt-in, not wired into `validate.py` or CI. ADR-0026.
 - A house-voice rule in `docs/writing-standard.md`: cite evidence a reader can check, never a
   gitignored scratch path as if it were a verifiable source. Naming the scratch convention itself
   stays fine; citing its content as proof does not.

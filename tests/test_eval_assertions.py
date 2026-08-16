@@ -191,6 +191,94 @@ def test_text_contains_is_case_sensitive():
     assert ok is False
 
 
+def test_text_contains_any_passes_when_one_value_matches():
+    transcript = {"result": "No bound check on the input.", "tool_calls": []}
+    ok, reason = evaluate_assertion(
+        {"type": "text_contains_any", "values": ["bound", "negative", "range"]},
+        transcript, {}, {},
+    )
+    assert ok is True
+    assert "bound" in reason
+
+
+def test_text_contains_any_fails_when_no_value_matches():
+    transcript = {"result": "Looks fine, no issues found.", "tool_calls": []}
+    ok, reason = evaluate_assertion(
+        {"type": "text_contains_any", "values": ["bound", "negative", "range"]},
+        transcript, {}, {},
+    )
+    assert ok is False
+
+
+def test_text_contains_any_missing_values_field_fails_loudly():
+    ok, reason = evaluate_assertion(
+        {"type": "text_contains_any"}, EMPTY_TRANSCRIPT, {}, {},
+    )
+    assert ok is False
+    assert "values" in reason
+
+
+def test_text_contains_any_empty_values_list_fails_loudly():
+    ok, reason = evaluate_assertion(
+        {"type": "text_contains_any", "values": []}, EMPTY_TRANSCRIPT, {}, {},
+    )
+    assert ok is False
+
+
+def test_text_contains_any_bare_string_values_fails_loudly():
+    """Regression test: {"values": "bound"} (the natural typo for ["bound"]) must not silently
+    pass. Before the fix, `not values` was False (a non-empty string is truthy) so the guard let
+    it through, then `for v in values` iterated the string letter by letter ('b', 'o', 'u', 'n',
+    'd'), so a single matched letter (e.g. 'o' or 'n', both common in English) made this pass on
+    almost any result text -- the same "assertion that can't fail" shape already paid for once
+    with tool_not_used (docs/dogfooding.md)."""
+    transcript = {"result": "Overall this looks fine. Nothing to report.", "tool_calls": []}
+    ok, reason = evaluate_assertion(
+        {"type": "text_contains_any", "values": "bound"}, transcript, {}, {},
+    )
+    assert ok is False
+    assert "values" in reason
+
+
+def test_workspace_unchanged_passes_when_before_equals_after():
+    before = {"a.py": "hash1", "sub/b.py": "hash2"}
+    after = {"a.py": "hash1", "sub/b.py": "hash2"}
+    ok, reason = evaluate_assertion(
+        {"type": "workspace_unchanged"}, EMPTY_TRANSCRIPT, before, after,
+    )
+    assert ok is True
+
+
+def test_workspace_unchanged_fails_on_a_new_file():
+    before = {"a.py": "hash1"}
+    after = {"a.py": "hash1", "new.py": "hash3"}
+    ok, reason = evaluate_assertion(
+        {"type": "workspace_unchanged"}, EMPTY_TRANSCRIPT, before, after,
+    )
+    assert ok is False
+    assert "new.py" in reason
+
+
+def test_workspace_unchanged_fails_on_a_deleted_file():
+    before = {"a.py": "hash1", "gone.py": "hash2"}
+    after = {"a.py": "hash1"}
+    ok, reason = evaluate_assertion(
+        {"type": "workspace_unchanged"}, EMPTY_TRANSCRIPT, before, after,
+    )
+    assert ok is False
+    assert "gone.py" in reason
+
+
+def test_workspace_unchanged_fails_on_a_modified_file():
+    before = {"a.py": "hash1"}
+    after = {"a.py": "hash1-changed"}
+    ok, reason = evaluate_assertion(
+        {"type": "workspace_unchanged"}, EMPTY_TRANSCRIPT, before, after,
+    )
+    assert ok is False
+    assert "a.py" in reason
+
+
 def test_unknown_assertion_type_fails_loudly_not_silently():
     ok, reason = evaluate_assertion(
         {"type": "nonexistent_type"}, EMPTY_TRANSCRIPT, {}, {},
@@ -232,6 +320,22 @@ def test_file_created_missing_path_and_path_glob_fails_without_raising():
 def test_tool_not_used_missing_names_fails_without_raising():
     ok, reason = evaluate_assertion(
         {"type": "tool_not_used"}, EMPTY_TRANSCRIPT, {}, {},
+    )
+    assert ok is False
+    assert "names" in reason
+
+
+def test_tool_not_used_bare_string_names_fails_loudly():
+    """Regression test: {"names": "Edit"} (the natural typo for ["Edit"]) must not silently pass.
+    Before the fix, `names is None` didn't catch a truthy bare string, so `set(names)` produced
+    {'E', 'd', 'i', 't'}: single characters, none of which any real multi-character tool name can
+    ever equal. That makes the assertion a permanent no-op: it reports "none of the forbidden
+    tools were used" even when Edit genuinely ran, exactly like this test's own transcript. The
+    same guard shape already failed this way once for text_contains_any (see that test), so
+    tool_not_used gets the identical fix and coverage."""
+    transcript = {"result": "ok", "tool_calls": [{"name": "Edit"}]}
+    ok, reason = evaluate_assertion(
+        {"type": "tool_not_used", "names": "Edit"}, transcript, {}, {},
     )
     assert ok is False
     assert "names" in reason

@@ -1,0 +1,4 @@
+Use the code-review skill on this change to checkout.py. Intent: add a percentage discount
+helper, apply_discount(price, pct), for the checkout flow, called right before the total is
+charged. The function was just added; checkout.py's current content is the diff under review (no
+prior version, no other file references it yet, and there is no test file for it).
