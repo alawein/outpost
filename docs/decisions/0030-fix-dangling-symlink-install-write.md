@@ -195,14 +195,21 @@ real, non-malicious setup, is now handled correctly end to end: install skips wr
 the manifest records no false ownership for the skipped path, and a later `--remove` or `--prune`
 cannot delete anything at the shared location, even when an older, now-stale ownership record from
 before the symlink was planted would otherwise have survived a narrower reinstall along the way.
-`_is_contained` is now checked at 15 call sites across the file: the 3 original write guards, 5
+`_is_contained` is now checked at 16 call sites across the file: the 3 original write guards, 5
 more added by this revision (4 defense-in-depth sites plus the fifth site found during its own
 review), `_retired_paths` (ADR-0028), the reporting-only checks in `verify()` and `main()`'s own
 record correction, and 4 more from three later rounds holding dry-run, orphan, and `--verify`
 reporting to the same standard: `_orphans()`'s escaped split and `render_plan()`'s dry-run check,
 then `main()`'s own separate dry-run preview for stale-terse withdrawal (a second code path
 `render_plan()` does not reach), then that same stale-terse gap in `main()`'s `--verify` branch,
-which `verify()` itself does not reach either.
+which `verify()` itself does not reach either. A fifth round, a fresh independent review run
+against the finished branch before merge, added one more site: the terse-withdrawal manifest-
+record pop was the last consumer still missing the check, gated the same way as its siblings. That
+same round also found `_is_contained`'s own `resolve()` call let a genuine symlink loop's
+`RuntimeError` escape uncaught on Python 3.9 through 3.12 (the pathlib behavior was removed in
+3.13, so this repository's default Python, and four prior review rounds, never saw it); every
+guarded mode crashed on a loop instead of reporting an ordinary escape. Fixed by catching it
+alongside the existing `OSError` case, without adding a new call site.
 
 An install or `--verify` run now says plainly when a path was left alone for escaping the project,
 instead of reporting success or unexplained drift; a user-owned symlinked dotfile is unaffected by
@@ -214,7 +221,9 @@ at four more surfaces, adding 9 more tests (4 for `_orphans()`'s escaped split a
 `verify()`'s own summary split between an escaping action and a genuinely fixable one, 2 for
 `main()`'s `--verify` branch making that same split for stale-terse withdrawal state), plus one
 more test from a follow-up pinning that same `--verify` branch's in-sync gate clause with its own
-dedicated coverage (the clause had shipped with none): 148 tests total as of this fix. Two of this revision's own new tests initially shared the same
+dedicated coverage (the clause had shipped with none), plus a fifth round's 3 tests (2 for the
+symlink-loop `RuntimeError` fix, 1 for gating the terse-withdrawal record pop): 151 tests total as
+of this fix. Two of this revision's own new tests initially shared the same
 Windows-only path-separator blind spot as the rewritten one, caught and fixed before this record
 was written, not after.
 
