@@ -121,7 +121,8 @@ def run_one_eval(name: str, evals_dir: pathlib.Path, repo_root: pathlib.Path, ti
         proc = subprocess.run(
             ["claude", "-p", task_text, "--output-format", "stream-json", "--verbose",
              "--permission-mode", "acceptEdits"],
-            cwd=str(tmp), capture_output=True, text=True, encoding="utf-8", timeout=timeout,
+            cwd=str(tmp), capture_output=True, text=True, encoding="utf-8", errors="replace",
+            timeout=timeout,
         )
     except subprocess.TimeoutExpired:
         return {"name": name, "status": "error", "results": None,

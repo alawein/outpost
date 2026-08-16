@@ -172,6 +172,65 @@ def test_run_one_eval_decodes_claude_stdout_as_utf8(tmp_path, monkeypatch):
     assert captured.get("encoding") == "utf-8", captured
 
 
+def test_run_one_eval_survives_invalid_utf8_byte_in_claude_stdout(tmp_path, monkeypatch):
+    """Regression test: encoding="utf-8" (af79812) only narrows WHICH byte sequences crash
+    run_one_eval, it does not close the crash class. The curly quote in the test above is valid
+    UTF-8 that only cp1252 chokes on; a byte that is invalid UTF-8 under any codec state -- 0xFF,
+    which is never a legal lead or continuation byte -- reproduces the identical batch-halting
+    crash encoding="utf-8" alone was meant to fix, because subprocess.run's decode step still
+    raises on it. errors="replace" closes the crash class outright: any invalid byte becomes a
+    U+FFFD replacement character instead of raising, so proc.stdout is always a real string and
+    the eval can proceed to its own pass/fail decision instead of aborting the whole batch (see
+    run_evals.main's loop, which does not wrap this call in its own try/except).
+
+    Same monkeypatch pattern as test_run_one_eval_decodes_claude_stdout_as_utf8 above: redirect
+    only the "claude"-prefixed command to a stdlib substitute -- a real .py file invoked via
+    sys.executable as a list arg, never a shell or a -c string, so there is no argv-encoding
+    ambiguity -- while install.py runs for real against a real catalog prompt, so this exercises
+    run_one_eval's actual code path end to end. The invalid byte sits on its own line so it fails
+    parse_stream_json's per-line json.loads and is silently skipped there (already-tested
+    behavior); what this test proves is that the byte reaches that point at all, i.e. the decode
+    itself did not raise.
+    """
+    fake_claude = tmp_path / "fake_claude_invalid_utf8.py"
+    fake_claude.write_text(
+        'import sys\n'
+        'sys.stdout.buffer.write(b"\\xff\\n")\n'
+        'sys.stdout.buffer.write(b\'{"type": "result", "result": "eval completed"}\\n\')\n'
+        'sys.stdout.buffer.flush()\n',
+        encoding="utf-8",
+    )
+
+    real_subprocess_run = run_evals.subprocess.run
+
+    def fake_subprocess_run(cmd, *args, **kwargs):
+        if cmd[0] == "claude":
+            cmd = [sys.executable, str(fake_claude)]
+        return real_subprocess_run(cmd, *args, **kwargs)
+
+    monkeypatch.setattr(run_evals.subprocess, "run", fake_subprocess_run)
+
+    evals_dir = tmp_path / "evals"
+    eval_dir = evals_dir / "debt-log"
+    eval_dir.mkdir(parents=True)
+    (eval_dir / "task.txt").write_text(
+        "unused: fake_claude_invalid_utf8.py ignores this and always emits a fixed result line",
+        encoding="utf-8",
+    )
+    (eval_dir / "assertions.json").write_text(
+        json.dumps([{"type": "text_contains", "value": "eval completed"}]), encoding="utf-8",
+    )
+    (eval_dir / "fixture").mkdir()
+
+    # Must not raise: an invalid UTF-8 byte anywhere in claude's stdout must not crash
+    # run_one_eval or escape it uncaught. Before errors="replace", this call raises out of
+    # run_one_eval entirely (the try/except around it only catches subprocess.TimeoutExpired).
+    outcome = run_evals.run_one_eval("debt-log", evals_dir, ROOT, timeout=30)
+
+    assert outcome["status"] == "pass", outcome
+    assert outcome["results"][0][1] is True, outcome["results"]
+
+
 def test_parse_stream_json_single_tool_use():
     stdout = "\n".join([
         json.dumps({"type": "system", "subtype": "init"}),
