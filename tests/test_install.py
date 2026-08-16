@@ -1800,6 +1800,56 @@ def test_verify_summary_still_flags_reinstallable_stale_terse_alongside_an_escap
     assert any(ln.startswith("DRIFT:") and "stale terse path(s)" in ln for ln in lines)
 
 
+def test_verify_summary_does_not_claim_in_sync_over_an_escaped_stale_terse_style(
+        tmp_path, capsys):
+    # The in-sync gate's "and not escaped_stale" clause has no dedicated coverage: both escaped
+    # stale-terse tests above symlink settings.json itself, which also fails the ordinary
+    # verify() pass over the settings merge action, so `ok` is already False there and the gate
+    # is closed regardless of the clause. Escaping the style file's own directory instead keeps
+    # every ordinary action clean (a non-terse verify's plan never includes the style path at
+    # all, see kit/adapters/claude.py), so escaped_stale is the only thing keeping the gate
+    # closed. Without the clause, --verify prints an ESCAPED line for the style file and then, in
+    # the same breath, claims "in sync" and exits 0.
+    project = tmp_path / "project"
+    project.mkdir()
+    install.main(["--tool", "claude", "--project", str(project), "--terse"])
+
+    # A user replaces the local output-styles directory with a symlink to a location shared with
+    # another project (the same non-malicious shared-dotfiles setup as the ancestor-directory
+    # symlink tests above), empty at this point: the terse install's own style file goes with it.
+    styles_dir = project / ".claude" / "output-styles"
+    (styles_dir / "terse.md").unlink()
+    styles_dir.rmdir()
+    shared = tmp_path / "shared-output-styles"
+    shared.mkdir()
+    try:
+        styles_dir.symlink_to(shared, target_is_directory=True)
+    except OSError:
+        pytest.skip("symlink creation not permitted in this environment")
+
+    # A plain reinstall withdraws terse. The style file is not reachable through the (still
+    # empty) symlink target, so no remove op is queued for it and its manifest ownership record
+    # survives untouched; settings.json, not itself behind any symlink, has its outputStyle key
+    # cleared normally.
+    install.main(["--tool", "claude", "--project", str(project)])
+    settings = json.loads((project / ".claude" / "settings.json").read_text(encoding="utf-8"))
+    assert "outputStyle" not in settings
+
+    # The shared location later gains a real terse.md, as if a sibling project also using this
+    # kit with --terse installed into it: the survived ownership record now points at kit
+    # content again, but only reachable outside the project via the symlink.
+    (shared / "terse.md").write_text(install.TERSE_OUTPUT_STYLE, encoding="utf-8")
+    capsys.readouterr()
+
+    rc = install.main(["--tool", "claude", "--project", str(project), "--verify"])
+    out = capsys.readouterr().out
+    lines = out.splitlines()
+
+    assert any("ESCAPED" in ln and "output-styles/terse.md" in ln for ln in lines)
+    assert rc == 1  # a real, unfixed-by-reinstall problem: must not be reported as in sync
+    assert "in sync" not in out  # would directly contradict the ESCAPED line above it
+
+
 def test_render_plan_shows_an_escape_not_a_false_create(tmp_path):
     project = tmp_path / "project"
     project.mkdir()
