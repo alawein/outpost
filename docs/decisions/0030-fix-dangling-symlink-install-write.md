@@ -195,21 +195,24 @@ real, non-malicious setup, is now handled correctly end to end: install skips wr
 the manifest records no false ownership for the skipped path, and a later `--remove` or `--prune`
 cannot delete anything at the shared location, even when an older, now-stale ownership record from
 before the symlink was planted would otherwise have survived a narrower reinstall along the way.
-`_is_contained` is now checked at 14 call sites across the file: the 3 original write guards, 5
+`_is_contained` is now checked at 15 call sites across the file: the 3 original write guards, 5
 more added by this revision (4 defense-in-depth sites plus the fifth site found during its own
 review), `_retired_paths` (ADR-0028), the reporting-only checks in `verify()` and `main()`'s own
-record correction, and 3 more from two later rounds holding dry-run and orphan reporting to the
-same standard: `_orphans()`'s escaped split and `render_plan()`'s dry-run check, then `main()`'s
-own separate dry-run preview for stale-terse withdrawal, a second code path `render_plan()` does
-not reach.
+record correction, and 4 more from three later rounds holding dry-run, orphan, and `--verify`
+reporting to the same standard: `_orphans()`'s escaped split and `render_plan()`'s dry-run check,
+then `main()`'s own separate dry-run preview for stale-terse withdrawal (a second code path
+`render_plan()` does not reach), then that same stale-terse gap in `main()`'s `--verify` branch,
+which `verify()` itself does not reach either.
 
 An install or `--verify` run now says plainly when a path was left alone for escaping the project,
 instead of reporting success or unexplained drift; a user-owned symlinked dotfile is unaffected by
 this, on purpose. `tests/test_install.py` grew from 124 to 138 tests across this revision (17
 total across this record's history to that point: 3 from the first version, 14 from this
-revision), plus the one rewritten test above. Two later rounds then closed the same reporting gap
-at two more surfaces, adding 5 more tests (4 for `_orphans()`'s escaped split and
-`render_plan()`'s dry-run check, 1 for `main()`'s own separate dry-run stale-terse preview): 143
+revision), plus the one rewritten test above. Four later rounds then closed the same reporting gap
+at four more surfaces, adding 9 more tests (4 for `_orphans()`'s escaped split and
+`render_plan()`'s dry-run check, 1 for `main()`'s own separate dry-run stale-terse preview, 2 for
+`verify()`'s own summary split between an escaping action and a genuinely fixable one, 2 for
+`main()`'s `--verify` branch making that same split for stale-terse withdrawal state): 147
 tests total as of this fix. Two of this revision's own new tests initially shared the same
 Windows-only path-separator blind spot as the rewritten one, caught and fixed before this record
 was written, not after.
