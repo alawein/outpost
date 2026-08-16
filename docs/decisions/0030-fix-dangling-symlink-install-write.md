@@ -212,8 +212,9 @@ revision), plus the one rewritten test above. Four later rounds then closed the 
 at four more surfaces, adding 9 more tests (4 for `_orphans()`'s escaped split and
 `render_plan()`'s dry-run check, 1 for `main()`'s own separate dry-run stale-terse preview, 2 for
 `verify()`'s own summary split between an escaping action and a genuinely fixable one, 2 for
-`main()`'s `--verify` branch making that same split for stale-terse withdrawal state): 147
-tests total as of this fix. Two of this revision's own new tests initially shared the same
+`main()`'s `--verify` branch making that same split for stale-terse withdrawal state), plus one
+more test from a follow-up pinning that same `--verify` branch's in-sync gate clause with its own
+dedicated coverage (the clause had shipped with none): 148 tests total as of this fix. Two of this revision's own new tests initially shared the same
 Windows-only path-separator blind spot as the rewritten one, caught and fixed before this record
 was written, not after.
 
