@@ -116,8 +116,9 @@ def _text_contains(assertion: dict, transcript: dict) -> tuple[bool, str]:
 
 def _text_contains_any(assertion: dict, transcript: dict) -> tuple[bool, str]:
     values = assertion.get("values")
-    if not values:
-        return False, "text_contains_any assertion missing required non-empty 'values' field"
+    if not values or isinstance(values, str):
+        return False, ("text_contains_any assertion missing required non-empty 'values' list "
+                        "(got a bare string?)")
     text = transcript.get("result", "")
     matched = [v for v in values if v in text]
     if matched:

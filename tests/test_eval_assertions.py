@@ -225,6 +225,21 @@ def test_text_contains_any_empty_values_list_fails_loudly():
     assert ok is False
 
 
+def test_text_contains_any_bare_string_values_fails_loudly():
+    """Regression test: {"values": "bound"} (the natural typo for ["bound"]) must not silently
+    pass. Before the fix, `not values` was False (a non-empty string is truthy) so the guard let
+    it through, then `for v in values` iterated the string letter by letter ('b', 'o', 'u', 'n',
+    'd'), so a single matched letter (e.g. 'o' or 'n', both common in English) made this pass on
+    almost any result text -- the same "assertion that can't fail" shape already paid for once
+    with tool_not_used (docs/dogfooding.md)."""
+    transcript = {"result": "Overall this looks fine. Nothing to report.", "tool_calls": []}
+    ok, reason = evaluate_assertion(
+        {"type": "text_contains_any", "values": "bound"}, transcript, {}, {},
+    )
+    assert ok is False
+    assert "values" in reason
+
+
 def test_workspace_unchanged_passes_when_before_equals_after():
     before = {"a.py": "hash1", "sub/b.py": "hash2"}
     after = {"a.py": "hash1", "sub/b.py": "hash2"}
