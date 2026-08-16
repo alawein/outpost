@@ -108,6 +108,18 @@ def test_run_one_eval_decodes_claude_stdout_as_utf8(tmp_path, monkeypatch):
     reproduce the crash -- its UTF-8 bytes are all defined in cp1252, so it silently mis-decodes
     instead of raising, which would make a test built on it pass whether or not the fix is
     present.
+
+    Two independent checks, for two different reasons:
+      1. The decode-behavior check (outcome["status"] == "pass" and the curly quote round-trips)
+         proves the fix actually works, but it can only go RED without the fix on a host whose
+         locale-preferred encoding is not already UTF-8 (cp1252 on Windows). CI also runs Ubuntu
+         legs, which default to a UTF-8 locale, so removing encoding="utf-8" would NOT make this
+         half fail there -- decoding would coincidentally still succeed.
+      2. The captured-kwargs check (below) is a call-signature pin, immune to host locale: it
+         asserts the literal source line still passes encoding="utf-8" to subprocess.run,
+         regardless of whether this host's locale would happen to paper over its absence. This is
+         what gives every CI leg (not just Windows) real protection against the kwarg being
+         quietly dropped.
     """
     # The curly quote is a real U+201D character in this source file (not a \uXXXX escape), read
     # by Python's own source decoder (UTF-8 by default, independent of locale/console codepage --
@@ -124,9 +136,11 @@ def test_run_one_eval_decodes_claude_stdout_as_utf8(tmp_path, monkeypatch):
     )
 
     real_subprocess_run = run_evals.subprocess.run
+    captured = {}
 
     def fake_subprocess_run(cmd, *args, **kwargs):
         if cmd[0] == "claude":
+            captured.update(kwargs)  # pin the exact kwargs run_one_eval passed, before rewriting cmd
             cmd = [sys.executable, str(fake_claude)]
         return real_subprocess_run(cmd, *args, **kwargs)
 
@@ -144,10 +158,18 @@ def test_run_one_eval_decodes_claude_stdout_as_utf8(tmp_path, monkeypatch):
     )
     (eval_dir / "fixture").mkdir()
 
+    # Windows-specific proof: on a non-UTF-8-locale host this line itself raises AttributeError
+    # (proc.stdout ends up None; see parse_stream_json) when encoding="utf-8" is missing -- that
+    # is the real, observed crash mechanism, not a generic "subprocess raises" assumption.
     outcome = run_evals.run_one_eval("debt-log", evals_dir, ROOT, timeout=30)
 
     assert outcome["status"] == "pass", outcome
     assert outcome["results"][0][1] is True, outcome["results"]
+
+    # Locale-independent proof: the real call site must still name encoding="utf-8" explicitly,
+    # regardless of whether this host's own locale would happen to decode the bytes correctly
+    # anyway. Catches the kwarg being dropped on every platform, not just a non-UTF-8-locale one.
+    assert captured.get("encoding") == "utf-8", captured
 
 
 def test_parse_stream_json_single_tool_use():
