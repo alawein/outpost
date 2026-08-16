@@ -48,3 +48,7 @@ Start from `0000-template.md` when adding a record.
   the same never-installed-tool guard `remove_for_tools` already proved.
 - 0029: cross-doc-check, comparing two named docs that are each supposed to state the same policy
   and flagging a real contradiction or unexplained scope gap, never a wording difference.
+- 0030: fix a dangling-symlink install-time write (a pre-planted symlink at a plan-derived write
+  path could crash install.py or write kit content outside the project); closes a related delete-
+  side question ADR-0028 left open, including a false-ownership-record root cause and independent
+  containment checks at every remaining write or delete site.
