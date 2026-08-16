@@ -854,14 +854,25 @@ def main(argv: list[str] | None = None) -> int:
                   "host; --prune removes it)")
         # Terse state left behind after the recorded install stopped being terse is drift too
         # (F32): a stale style file or outputStyle key would silently keep changing the agent.
-        # An edited style file ('keep') is the user's and is not drift.
+        # An edited style file ('keep') is the user's and is not drift. A remove/clear op whose
+        # path resolves outside the project via a symlink is split out from the rest, the same
+        # way _orphans() and verify() already split an escape from an ordinary finding:
+        # apply_stale_terse() genuinely cannot withdraw an escaping path (it has its own
+        # containment check, same as the dry-run preview), so telling the user re-running install
+        # will clean it would be the identical false promise those two guards already exist to
+        # avoid making.
         stale = []
+        escaped_stale = []
         claude_entry = manifest.get("tools", {}).get("claude")
         if ("claude" in _tools_for(args.tool) and claude_entry
                 and not _terse_for(manifest, "claude", args.terse)):
-            stale = [(op, p) for op, p
-                     in stale_terse_state(project_root, _kit_terse_proof(claude_entry))
-                     if op != "keep"]
+            for op, p in stale_terse_state(project_root, _kit_terse_proof(claude_entry)):
+                if op == "keep":
+                    continue
+                if _is_contained(project_root, p):
+                    stale.append((op, p))
+                else:
+                    escaped_stale.append((op, p))
         for op, path in stale:
             if op == "clear":
                 print(f"  DRIFTED {path} (kit-set outputStyle key lingers after terse was "
@@ -869,12 +880,22 @@ def main(argv: list[str] | None = None) -> int:
             else:
                 print(f"  DRIFTED {path} (stale terse state from an earlier terse install; "
                       "re-install to clean it)")
+        for op, path in escaped_stale:
+            if op == "clear":
+                print(f"  ESCAPED {path} (kit-set outputStyle key lingers, but resolves outside "
+                      "the project via a symlink; remove or fix the symlink, re-running install "
+                      "will not change this)")
+            else:
+                print(f"  ESCAPED {path} (stale terse state from an earlier terse install, but "
+                      "resolves outside the project via a symlink; remove or fix the symlink, "
+                      "re-running install will not change this)")
         # A stale version stamp is not file drift, so it never changes the verdict: print it as a
         # note after, whether the files are in sync or not.
         note = _version_note(manifest, cat.version)
         # An orphan is drift the other way: a kit-owned prompt the recorded selection excludes is
         # still on disk. verify is a gate, so extras fail it just like a missing or modified file.
-        if ok and not orphans and not stale and not leftovers and not escaped_orphans:
+        if (ok and not orphans and not stale and not leftovers and not escaped_orphans
+                and not escaped_stale):
             print("in sync (kit files present and unmodified)")
             if note:
                 print(note)
@@ -900,6 +921,17 @@ def main(argv: list[str] | None = None) -> int:
         if stale:
             print("DRIFT: stale terse state left by an earlier terse install; re-run install "
                   "to clean it")
+        if escaped_stale:
+            # Same reasoning as the escaped_actions line above. This can double-count a path
+            # escaped_actions already covers (settings.json is both a kit-owned merge action and
+            # separately inspected here for its outputStyle key), but never the reverse: the
+            # style file's stale state is invisible to the ordinary actions loop whenever terse
+            # itself is not selected, since a non-terse plan never puts it there to check. Both
+            # lines stay: each names what its own check actually found, and neither tells the
+            # user re-running install fixes a symlink escape.
+            print(f"DRIFT: {len(escaped_stale)} stale terse path(s) resolve outside the project "
+                  "via a symlink; remove or fix the symlink, re-running install will not change "
+                  "this")
         if note:
             print(note)
         return 1

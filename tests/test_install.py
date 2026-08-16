@@ -1724,6 +1724,82 @@ def test_verify_summary_still_flags_reinstallable_drift_alongside_an_escaped_pat
                for ln in lines)  # the escape gets its own distinct summary line, not folded in
 
 
+def test_verify_summary_does_not_claim_reinstall_fixes_a_stale_terse_escape(tmp_path, capsys):
+    # Live-reproduced contradiction: a genuinely stale outputStyle key (the style file already
+    # went, same setup as _withdraw_terse_but_leave_the_key above) sitting in a settings.json that
+    # now resolves outside the project via a symlink. stale_terse_state() had no containment
+    # check, so it queued a "clear" op from the JSON content read straight through the symlink,
+    # and --verify's stale-terse loop printed DRIFTED plus "re-run install to clean it" for the
+    # same path its own ESCAPED line, from the ordinary verify() pass over the settings merge
+    # action, already says re-running install will not change.
+    project = tmp_path / "project"
+    project.mkdir()
+    install.main(["--tool", "claude", "--project", str(project), "--terse"])
+    (project / ".claude" / "output-styles" / "terse.md").unlink()
+    mpath = project / ".outpost" / "manifest.json"
+    data = json.loads(mpath.read_text(encoding="utf-8"))
+    data["tools"]["claude"]["terse"] = False
+    mpath.write_text(json.dumps(data), encoding="utf-8")
+
+    settings = project / ".claude" / "settings.json"
+    outside = tmp_path / "outside-settings.json"
+    outside.write_text(settings.read_text(encoding="utf-8"), encoding="utf-8")
+    settings.unlink()
+    try:
+        # Absolute target; see the note in
+        # test_verify_summary_does_not_claim_reinstall_fixes_an_escaped_path above.
+        settings.symlink_to(outside)
+    except OSError:
+        pytest.skip("symlink creation not permitted in this environment")
+    capsys.readouterr()
+
+    rc = install.main(["--tool", "claude", "--project", str(project), "--verify"])
+    out = capsys.readouterr().out
+    lines = out.splitlines()
+
+    assert rc == 1  # still a real problem, just not one a re-install fixes
+    assert any("ESCAPED" in ln and "outputStyle" in ln for ln in lines)
+    assert not any(ln.strip().startswith("DRIFTED") and "settings.json" in ln for ln in lines)
+    assert "re-run install to clean it" not in out
+    assert "DRIFT: stale terse state left by an earlier terse install" not in out
+
+
+def test_verify_summary_still_flags_reinstallable_stale_terse_alongside_an_escaped_one(
+        tmp_path, capsys):
+    # Mixed case scoped to stale-terse state alone: the style file is genuine, fixable leftover
+    # state (a re-install removes it) while the settings.json outputStyle key is the same
+    # escaping key as the test above. Both summary lines must appear, each scoped to what it
+    # actually found; suppressing the genuine "re-run install to clean it" line just because an
+    # escape is ALSO present would wrongly hide real, fixable stale-terse state from the user.
+    project = tmp_path / "project"
+    project.mkdir()
+    install.main(["--tool", "claude", "--project", str(project), "--terse"])
+    mpath = project / ".outpost" / "manifest.json"
+    data = json.loads(mpath.read_text(encoding="utf-8"))
+    data["tools"]["claude"]["terse"] = False  # simulate a pre-fix withdrawal: state stays on disk
+    mpath.write_text(json.dumps(data), encoding="utf-8")
+
+    settings = project / ".claude" / "settings.json"
+    outside = tmp_path / "outside-settings.json"
+    outside.write_text(settings.read_text(encoding="utf-8"), encoding="utf-8")
+    settings.unlink()
+    try:
+        settings.symlink_to(outside)  # absolute target; see the note above
+    except OSError:
+        pytest.skip("symlink creation not permitted in this environment")
+    capsys.readouterr()
+
+    rc = install.main(["--tool", "claude", "--project", str(project), "--verify"])
+    out = capsys.readouterr().out
+    lines = out.splitlines()
+
+    assert rc == 1
+    assert any(ln.strip().startswith("DRIFTED") and "terse.md" in ln for ln in lines)
+    assert any("ESCAPED" in ln and "outputStyle" in ln for ln in lines)
+    assert "DRIFT: stale terse state left by an earlier terse install; re-run install" in out
+    assert any(ln.startswith("DRIFT:") and "stale terse path(s)" in ln for ln in lines)
+
+
 def test_render_plan_shows_an_escape_not_a_false_create(tmp_path):
     project = tmp_path / "project"
     project.mkdir()
