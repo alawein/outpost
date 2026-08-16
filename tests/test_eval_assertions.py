@@ -325,6 +325,22 @@ def test_tool_not_used_missing_names_fails_without_raising():
     assert "names" in reason
 
 
+def test_tool_not_used_bare_string_names_fails_loudly():
+    """Regression test: {"names": "Edit"} (the natural typo for ["Edit"]) must not silently pass.
+    Before the fix, `names is None` didn't catch a truthy bare string, so `set(names)` produced
+    {'E', 'd', 'i', 't'}: single characters, none of which any real multi-character tool name can
+    ever equal. That makes the assertion a permanent no-op: it reports "none of the forbidden
+    tools were used" even when Edit genuinely ran, exactly like this test's own transcript. The
+    same guard shape already failed this way once for text_contains_any (see that test), so
+    tool_not_used gets the identical fix and coverage."""
+    transcript = {"result": "ok", "tool_calls": [{"name": "Edit"}]}
+    ok, reason = evaluate_assertion(
+        {"type": "tool_not_used", "names": "Edit"}, transcript, {}, {},
+    )
+    assert ok is False
+    assert "names" in reason
+
+
 def test_text_contains_missing_value_fails_without_raising():
     ok, reason = evaluate_assertion(
         {"type": "text_contains"}, EMPTY_TRANSCRIPT, {}, {},

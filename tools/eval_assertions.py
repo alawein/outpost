@@ -95,8 +95,9 @@ def _workspace_unchanged(assertion: dict, before: dict, after: dict) -> tuple[bo
 
 def _tool_not_used(assertion: dict, transcript: dict) -> tuple[bool, str]:
     names = assertion.get("names")
-    if names is None:
-        return False, "tool_not_used assertion missing required 'names' field"
+    if not names or isinstance(names, str):
+        return False, ("tool_not_used assertion missing required non-empty 'names' list "
+                        "(got a bare string?)")
     forbidden = set(names)
     used = [call["name"] for call in transcript.get("tool_calls", []) if call["name"] in forbidden]
     if used:
