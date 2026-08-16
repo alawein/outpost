@@ -1963,6 +1963,37 @@ def test_apply_stale_terse_skips_a_remove_through_a_symlink(tmp_path):
     assert real_terse.read_text(encoding="utf-8") == outside_content
 
 
+def test_reinstall_keeps_terse_ownership_record_when_withdrawal_escapes_via_a_symlink(tmp_path):
+    # Post-merge review of PR #36: the ownership-record pop for a completed terse withdrawal (the
+    # F32 residual fix, test_completed_withdrawal_releases_style_ownership above) had no
+    # containment check of its own, unlike apply_stale_terse's sibling remove/clear branches.
+    # apply_stale_terse correctly refuses to delete the escaping style file here (see the test
+    # just above), but the pop ran anyway and dropped the manifest's ownership record regardless
+    # of whether the withdrawal actually reached the file -- so --verify silently stopped
+    # mentioning a still-active terse style sitting at the shared, escaped location, instead of
+    # reporting it ESCAPED like its settings.json sibling does.
+    project = tmp_path / "project"
+    project.mkdir()
+    install.main(["--tool", "claude", "--project", str(project), "--terse"])
+
+    outside = tmp_path / "outside-claude"
+    (project / ".claude").rename(outside)
+    try:
+        (project / ".claude").symlink_to(outside, target_is_directory=True)
+    except OSError:
+        pytest.skip("symlink creation not permitted in this environment")
+
+    install.main(["--tool", "claude", "--project", str(project)])  # plain reinstall: withdraws terse
+
+    real_terse = outside / "output-styles" / "terse.md"
+    assert real_terse.is_file()  # never deleted: apply_stale_terse's own guard skips it
+
+    mpath = project / ".outpost" / "manifest.json"
+    files = json.loads(mpath.read_text(encoding="utf-8"))["tools"]["claude"]["files"]
+    assert install.TERSE_STYLE_PATH in files, (
+        "the manifest dropped ownership of a terse style the withdrawal never actually reached")
+
+
 def test_dry_run_shows_an_escape_not_an_unconditional_stale_terse_withdrawal(tmp_path, capsys):
     # main()'s --dry-run branch renders the stale-terse withdrawal preview in its own loop,
     # separate from render_plan(): it was never given the containment check

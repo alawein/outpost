@@ -1069,9 +1069,14 @@ def main(argv: list[str] | None = None) -> int:
                     records_by_tool[t].pop(a.path, None)
         # A completed withdrawal (this run deletes the kit's own style file) ends the kit's
         # ownership claim on that path, so it never seizes a later hand-adopted style with the
-        # kit's own bytes and the user's own key (the F32 residual, PR 101).
-        if ("remove", TERSE_STYLE_PATH) in _withdrawn_terse(project_root, prev_manifest, args.tool,
-                                                            args.terse):
+        # kit's own bytes and the user's own key (the F32 residual, PR 101). Gated on containment,
+        # same as apply_stale_terse's own remove branch: when the style path escapes via a
+        # symlink, apply_stale_terse refuses to delete it, so the ownership claim must survive
+        # too, or --verify silently stops mentioning a still-active terse style at the escaped
+        # location instead of reporting it ESCAPED.
+        if (("remove", TERSE_STYLE_PATH) in _withdrawn_terse(project_root, prev_manifest, args.tool,
+                                                              args.terse)
+                and _is_contained(project_root, TERSE_STYLE_PATH)):
             records_by_tool.get("claude", {}).pop(TERSE_STYLE_PATH, None)
         actions.append(manifest_action(prev_manifest, args.tool, select_label, select_set, cat,
                                        args.terse, records_by_tool))
