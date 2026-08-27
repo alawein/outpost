@@ -1,0 +1,5 @@
+# CodeRabbit automatic review is off for this repo. PR review is the owner (see .github/CODEOWNERS).
+reviews:
+  auto_review:
+    enabled: false
+    auto_incremental_review: false
