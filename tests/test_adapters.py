@@ -110,7 +110,7 @@ def test_load_prompts_none_returns_all():
 
 
 def test_converge_ships_to_claude_only(tmp_path):
-    # decision 0014: the catalog hosts field limits converge to Claude; the other
+    # the catalog hosts field limits converge to Claude; the other
     # tools plan and install every core prompt except it, even when selected
     assert "converge" in {n for n, _ in load_prompts(ROOT, "claude")}
     for tool in OTHER_TOOLS:
