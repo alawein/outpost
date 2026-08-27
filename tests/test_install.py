@@ -364,7 +364,7 @@ def test_installing_a_second_tool_accumulates_in_the_manifest(tmp_path):
 def test_tool_all_records_every_tool(tmp_path):
     install.main(["--tool", "all", "--project", str(tmp_path), "--only", "plan-change"])
     man = _manifest(tmp_path)
-    assert set(man["tools"]) == {"claude", "codex", "cursor", "copilot"}
+    assert set(man["tools"]) == {"claude", "codex", "cursor", "copilot", "windsurf", "gemini"}
 
 
 def test_manifest_install_is_idempotent(tmp_path):

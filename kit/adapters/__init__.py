@@ -1,16 +1,19 @@
 """Per-tool adapters. Each renders the kit into a target project as a list of Actions, so a
-dry-run and a real install share one code path. Claude is the primary target; Codex, Cursor, and
-Copilot are adapters. All write to disjoint paths, so they coexist in one project.
+dry-run and a real install share one code path. Claude is the primary target; Codex, Cursor,
+Copilot, Windsurf, and Gemini CLI are adapters. All write to disjoint paths, so they coexist in one
+project.
 """
 from __future__ import annotations
 
-from . import claude, codex, copilot, cursor
+from . import claude, codex, copilot, cursor, gemini, windsurf
 
 ADAPTERS = {
     "claude": claude.plan,
     "codex": codex.plan,
     "cursor": cursor.plan,
     "copilot": copilot.plan,
+    "windsurf": windsurf.plan,
+    "gemini": gemini.plan,
 }
 
 TOOLS = tuple(ADAPTERS)

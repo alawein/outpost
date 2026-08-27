@@ -7,8 +7,8 @@ the same precomputed actions and the same `Action.status()`, so a dry-run shows 
 install would do.
 
 Safe and idempotent:
-- A user-owned file (CLAUDE.md, AGENTS.md, the Cursor repo rule, the Copilot instructions) is
-  written only if absent. An existing one is left alone.
+- A user-owned file (CLAUDE.md, AGENTS.md, GEMINI.md, the Cursor repo rule, the Copilot
+  instructions, the Windsurf rule) is written only if absent. An existing one is left alone.
 - The manifest records, per path, whether a file existed before the kit first wrote there. The
   existed flag alone drives every ownership decision; the pre-install hash stored beside a
   pre-existing record (pre_hash) is a forensic record for later inspection, read by nothing in
@@ -26,7 +26,8 @@ Safe and idempotent:
 - Kit-owned prompt files carry identical content each run, so a re-run is a no-op (an unchanged
   file is skipped, not rewritten).
 
-Claude, Codex, Cursor, and Copilot write to disjoint paths, so they coexist in one project.
+Claude, Codex, Cursor, Copilot, Windsurf, and Gemini CLI write to disjoint paths, so they coexist
+in one project.
 
 Usage:
   python install.py --tool claude --project /path/to/your/repo            # the common case

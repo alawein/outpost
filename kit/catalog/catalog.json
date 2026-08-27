@@ -44,13 +44,17 @@
     { "name": "claude", "path": "templates/CLAUDE.md", "summary": "Project guide installed as CLAUDE.md." },
     { "name": "codex", "path": "templates/AGENTS.md", "summary": "Agent guide installed as AGENTS.md." },
     { "name": "cursor", "path": "templates/cursor-rules.md", "summary": "Repo rule installed under .cursor/rules/." },
-    { "name": "copilot", "path": "templates/copilot-instructions.md", "summary": "Repo instructions installed as .github/copilot-instructions.md." }
+    { "name": "copilot", "path": "templates/copilot-instructions.md", "summary": "Repo instructions installed as .github/copilot-instructions.md." },
+    { "name": "windsurf", "path": "templates/windsurf-rules.md", "summary": "Always-on rule installed under .windsurf/rules/." },
+    { "name": "gemini", "path": "templates/GEMINI.md", "summary": "Project guide installed as GEMINI.md." }
   ],
   "adapters": [
     { "tool": "claude", "module": "kit.adapters.claude", "installs": "CLAUDE.md, core prompts as .claude/skills/, secret-only settings deny rules, optional terse output style." },
     { "tool": "codex", "module": "kit.adapters.codex", "installs": "AGENTS.md, core prompts under .agents/prompts/." },
     { "tool": "cursor", "module": "kit.adapters.cursor", "installs": ".cursor/rules/ repo rule and core prompts." },
-    { "tool": "copilot", "module": "kit.adapters.copilot", "installs": ".github/copilot-instructions.md and core prompts as .github/prompts/*.prompt.md." }
+    { "tool": "copilot", "module": "kit.adapters.copilot", "installs": ".github/copilot-instructions.md and core prompts as .github/prompts/*.prompt.md." },
+    { "tool": "windsurf", "module": "kit.adapters.windsurf", "installs": ".windsurf/rules/outpost.md always-on rule and core prompts as .windsurf/workflows/outpost-<name>.md, invoked as /outpost-<name>." },
+    { "tool": "gemini", "module": "kit.adapters.gemini", "installs": "GEMINI.md and core prompts as .gemini/commands/outpost/<name>.toml, invoked as /outpost:<name>." }
   ],
   "checks": [
     { "name": "structure", "module": "kit.checks.structure", "summary": "The required files and directories are present." },

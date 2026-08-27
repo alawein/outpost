@@ -11,12 +11,13 @@ REQUIRED_FILES = (
     "docs/contributing.md", "docs/releasing.md", "docs/ROADMAP.md",
     "docs/decisions/0000-template.md", "docs/decisions/README.md",
     "templates/CLAUDE.md", "templates/AGENTS.md", "templates/cursor-rules.md",
-    "templates/copilot-instructions.md",
+    "templates/copilot-instructions.md", "templates/windsurf-rules.md", "templates/GEMINI.md",
     "kit/catalog/catalog.json",
 )
 REQUIRED_DIRS = (
     "kit", "kit/catalog", "kit/checks", "kit/installers", "kit/adapters",
     "prompts/core", "prompts/claude", "prompts/codex", "prompts/cursor", "prompts/copilot",
+    "prompts/windsurf", "prompts/gemini",
     "templates", "docs", "docs/decisions", "tests",
 )
 
