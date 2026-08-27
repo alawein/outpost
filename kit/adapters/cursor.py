@@ -23,7 +23,7 @@ def plan(kit_root: pathlib.Path, project_root: pathlib.Path, terse: bool = False
     for name, content in load_prompts(kit_root, "cursor", select=select):
         actions.append(Action(
             # namespaced under a kit subdir so an install never overwrites a user's own rule of the
-            # same name (the other two adapters isolate their files the same way)
+            # same name (the other adapters isolate their files the same way)
             path=f".cursor/rules/outpost/{name}.md",
             content=content,
             mode="write",

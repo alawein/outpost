@@ -1,7 +1,7 @@
 """GitHub Copilot adapter. Copilot reads repo-wide custom instructions from
 `.github/copilot-instructions.md` and reusable prompt files from `.github/prompts/*.prompt.md`. It
 has no skills or plugins, so the instructions file folds in the pack and each core prompt installs
-as a `.prompt.md` file. A different config shape from the other three (a single instructions file
+as a `.prompt.md` file. A different config shape from the other five (a single instructions file
 plus a `.github/prompts/` dir), which is the point: it tests that the adapter model holds.
 """
 from __future__ import annotations

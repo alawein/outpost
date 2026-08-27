@@ -59,7 +59,7 @@ class Action:
 
 
 def _host_excluded(kit_root: pathlib.Path, tool: str) -> set[str]:
-    """Prompt names whose catalog entry limits them to other hosts (decision 0014: `converge`
+    """Prompt names whose catalog entry limits them to other hosts (`converge`
     ships to Claude only). One home for the rule: the catalog `hosts` field, honored here so
     every adapter and the plugin builder filter the same way. A kit tree without a catalog
     (a unit-test fixture) excludes nothing."""

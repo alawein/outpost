@@ -6,7 +6,8 @@ import pathlib
 
 from . import banned_hits
 
-TEMPLATES = ("CLAUDE.md", "AGENTS.md", "cursor-rules.md", "copilot-instructions.md")
+TEMPLATES = ("CLAUDE.md", "AGENTS.md", "cursor-rules.md", "copilot-instructions.md",
+             "windsurf-rules.md", "GEMINI.md")
 # A few prompt names a healthy template should reference, so it stays tied to the pack.
 ANCHOR_PROMPTS = ("plan-change", "handoff-session")
 

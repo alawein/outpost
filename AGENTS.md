@@ -8,8 +8,8 @@ last_updated: 2026-08-27
 
 # Agent guide for Outpost
 
-Outpost installs coding-agent prompts for Claude, Codex, Cursor, and Copilot. The
-working rules live in `CLAUDE.md`; read that first. This file adds the review guidelines an
+Outpost installs coding-agent prompts for Claude, Codex, Cursor, Copilot, Windsurf, and Gemini CLI.
+The working rules live in `CLAUDE.md`; read that first. This file adds the review guidelines an
 automated reviewer applies to a pull request.
 
 ## Working agreement

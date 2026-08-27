@@ -22,13 +22,13 @@ Install a subset with `--only plan-change,write-tests`, or everything but a few 
 
 Each tool writes to its own paths, so they coexist in one repo; the per-tool list of what gets installed is in [docs/adapters.md](adapters.md).
 
-The installer writes only kit-owned files. It never overwrites your `CLAUDE.md`, `AGENTS.md`, Cursor rule, or Copilot instructions. It keeps yours and points you to `templates/` to copy any changes by hand.
+The installer writes only kit-owned files. It never overwrites your `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, Cursor rule, Copilot instructions, or Windsurf rule. It keeps yours and points you to `templates/` to copy any changes by hand.
 
 For tests: `pip install -e ".[dev]"` to get pytest.
 
 ## First change
 
-Ask your agent to plan a change. In Claude Code, `plan-change` loads on its own; elsewhere point at the matching prompt file. Full path: [docs/workflow.md](workflow.md).
+Ask your agent to plan a change. In Claude Code, `plan-change` loads on its own. In Windsurf run `/outpost-plan-change`; in Gemini CLI run `/outpost:plan-change`; elsewhere point at the matching prompt file. Full path: [docs/workflow.md](workflow.md).
 
 ## Verify
 

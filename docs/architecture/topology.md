@@ -17,7 +17,7 @@ outpost/
   validate.py                # kit source-tree checks
   kit/
     catalog/                 # prompt catalog and the one version number
-    adapters/                # Claude, Codex, Cursor, Copilot writers
+    adapters/                # Claude, Codex, Cursor, Copilot, Windsurf, Gemini writers
     installers/              # manifest record and settings-merge helpers
     checks/                  # structure, docs truth, catalog gates
     labels/                  # namespaced label registry (kit/labels/registry.json)

@@ -27,7 +27,7 @@ class Catalog:
 
     def prompts_for(self, tool: str) -> list[dict]:
         """The prompts that ship to one tool. A prompt entry with a `hosts` list ships only to
-        those tools (decision 0014 limits `converge` to Claude); an entry without one ships
+        those tools (the catalog limits `converge` to Claude); an entry without one ships
         everywhere."""
         return [p for p in self.prompts if not p.get("hosts") or tool in p["hosts"]]
 

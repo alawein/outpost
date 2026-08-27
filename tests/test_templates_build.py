@@ -15,6 +15,8 @@ EXPECTED_PATHS = {
     "templates/AGENTS.md",
     "templates/cursor-rules.md",
     "templates/copilot-instructions.md",
+    "templates/windsurf-rules.md",
+    "templates/GEMINI.md",
 }
 
 
@@ -31,7 +33,7 @@ def test_every_built_guide_carries_both_anchors():
 
 
 def test_committed_guides_match_the_build():
-    # the heart of the fix: what is on disk equals head + shared core, so the four cannot drift
+    # the heart of the fix: what is on disk equals head + shared core, so the guides cannot drift
     for rel, content in build_templates(ROOT).items():
         assert (ROOT / rel).read_text(encoding="utf-8") == content
 
