@@ -13,6 +13,9 @@ import re
 from .base import Action, load_prompts, read_template
 from ..checks import frontmatter_field, split_frontmatter
 
+# a raw control character (tab and newline aside) is invalid in both TOML string forms
+_CONTROL = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
+
 
 def to_command_toml(name: str, content: str) -> str:
     """Render one core prompt as a Gemini command file. The description is a TOML basic string
@@ -22,7 +25,7 @@ def to_command_toml(name: str, content: str) -> str:
     body carrying either would run at /outpost:<name> time instead of reading as text. Each case
     raises rather than writing a file Gemini would reject or execute."""
     fm, body = split_frontmatter(content)
-    if re.search(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]", body):
+    if _CONTROL.search(body):
         raise ValueError(f"{name}: prompt body has a control character a TOML literal string "
                          "cannot hold")
     if "'''" in body:
@@ -34,6 +37,8 @@ def to_command_toml(name: str, content: str) -> str:
     lines: list[str] = []
     desc = frontmatter_field(fm, "description")
     if desc is not None:
+        if _CONTROL.search(desc):
+            raise ValueError(f"{name}: description has a control character a TOML string cannot hold")
         desc = desc.replace("\\", "\\\\").replace('"', '\\"')
         lines.append(f'description = "{desc}"')
     # TOML drops the newline right after the opening delimiter, so the body starts on its own line
