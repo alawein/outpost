@@ -12,6 +12,14 @@ Format follows Keep a Changelog (https://keepachangelog.com). The kit uses SemVe
 
 ## [Unreleased]
 
+### Added
+
+- A Windsurf adapter: `python install.py --tool windsurf` installs an always-on rule at
+  `.windsurf/rules/outpost.md` and the prompts as workflows at
+  `.windsurf/workflows/outpost-<name>.md`, run as `/outpost-<name>`.
+- A Gemini CLI adapter: `python install.py --tool gemini` installs `GEMINI.md` and the prompts
+  as custom commands at `.gemini/commands/outpost/<name>.toml`, run as `/outpost:<name>`.
+
 ## [0.1.0] - 2026-08-27
 
 ### Added

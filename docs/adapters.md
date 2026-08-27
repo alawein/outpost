@@ -8,14 +8,14 @@ last_updated: 2026-08-27
 
 # Adapters
 
-One prompt pack, four tools. The core prompts live in `prompts/core/`. Each adapter turns them into the files one tool expects.
+One prompt pack, six tools. The core prompts live in `prompts/core/`. Each adapter turns them into the files one tool expects.
 
 ## The model
 
 An adapter is `plan(kit_root, project_root, terse=False, select=None, tolerant=False)` returning a list of Actions. Each Action has a path, content, and mode:
 
 - `write`: a kit-owned path, usually a prompt file. Overwritten with rendered content on every install.
-- `create`: a user-owned path (`CLAUDE.md`, `AGENTS.md`, the Cursor rule, the Copilot instructions). Written only if absent.
+- `create`: a user-owned path (`CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, the Cursor rule, the Copilot instructions, the Windsurf rule). Written only if absent.
 - `merge`: a shared config file (`.claude/settings.json`). Content is the merged result.
 
 The installer plans first, then prints (`--dry-run`) or applies. Both use the same path, so the preview is exact.
@@ -28,6 +28,8 @@ The installer plans first, then prints (`--dry-run`) or applies. Both use the sa
 | Codex | `AGENTS.md` | `.agents/prompts/<name>.md` | none |
 | Cursor | `.cursor/rules/outpost.mdc` | `.cursor/rules/outpost/<name>.md` | none |
 | GitHub Copilot | `.github/copilot-instructions.md` | `.github/prompts/<name>.prompt.md` | none |
+| Windsurf | `.windsurf/rules/outpost.md` | `.windsurf/workflows/outpost-<name>.md` | none |
+| Gemini CLI | `GEMINI.md` | `.gemini/commands/outpost/<name>.toml` | none |
 
 Paths stay separate across tools, so more than one install in the same repo does not collide. The `adapters` check proves this on every `python validate.py` run.
 
@@ -84,15 +86,22 @@ flowchart TD
   `AGENTS.md` names the eight common stage prompts, not the full pack.
 - Cursor reads rules, so prompts install as rules.
 - Copilot reads `.github/copilot-instructions.md` repo-wide plus prompt files.
+- Windsurf reads rules with a `trigger` in their frontmatter; the kit's rule is always on. The
+  prompts install as workflows, prefixed `outpost-` so they never collide with your own, and
+  run as `/outpost-<name>`. Each file stays under Windsurf's 12,000-character cap.
+- Gemini CLI reads `GEMINI.md` as its context file and TOML custom commands under
+  `.gemini/commands/`. The prompts install in an `outpost/` subdirectory, which namespaces
+  them, so they run as `/outpost:<name>`.
 - Only Claude carries the settings merge and the optional terse output style. Deny rules cover secrets only.
 - `converge` ships to Claude only: its catalog entry carries `hosts: ["claude"]`, which every
-  adapter honors, so the Codex, Cursor, and Copilot installs carry every core prompt except it.
+  adapter honors, so the Codex, Cursor, Copilot, Windsurf, and Gemini installs carry every core
+  prompt except it.
   The loop needs a host that runs checks and fixes on its own.
 - Do not assume one tool supports another's features. Adapters add only files those tools already read.
 
 ## Overriding a prompt for one tool
 
-Put a file in `prompts/<tool>/` with the same name as the core prompt to override it for that tool only. Keep overrides rare because they make tools differ. The overlay directories ship with only a README, and there are no overrides yet.
+Put a file in `prompts/<tool>/` with the same name as the core prompt to override it for that tool only. Keep overrides rare because they make tools differ. The overlay directories (`prompts/claude/`, `prompts/codex/`, `prompts/cursor/`, `prompts/copilot/`, `prompts/windsurf/`, `prompts/gemini/`) ship with only a README, and there are no overrides yet.
 
 Editing an installed kit-owned file directly is not supported: a re-install restores the kit version after a warning. The overlay is the supported path.
 

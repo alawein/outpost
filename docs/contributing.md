@@ -32,7 +32,7 @@ How to add to the kit without breaking it. The catalog lists what ships, and `py
 
 ## Edit a template
 
-The four guide templates (`CLAUDE.md`, `AGENTS.md`, `cursor-rules.md`, `copilot-instructions.md`) are generated, not hand-edited. Edit the sources under `templates/_src/`:
+The six guide templates (`CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, `cursor-rules.md`, `copilot-instructions.md`, `windsurf-rules.md`) are generated, not hand-edited. Edit the sources under `templates/_src/`:
 
 - `_src/core.md` is the shared core, identical in every guide. It names the prompt pack, so the `templates` and `template_refs` checks pass.
 - `_src/head/<tool>.md` is the per-tool head: title, where the file and prompts live, how they load.

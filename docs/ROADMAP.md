@@ -17,10 +17,10 @@ Current release: v0.1.0. The table is the live state.
 | Area | State | What is in it |
 |---|---|---|
 | Prompt pack | built | The core pack is <!-- GENERATED:core-count-words -->twenty-eight<!-- /GENERATED:core-count-words --> prompts by stage: <!-- GENERATED:stage-counts -->two start, three plan, five build, seven review and ship, one converge, seven scrutiny, two record, and one write<!-- /GENERATED:stage-counts -->, including the review suite's `repo-review`, `simplify`, and `triage` |
-| Templates | built | `CLAUDE.md`, `AGENTS.md`, a Cursor repo rule, Copilot instructions |
+| Templates | built | `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, a Cursor repo rule, Copilot instructions, a Windsurf rule |
 | Installer | built | `install.py`: per-tool or `all`, dry-run, repeatable, safe settings merge |
 | Subset install | built | `--only`/`--exclude` install a subset of the prompt pack. `.outpost/manifest.json` records the choice, `--verify` reads it, `--prune` removes orphan files left by a narrower re-install, and `--remove` uninstalls a tool. Full pack stays the default |
-| Adapters | built | Claude Code (primary), Codex, Cursor, GitHub Copilot; separate paths, coexist |
+| Adapters | built | Claude Code (primary), Codex, Cursor, GitHub Copilot, Windsurf, Gemini CLI; separate paths, coexist |
 | Catalog | built | `kit/catalog/catalog.json`; lists what ships |
 | Checks | built | `python validate.py`: <!-- GENERATED:checks-line -->twenty-three checks (structure, catalog, prompts, templates, adapters, docs, secrets, voice, banned_sync, template_refs, templates_sync, docs_sync, doc_truth, plugin_sync, plugin_orphans, registries, roadmap, command_lists, commands, traces, label_refs, issue_forms, prose_length)<!-- /GENERATED:checks-line --> |
 | Docs | built | Onboarding, workflow, writing standard, adapters, contributing, releasing, plugin, token budget, labels, how this is built, debt, roadmap |
@@ -31,13 +31,12 @@ The smoke proof: a clean clone with only Python installed runs `python install.p
 
 ## Planned
 
-- Two more tools: Windsurf and Gemini CLI adapters, so one install covers six agents.
 - A drift benchmark under `benchmarks/`: seeded drift scenarios across every supported tool,
   the verify step's catch rate against a no-tooling baseline, reproducible from its README.
 - Watching an outside library: a catalog source that points at a skill tree the kit does not
   own, installed and verified the same way.
 - The README rewrite that leads with the benchmark.
-- 1.0 once the four items above are real.
+- 1.0 once the three items above are real.
 
 ## Out of scope
 

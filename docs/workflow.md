@@ -8,7 +8,7 @@ last_updated: 2026-08-27
 
 # Workflow: from idea to PR
 
-Outpost is one path from first repo read to handoff, with the same prompts across every tool. This page is that path: the ordered steps, the Claude Code shortcuts that bundle them, and the full prompt list. In Claude the prompts load by description; in the other tools you point at the matching file.
+Outpost is one path from first repo read to handoff, with the same prompts across every tool. This page is that path: the ordered steps, the Claude Code shortcuts that bundle them, and the full prompt list. In Claude the prompts load by description; in Windsurf and Gemini CLI you run the matching command; in the other tools you point at the matching file.
 
 ## The path
 
@@ -68,6 +68,8 @@ The kit ships <!-- GENERATED:core-count-digits -->28<!-- /GENERATED:core-count-d
 - Codex: prompts are files under `.agents/prompts/`, listed in `AGENTS.md`. Apply the matching one.
 - Cursor: prompts are rules under `.cursor/rules/`. Reference the matching one.
 - GitHub Copilot: repo-wide `.github/copilot-instructions.md` plus prompt files in `.github/prompts/`. Reference the matching one in chat.
+- Windsurf: an always-on rule under `.windsurf/rules/` plus the prompts as workflows under `.windsurf/workflows/`. Run `/outpost-<name>`.
+- Gemini CLI: `GEMINI.md` at the project root plus the prompts as custom commands under `.gemini/commands/outpost/`. Run `/outpost:<name>`.
 
 See `docs/adapters.md` for what differs between the tools and why.
 

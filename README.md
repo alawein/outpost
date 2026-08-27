@@ -11,6 +11,8 @@
 ![Codex](https://img.shields.io/badge/Codex-10A37F?style=for-the-badge)
 ![Cursor](https://img.shields.io/badge/Cursor-0098FF?style=for-the-badge)
 ![Copilot](https://img.shields.io/badge/Copilot-8957E5?style=for-the-badge)
+![Windsurf](https://img.shields.io/badge/Windsurf-09B6A2?style=for-the-badge)
+![Gemini](https://img.shields.io/badge/Gemini-4285F4?style=for-the-badge)
 
 </div>
 
@@ -18,7 +20,7 @@
 
 **Outpost is a personal prompt pack for coding agents: read a repo, plan, build, test, review, ship, hand off.**
 
-The core prompts install under Claude Code, Codex, Cursor, and GitHub Copilot. Claude Code gets the fullest path: skills that load on their own and a safe settings merge. The other tools install the same core prompts as files, except `converge`, which ships to Claude only. One install gives each tool the same path, so every tool works the same way and spends fewer tokens.
+The core prompts install under Claude Code, Codex, Cursor, GitHub Copilot, Windsurf, and Gemini CLI. Claude Code gets the fullest path: skills that load on their own and a safe settings merge. The other tools install the same core prompts as files, except `converge`, which ships to Claude only. One install gives each tool the same path, so every tool works the same way and spends fewer tokens.
 
 Maintained by the handle in [.github/CODEOWNERS](.github/CODEOWNERS). See
 [Consumers](#consumers) below for who this is built for.
@@ -28,10 +30,11 @@ Maintained by the handle in [.github/CODEOWNERS](.github/CODEOWNERS). See
 A hand-written CLAUDE.md works for one tool and one repo, until it drifts: a rule gets stale,
 nobody deletes it, and the next agent follows advice that no longer applies.
 
-Outpost installs one prompt pack across Claude Code, Codex, Cursor, and Copilot, with a
-`--verify` step that proves every installed copy still matches the source. A new prompt needs
-one answer, not a memo: which existing prompt is closest, and what gap it leaves. Everything
-else is mechanical: `validate.py` proves the kit's own tree, and CI runs it on every change.
+Outpost installs one prompt pack across Claude Code, Codex, Cursor, Copilot, Windsurf, and
+Gemini CLI, with a `--verify` step that proves every installed copy still matches the source.
+A new prompt needs one answer, not a memo: which existing prompt is closest, and what gap it
+leaves. Everything else is mechanical: `validate.py` proves the kit's own tree, and CI runs it
+on every change.
 
 Ruler and rulesync sync one rules file into every tool's format. Outpost does something
 narrower on purpose: it gates what ships first, then checks the result mechanically, instead
@@ -59,7 +62,7 @@ cd outpost
 python install.py --tool claude --project /path/to/your/repo
 ```
 
-Use `--tool codex`, `--tool cursor`, `--tool copilot`, or `--tool all`. `--dry-run` previews without writing.
+Use `--tool codex`, `--tool cursor`, `--tool copilot`, `--tool windsurf`, `--tool gemini`, or `--tool all`. `--dry-run` previews without writing.
 
 Install a subset with `--only plan-change,write-tests` or `--exclude grill`. The full pack is the default. The installer records the choice. `--verify` checks that install, `--prune` removes prompt files left by a narrower re-install, and `--remove` uninstalls a tool.
 
@@ -74,7 +77,7 @@ python validate.py   # proves the kit source tree itself, not an install
 pytest
 ```
 
-Use the prompt that matches the next step. In Claude, prompts load by description. In the other tools, point at the matching file.
+Use the prompt that matches the next step. In Claude, prompts load by description. In Windsurf and Gemini CLI, run the matching command. In the other tools, point at the matching file.
 
 ```text
 orient-repo        # map an unfamiliar repo
@@ -125,6 +128,8 @@ Work in parallel:
 | codex | a guide and the prompts as files |
 | cursor | a repo rule and the prompts as rules |
 | copilot | repo instructions and the prompts as prompt files, for the VS Code, Visual Studio, and JetBrains Copilot integrations |
+| windsurf | an always-on rule and the prompts as workflows, invoked as `/outpost-<name>` |
+| gemini | `GEMINI.md` and the prompts as custom commands, invoked as `/outpost:<name>` |
 
 Each tool writes to its own paths, so they can live in one project. The installer never overwrites a file you own.
 
@@ -151,7 +156,7 @@ Run `python validate.py` before you claim a change to the kit is done. It proves
 
 ## Consumers
 
-- Personal and team coding-agent workflows that need one prompt pack across Claude, Codex, Cursor, and Copilot
+- Personal and team coding-agent workflows that need one prompt pack across Claude, Codex, Cursor, Copilot, Windsurf, and Gemini CLI
 - The maintainer's other repos, product and tooling alike, which install Outpost the same way
 
 ## Release and versioning
