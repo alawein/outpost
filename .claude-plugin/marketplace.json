@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
+  "name": "outpost",
+  "owner": {
+    "name": "alawein"
+  },
+  "plugins": [
+    {
+      "name": "outpost",
+      "source": "./plugins/outpost",
+      "description": "Outpost as a Claude Code plugin: the core coding-discipline prompts as skills, plus the plugin commands, a review agent, a context hook, and the ledger-voice output style."
+    }
+  ]
+}

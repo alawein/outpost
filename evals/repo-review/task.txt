@@ -1,0 +1,2 @@
+Use the repo-review skill to audit this repository. The stated gate is `make test` and
+`make lint`. Report the findings in the conversation.

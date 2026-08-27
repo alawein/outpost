@@ -1,0 +1,65 @@
+name: Bug report
+description: Something in the kit does not work as it should.
+title: "[bug] "
+labels: ["type:bug"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What is wrong, in one or two sentences.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: The exact command(s) or steps that trigger it.
+      placeholder: |
+        python validate.py
+        ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected result
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual result
+      description: Include the exact error text or output.
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, Python version, and the Outpost version or commit.
+      placeholder: "Windows 11, Python 3.11, v0.1.0"
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Source evidence
+      description: File and line, command output, or a link that backs the problem claim.
+    validations:
+      required: false
+  - type: input
+    id: verification
+    attributes:
+      label: Verification command
+      description: A command that would confirm the fix, for example a pytest node id.
+      placeholder: "pytest tests/test_x.py::test_y -v"
+    validations:
+      required: false
+  - type: checkboxes
+    id: regression_test
+    attributes:
+      label: Regression test
+      options:
+        - label: This should ship with a test that fails before the fix and passes after it.
+          required: false

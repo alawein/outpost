@@ -1,0 +1,75 @@
+name: Hygiene finding
+description: A finding from a repo-hygiene-sweep run that needs routing.
+title: "[hygiene] "
+labels: ["type:maintenance"]
+body:
+  - type: textarea
+    id: finding
+    attributes:
+      label: Finding
+      description: What is wrong, as a claim, in one or two sentences.
+    validations:
+      required: true
+  - type: input
+    id: target
+    attributes:
+      label: Repository or path
+    validations:
+      required: true
+  - type: dropdown
+    id: topology
+    attributes:
+      label: Topology classification
+      options:
+        - active
+        - dirty
+        - archived
+        - generated
+        - vendored
+        - untested
+        - unreadable
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Source evidence
+      description: Path and line, command output, or another source location.
+    validations:
+      required: true
+  - type: dropdown
+    id: confidence
+    attributes:
+      label: Confidence
+      options:
+        - verified
+        - proposed
+        - unknown
+    validations:
+      required: true
+  - type: dropdown
+    id: route
+    attributes:
+      label: Route
+      options:
+        - fix now
+        - defer
+        - reject
+        - investigate
+    validations:
+      required: true
+  - type: input
+    id: verification
+    attributes:
+      label: Verification command
+      description: Copied from the target repo, for the routed work. repo-hygiene-sweep's own
+        stop conditions block a finding that lacks one.
+    validations:
+      required: true
+  - type: textarea
+    id: authority
+    attributes:
+      label: Authority required
+      description: What explicit authority a mutation here would need, if any.
+    validations:
+      required: false

@@ -1,0 +1,3 @@
+# Solo repo (docs/decisions/0001-solo-review-model.md): review routes to the owner. Outside PRs
+# get the owner's review; the owner's own PRs merge on green CI. See CLAUDE.md.
+* @alawein

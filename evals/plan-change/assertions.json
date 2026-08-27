@@ -1,0 +1,9 @@
+[
+  {"type": "file_not_modified", "path": "app.py"},
+  {"type": "tool_not_used", "names": ["Edit", "Write", "MultiEdit"]},
+  {"type": "text_contains", "value": "Goal"},
+  {"type": "text_contains", "value": "Files"},
+  {"type": "text_contains", "value": "Steps"},
+  {"type": "text_contains", "value": "Verification"},
+  {"type": "text_contains", "value": "Risks"}
+]

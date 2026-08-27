@@ -1,0 +1,33 @@
+name: Prompt proposal
+description: Propose a new prompt for the core pack.
+title: "[prompt] "
+labels: ["type:feature", "area:prompts"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Two questions decide admission: what recurring task the prompt owns, and which
+        existing prompt is closest to it. If the closest prompt already does the job, extend
+        that prompt instead.
+  - type: textarea
+    id: recurring_task
+    attributes:
+      label: Recurring task
+      description: The job this prompt does, in one or two sentences, and how often it comes up.
+    validations:
+      required: true
+  - type: input
+    id: nearest_sibling
+    attributes:
+      label: Nearest existing prompt
+      description: Name the closest prompt in prompts/core/ and the gap it leaves.
+      placeholder: "plan-change; it scopes an edit but does not rank findings"
+    validations:
+      required: true
+  - type: textarea
+    id: unsafe_default
+    attributes:
+      label: Unsafe default it prevents (optional)
+      description: What an agent does wrong without this prompt.
+    validations:
+      required: false
