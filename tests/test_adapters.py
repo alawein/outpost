@@ -287,13 +287,7 @@ def test_to_command_toml_rejects_a_control_character_in_the_description():
     # a TOML basic string cannot hold a raw control character either
     from kit.adapters.gemini import to_command_toml
     with pytest.raises(ValueError, match="control character"):
-        to_command_toml("x", "---
-name: x
-description: dd
----
-
-body
-")
+        to_command_toml("x", "---\nname: x\ndescription: d\x0cd\n---\n\nbody\n")
 
 
 def test_to_command_toml_escapes_the_description():
