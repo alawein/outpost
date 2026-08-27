@@ -22,9 +22,13 @@ def plan(kit_root: pathlib.Path, project_root: pathlib.Path, terse: bool = False
          select=None, tolerant: bool = False) -> list[Action]:
     actions: list[Action] = []
 
+    rule = read_template(kit_root, "windsurf-rules.md")
+    if len(rule) > WINDSURF_LIMIT:
+        raise ValueError(f".windsurf/rules/outpost.md: {len(rule)} characters exceeds Windsurf's "
+                         f"{WINDSURF_LIMIT}-character rule cap")
     actions.append(Action(
         path=".windsurf/rules/outpost.md",
-        content=read_template(kit_root, "windsurf-rules.md"),
+        content=rule,
         mode="create",
         note="always-on rule (left alone if you already have one)",
     ))

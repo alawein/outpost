@@ -204,6 +204,16 @@ def test_windsurf_refuses_a_prompt_over_the_cap(tmp_path):
         plan_for("windsurf", kit, tmp_path)
 
 
+def test_windsurf_refuses_a_rule_over_the_cap(tmp_path):
+    # the always-on rule has the same per-file cap as a workflow
+    kit = tmp_path / "kit"
+    (kit / "prompts" / "core").mkdir(parents=True)
+    (kit / "templates").mkdir()
+    (kit / "templates" / "windsurf-rules.md").write_text("r" * (WINDSURF_LIMIT + 1), encoding="utf-8")
+    with pytest.raises(ValueError, match="outpost.md"):
+        plan_for("windsurf", kit, tmp_path)
+
+
 def test_windsurf_leaves_existing_rule_alone(tmp_path):
     rules = tmp_path / ".windsurf" / "rules"
     rules.mkdir(parents=True)
@@ -271,6 +281,19 @@ def test_to_command_toml_rejects_a_control_character():
     from kit.adapters.gemini import to_command_toml
     with pytest.raises(ValueError, match="control character"):
         to_command_toml("x", "---\nname: x\ndescription: d\n---\n\nbody\x0cwith a form feed\n")
+
+
+def test_to_command_toml_rejects_a_control_character_in_the_description():
+    # a TOML basic string cannot hold a raw control character either
+    from kit.adapters.gemini import to_command_toml
+    with pytest.raises(ValueError, match="control character"):
+        to_command_toml("x", "---
+name: x
+description: dd
+---
+
+body
+")
 
 
 def test_to_command_toml_escapes_the_description():
