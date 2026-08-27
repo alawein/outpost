@@ -1,0 +1,95 @@
+"""Every shipped prompt is complete: it lints clean against the prompt contract."""
+import pathlib
+
+from kit.catalog import load_catalog
+from kit.checks.prompts import lint_prompt
+
+ROOT = pathlib.Path(__file__).resolve().parents[1]
+CORE = ROOT / "prompts" / "core"
+
+EXPECTED = {p["name"] for p in load_catalog(ROOT / "kit" / "catalog" / "catalog.json").prompts}
+
+
+def test_all_prompts_present():
+    assert {p.stem for p in CORE.glob("*.md")} == EXPECTED
+
+
+def test_every_prompt_lints_clean():
+    for p in sorted(CORE.glob("*.md")):
+        errors = lint_prompt(p.read_text(encoding="utf-8"), p.stem)
+        assert errors == [], (p.stem, errors)
+
+
+def test_repo_hygiene_sweep_binds_evidence_before_mutation():
+    text = (CORE / "repo-hygiene-sweep.md").read_text(encoding="utf-8").lower()
+
+    assert "read-only inventory" in text
+    assert "do not edit a dirty target" in text
+    assert "do not edit an archived target" in text
+    assert "do not edit a generated target" in text
+    assert "do not edit a vendored target" in text
+    assert "do not edit an untested target" in text
+    assert "do not edit an unreadable target" in text
+    assert "source evidence" in text
+    assert "confidence" in text
+    assert "route" in text
+    assert "verification command copied from the target repo" in text
+    assert "repo-defined commands" in text
+    assert "inspect each copied command's effects before execution" in text
+    assert "read-only local checks may run" in text
+    assert "move requires explicit authority" in text
+    assert "delete requires explicit authority" in text
+    assert "archive requires explicit authority" in text
+    assert "commit requires explicit authority" in text
+    assert "push requires explicit authority" in text
+    assert "dependency change requires explicit authority" in text
+    assert "external action requires explicit authority" in text
+    assert "evidence gate" in text
+    assert "triage" in text
+    assert "baseline gate" in text
+    assert "final gate" in text
+    assert "refactor test parity" in text
+    assert "explicit authority" in text
+
+    assert text.index("topology and catalog optimization") < text.index("workflow triage")
+    assert text.index("workflow triage") < text.index("simplification")
+    assert text.index("simplification") < text.index("technical debt reduction")
+    assert text.index("technical debt reduction") < text.index("behavior-preserving refactoring")
+
+
+def test_check_intent_blocks_on_a_missing_or_unexplained_extra():
+    text = (CORE / "check-intent.md").read_text(encoding="utf-8").lower()
+
+    assert "done, missing, or changed-approach" in text
+    assert "the diff touches that traces" in text
+    assert "no plan item, mark it extra" in text
+    assert "is accounted for" in text and "by that item; it is not extra" in text
+    assert "do not fold \"and tests for it\"" in text
+    assert "stop before `code-review` when a missing item or an unexplained extra remains open" in text
+    assert "not a blocker" in text
+    assert "do not fix anything here" in text
+    assert "accounted for. do not re-review" in text
+    assert "code quality; that is `code-review`'s job" in text
+
+    # the reconciliation order: enumerate the plan, then walk the diff against it
+    assert text.index("list every distinct item the plan or ask called for") < text.index(
+        "walk the diff file by file")
+
+
+def test_cross_doc_check_never_flags_a_wording_only_difference():
+    text = (CORE / "cross-doc-check.md").read_text(encoding="utf-8").lower()
+
+    assert "a wording difference alone" in text
+    assert "never be reported as a finding" in text or "is not a finding" in text
+    assert "direct contradiction" in text
+    assert "unexplained scope gap" in text
+
+
+def test_risk_review_refuses_to_approve_an_unattacked_claim():
+    text = (CORE / "risk-review.md").read_text(encoding="utf-8").lower()
+
+    assert "do not approve while a claim" in text
+    assert "has not been attacked" in text
+    assert "incomplete verdict" in text
+    assert "surrender" not in text  # guard against a future edit softening the requirement into a suggestion
+    assert "survived" in text and "broken" in text
