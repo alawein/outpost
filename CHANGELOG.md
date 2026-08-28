@@ -22,6 +22,9 @@ Format follows Keep a Changelog (https://keepachangelog.com). The kit uses SemVe
 - A drift benchmark under `benchmarks/drift/`: five seeded drift scenarios per adapter, scored
   by `--verify`, `git status`, and no tooling; `results.json` holds the published rows and CI
   re-runs them with `python benchmarks/drift/run.py --check`.
+- `--verify` reports `EDITED` for a guide the kit wrote (`CLAUDE.md`, `AGENTS.md`, and the
+  rest) whose bytes no longer match the manifest's `kit_hash`, with a one-line `NOTE:` count.
+  The guide is the user's, so the exit code is unchanged.
 
 ## [0.1.0] - 2026-08-27
 

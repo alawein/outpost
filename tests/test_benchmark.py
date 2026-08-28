@@ -101,12 +101,12 @@ def test_detect_verify_catches_an_edited_copy(pristine, tmp_path, tool):
 
 
 @pytest.mark.parametrize("tool", SUBSET)
-def test_detect_verify_misses_an_edited_guide(pristine, tmp_path, tool):
+def test_detect_verify_catches_an_edited_guide(pristine, tmp_path, tool):
     copy = _copy(pristine, tmp_path, "guide")
     paths = run.SEEDS["guide-edited"](copy, tool, ROOT)
     caught, line = run.detect_verify(ROOT, copy, paths)
-    assert not caught
-    assert line.split()[:2] == ["ok", paths[0]]
+    assert caught
+    assert line.split()[:2] == ["EDITED", paths[0]]
 
 
 @pytest.mark.parametrize("tool", SUBSET)

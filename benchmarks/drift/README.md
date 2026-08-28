@@ -72,26 +72,29 @@ combine the two. `--jobs N` sets how many rows run side by side (default 4).
 | orphan | copilot | caught | miss | miss |
 | orphan | windsurf | caught | miss | miss |
 | orphan | gemini | caught | miss | miss |
-| guide-edited | claude | miss | caught | miss |
-| guide-edited | codex | miss | caught | miss |
-| guide-edited | cursor | miss | caught | miss |
-| guide-edited | copilot | miss | caught | miss |
-| guide-edited | windsurf | miss | caught | miss |
-| guide-edited | gemini | miss | caught | miss |
-| total | | 24/30 | 18/30 | 0/30 |
+| guide-edited | claude | caught | caught | miss |
+| guide-edited | codex | caught | caught | miss |
+| guide-edited | cursor | caught | caught | miss |
+| guide-edited | copilot | caught | caught | miss |
+| guide-edited | windsurf | caught | caught | miss |
+| guide-edited | gemini | caught | caught | miss |
+| total | | 30/30 | 18/30 | 0/30 |
 <!-- /RESULTS -->
 
 Every scenario reads the same for all six tools, so the tool rows are replicates. Per kind of
-drift the score is verify 4 of 5, git 3 of 5; the 30-row totals are those times six. The
+drift the score is verify 5 of 5, git 3 of 5; the 30-row totals are those times six. The
 per-tool rows stay so a future adapter that differs shows up.
 
-## The miss
+## EDITED and the git misses
 
-`guide-edited` is a real miss for `verify`. A guide is a create-mode file: the kit writes it
-once, then leaves it as the user's. Verify reports it present and reads no further, so an edit
-there passes. Git catches it, since it is a change to a tracked file. The follow-up, an
-information line for a kit-written guide whose bytes no longer match the manifest hash, is
-tracked in `docs/DEBT.md`.
+`guide-edited` is caught by `verify` as `EDITED`, not `DRIFTED`. A guide is a create-mode
+file: the kit writes it once, then leaves it as the user's. The manifest keeps the hash of what
+the kit wrote, and verify compares the current bytes to it. A mismatch prints
+`EDITED <path> (yours to keep; differs from what the kit wrote)` plus a one-line `NOTE:` count.
+
+The row counts as caught because the path gets a status other than `ok`, but it is not a
+failure: the exit code stays 0 and no `DRIFT:` line prints. A guide that existed before the
+install has no kit baseline and stays `ok`.
 
 Not measured. Three more edits pass verify and git catches: an extra key in
 `.claude/settings.json` (a merge-mode file, re-merged from disk), a deleted guide (create-mode,

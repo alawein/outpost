@@ -437,8 +437,8 @@
       "paths": [
         "CLAUDE.md"
       ],
-      "verify": false,
-      "verify_line": "ok CLAUDE.md (present)",
+      "verify": true,
+      "verify_line": "EDITED CLAUDE.md (yours to keep; differs from what the kit wrote)",
       "git": true,
       "none": false
     },
@@ -448,8 +448,8 @@
       "paths": [
         "AGENTS.md"
       ],
-      "verify": false,
-      "verify_line": "ok AGENTS.md (present)",
+      "verify": true,
+      "verify_line": "EDITED AGENTS.md (yours to keep; differs from what the kit wrote)",
       "git": true,
       "none": false
     },
@@ -459,8 +459,8 @@
       "paths": [
         ".cursor/rules/outpost.mdc"
       ],
-      "verify": false,
-      "verify_line": "ok .cursor/rules/outpost.mdc (present)",
+      "verify": true,
+      "verify_line": "EDITED .cursor/rules/outpost.mdc (yours to keep; differs from what the kit wrote)",
       "git": true,
       "none": false
     },
@@ -470,8 +470,8 @@
       "paths": [
         ".github/copilot-instructions.md"
       ],
-      "verify": false,
-      "verify_line": "ok .github/copilot-instructions.md (present)",
+      "verify": true,
+      "verify_line": "EDITED .github/copilot-instructions.md (yours to keep; differs from what the kit wrote)",
       "git": true,
       "none": false
     },
@@ -481,8 +481,8 @@
       "paths": [
         ".windsurf/rules/outpost.md"
       ],
-      "verify": false,
-      "verify_line": "ok .windsurf/rules/outpost.md (present)",
+      "verify": true,
+      "verify_line": "EDITED .windsurf/rules/outpost.md (yours to keep; differs from what the kit wrote)",
       "git": true,
       "none": false
     },
@@ -492,15 +492,15 @@
       "paths": [
         "GEMINI.md"
       ],
-      "verify": false,
-      "verify_line": "ok GEMINI.md (present)",
+      "verify": true,
+      "verify_line": "EDITED GEMINI.md (yours to keep; differs from what the kit wrote)",
       "git": true,
       "none": false
     }
   ],
   "totals": {
     "verify": [
-      24,
+      30,
       30
     ],
     "git": [
