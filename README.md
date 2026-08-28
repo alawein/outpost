@@ -142,6 +142,7 @@ Each tool writes to its own paths, so they can live in one project. The installe
 - [docs/contributing.md](docs/contributing.md)
 - [docs/releasing.md](docs/releasing.md)
 - [docs/ROADMAP.md](docs/ROADMAP.md)
+- [benchmarks/drift/README.md](benchmarks/drift/README.md)
 - [docs/adapters.md](docs/adapters.md)
 - [docs/how-this-is-built.md](docs/how-this-is-built.md)
 - [docs/plugin.md](docs/plugin.md)
@@ -152,7 +153,7 @@ Each tool writes to its own paths, so they can live in one project. The installe
 - [AGENTS.md](AGENTS.md)
 - [CLAUDE.md](CLAUDE.md)
 
-Run `python validate.py` before you claim a change to the kit is done. It proves the kit source tree: files, counts, prompts, docs, coexistence, secrets, and house voice. It does not check a consumer repo; verify an install there with `python install.py --tool <tool> --project <target> --verify` from the kit checkout. CI runs `validate.py` and `pytest` on Linux and Windows.
+Run `python validate.py` before you claim a change to the kit is done. It proves the kit source tree: files, counts, prompts, docs, coexistence, secrets, and house voice. It does not check a consumer repo; verify an install there with `python install.py --tool <tool> --project <target> --verify` from the kit checkout. CI runs `validate.py`, `pytest`, and the drift benchmark's `--check` on Linux and Windows.
 
 ## Consumers
 

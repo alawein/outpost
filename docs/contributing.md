@@ -13,7 +13,7 @@ How to add to the kit without breaking it. The catalog lists what ships, and `py
 ## Ground rules
 
 - A change is done when `python validate.py` and `python -m pytest -q` pass. CI runs both on
-  Linux and Windows.
+  Linux and Windows, then `python benchmarks/drift/run.py --check`.
 - Standard library only. No third-party imports in the core, the installer, or the checks.
 - One concern per pull request; target 400 changed lines and 20 files or fewer, and say why in
   the body when you exceed it. Delete the branch on merge.
@@ -58,6 +58,11 @@ committed span drifts from the generator.
 3. Keep its paths separate from the others; `adapters` proves the tools can coexist.
 4. Name the tool in the README "Supported tools" table and the docs/adapters.md "What each tool gets" table; the `doc_truth` check fails while either misses it.
 5. Add a test that the new adapter and the existing ones coexist.
+
+A new adapter joins the drift benchmark by existing: the runner reads its paths from
+`plan_for`, not from a table. After adding one, run `python benchmarks/drift/run.py --write`
+and commit `benchmarks/drift/results.json` (plus the table it rewrites in
+`benchmarks/drift/README.md`), or the CI `--check` step fails on the new rows.
 
 ## Add a check
 

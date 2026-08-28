@@ -26,17 +26,16 @@ Current release: v0.1.0. The table is the live state.
 | Docs | built | Onboarding, workflow, writing standard, adapters, contributing, releasing, plugin, token budget, labels, how this is built, debt, roadmap |
 | Tests | built | The kit's own suite over the installer, adapters, catalog, and checks |
 | Claude Code plugin | built | `plugins/outpost/`: the core catalog skills, nine commands (/outpost:stress, /outpost:ship, /outpost:drive, /outpost:doctor, /outpost:repo-review, /outpost:code-review, /outpost:simplify, /outpost:prove, /outpost:triage), one read-only agent (architecture-guardian), one context hook, and a ledger voice output style (ledger-voice); see `docs/plugin.md` |
+| Benchmark | built | `benchmarks/drift/`: five seeded drift scenarios per adapter, each scored by three detectors (the installer's `--verify`, `git status`, and none); `results.json` is the published table, CI re-runs it with `--check`, and a miss stays a published row; see `benchmarks/drift/README.md` |
 
 The smoke proof: a clean clone with only Python installed runs `python install.py --tool all --project <target>` into a scratch repo, then `python validate.py` from the kit checkout, and both pass. That proves packaging and parity (the files, counts, and generated copies agree, and the install lands), not that the prompts make an agent more effective. A consumer repo verifies its own install with `python install.py --tool <tool> --project <target> --verify`.
 
 ## Planned
 
-- A drift benchmark under `benchmarks/`: seeded drift scenarios across every supported tool,
-  the verify step's catch rate against a no-tooling baseline, reproducible from its README.
 - Watching an outside library: a catalog source that points at a skill tree the kit does not
   own, installed and verified the same way.
 - The README rewrite that leads with the benchmark.
-- 1.0 once the three items above are real.
+- 1.0 once the two items above are real.
 
 ## Out of scope
 

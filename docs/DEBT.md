@@ -22,5 +22,9 @@ moves to Closed with the change that closed it; it is never deleted.
 - 2026-08-27: the `code-review` eval's `text_contains_any` list (`evals/code-review/assertions.json`)
   is generic: any bounds discussion passes without naming the seeded `pct` defect. Taken to get
   the eval running. Close by asserting on `pct` and the missing test file.
+- 2026-08-27: `--verify` reads no create-mode guide, so `guide-edited` is a published miss in
+  `benchmarks/drift/results.json`. Taken because the guide is the user's file. Close by an
+  information line for a kit-written guide whose bytes no longer match the manifest `kit_hash`,
+  then re-run `python benchmarks/drift/run.py --write`.
 
 ## Closed
