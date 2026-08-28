@@ -1,0 +1,515 @@
+{
+  "kit_version": "0.1.0",
+  "tools": [
+    "claude",
+    "codex",
+    "cursor",
+    "copilot",
+    "windsurf",
+    "gemini"
+  ],
+  "scenarios": [
+    "edited-copy",
+    "deleted-copy",
+    "source-ahead",
+    "orphan",
+    "guide-edited"
+  ],
+  "rows": [
+    {
+      "scenario": "edited-copy",
+      "tool": "claude",
+      "paths": [
+        ".claude/skills/plan-change/SKILL.md"
+      ],
+      "verify": true,
+      "verify_line": "DRIFTED .claude/skills/plan-change/SKILL.md",
+      "git": true,
+      "none": false
+    },
+    {
+      "scenario": "edited-copy",
+      "tool": "codex",
+      "paths": [
+        ".agents/prompts/plan-change.md"
+      ],
+      "verify": true,
+      "verify_line": "DRIFTED .agents/prompts/plan-change.md",
+      "git": true,
+      "none": false
+    },
+    {
+      "scenario": "edited-copy",
+      "tool": "cursor",
+      "paths": [
+        ".cursor/rules/outpost/plan-change.md"
+      ],
+      "verify": true,
+      "verify_line": "DRIFTED .cursor/rules/outpost/plan-change.md",
+      "git": true,
+      "none": false
+    },
+    {
+      "scenario": "edited-copy",
+      "tool": "copilot",
+      "paths": [
+        ".github/prompts/plan-change.prompt.md"
+      ],
+      "verify": true,
+      "verify_line": "DRIFTED .github/prompts/plan-change.prompt.md",
+      "git": true,
+      "none": false
+    },
+    {
+      "scenario": "edited-copy",
+      "tool": "windsurf",
+      "paths": [
+        ".windsurf/workflows/outpost-plan-change.md"
+      ],
+      "verify": true,
+      "verify_line": "DRIFTED .windsurf/workflows/outpost-plan-change.md",
+      "git": true,
+      "none": false
+    },
+    {
+      "scenario": "edited-copy",
+      "tool": "gemini",
+      "paths": [
+        ".gemini/commands/outpost/plan-change.toml"
+      ],
+      "verify": true,
+      "verify_line": "DRIFTED .gemini/commands/outpost/plan-change.toml",
+      "git": true,
+      "none": false
+    },
+    {
+      "scenario": "deleted-copy",
+      "tool": "claude",
+      "paths": [
+        ".claude/skills/write-tests/SKILL.md"
+      ],
+      "verify": true,
+      "verify_line": "MISSING .claude/skills/write-tests/SKILL.md",
+      "git": true,
+      "none": false
+    },
+    {
+      "scenario": "deleted-copy",
+      "tool": "codex",
+      "paths": [
+        ".agents/prompts/write-tests.md"
+      ],
+      "verify": true,
+      "verify_line": "MISSING .agents/prompts/write-tests.md",
+      "git": true,
+      "none": false
+    },
+    {
+      "scenario": "deleted-copy",
+      "tool": "cursor",
+      "paths": [
+        ".cursor/rules/outpost/write-tests.md"
+      ],
+      "verify": true,
+      "verify_line": "MISSING .cursor/rules/outpost/write-tests.md",
+      "git": true,
+      "none": false
+    },
+    {
+      "scenario": "deleted-copy",
+      "tool": "copilot",
+      "paths": [
+        ".github/prompts/write-tests.prompt.md"
+      ],
+      "verify": true,
+      "verify_line": "MISSING .github/prompts/write-tests.prompt.md",
+      "git": true,
+      "none": false
+    },
+    {
+      "scenario": "deleted-copy",
+      "tool": "windsurf",
+      "paths": [
+        ".windsurf/workflows/outpost-write-tests.md"
+      ],
+      "verify": true,
+      "verify_line": "MISSING .windsurf/workflows/outpost-write-tests.md",
+      "git": true,
+      "none": false
+    },
+    {
+      "scenario": "deleted-copy",
+      "tool": "gemini",
+      "paths": [
+        ".gemini/commands/outpost/write-tests.toml"
+      ],
+      "verify": true,
+      "verify_line": "MISSING .gemini/commands/outpost/write-tests.toml",
+      "git": true,
+      "none": false
+    },
+    {
+      "scenario": "source-ahead",
+      "tool": "claude",
+      "paths": [
+        ".claude/skills/plan-change/SKILL.md"
+      ],
+      "verify": true,
+      "verify_line": "DRIFTED .claude/skills/plan-change/SKILL.md",
+      "git": false,
+      "none": false
+    },
+    {
+      "scenario": "source-ahead",
+      "tool": "codex",
+      "paths": [
+        ".agents/prompts/plan-change.md"
+      ],
+      "verify": true,
+      "verify_line": "DRIFTED .agents/prompts/plan-change.md",
+      "git": false,
+      "none": false
+    },
+    {
+      "scenario": "source-ahead",
+      "tool": "cursor",
+      "paths": [
+        ".cursor/rules/outpost/plan-change.md"
+      ],
+      "verify": true,
+      "verify_line": "DRIFTED .cursor/rules/outpost/plan-change.md",
+      "git": false,
+      "none": false
+    },
+    {
+      "scenario": "source-ahead",
+      "tool": "copilot",
+      "paths": [
+        ".github/prompts/plan-change.prompt.md"
+      ],
+      "verify": true,
+      "verify_line": "DRIFTED .github/prompts/plan-change.prompt.md",
+      "git": false,
+      "none": false
+    },
+    {
+      "scenario": "source-ahead",
+      "tool": "windsurf",
+      "paths": [
+        ".windsurf/workflows/outpost-plan-change.md"
+      ],
+      "verify": true,
+      "verify_line": "DRIFTED .windsurf/workflows/outpost-plan-change.md",
+      "git": false,
+      "none": false
+    },
+    {
+      "scenario": "source-ahead",
+      "tool": "gemini",
+      "paths": [
+        ".gemini/commands/outpost/plan-change.toml"
+      ],
+      "verify": true,
+      "verify_line": "DRIFTED .gemini/commands/outpost/plan-change.toml",
+      "git": false,
+      "none": false
+    },
+    {
+      "scenario": "orphan",
+      "tool": "claude",
+      "paths": [
+        ".claude/skills/check-intent/SKILL.md",
+        ".claude/skills/code-review/SKILL.md",
+        ".claude/skills/converge/SKILL.md",
+        ".claude/skills/cross-doc-check/SKILL.md",
+        ".claude/skills/debt-log/SKILL.md",
+        ".claude/skills/debug-failure/SKILL.md",
+        ".claude/skills/grill/SKILL.md",
+        ".claude/skills/handoff-session/SKILL.md",
+        ".claude/skills/implement-change/SKILL.md",
+        ".claude/skills/interrogate/SKILL.md",
+        ".claude/skills/orient-repo/SKILL.md",
+        ".claude/skills/panel/SKILL.md",
+        ".claude/skills/premortem/SKILL.md",
+        ".claude/skills/prepare-pr/SKILL.md",
+        ".claude/skills/prove/SKILL.md",
+        ".claude/skills/record-decision/SKILL.md",
+        ".claude/skills/refactor-safely/SKILL.md",
+        ".claude/skills/repo-hygiene-sweep/SKILL.md",
+        ".claude/skills/repo-review/SKILL.md",
+        ".claude/skills/respond-to-review/SKILL.md",
+        ".claude/skills/risk-review/SKILL.md",
+        ".claude/skills/self-refute/SKILL.md",
+        ".claude/skills/simplify/SKILL.md",
+        ".claude/skills/split-change/SKILL.md",
+        ".claude/skills/triage/SKILL.md",
+        ".claude/skills/write-doc/SKILL.md",
+        ".claude/skills/write-tests/SKILL.md"
+      ],
+      "verify": true,
+      "verify_line": "EXTRA .claude/skills/check-intent/SKILL.md (installed but not in the manifest; re-install or remove)",
+      "git": false,
+      "none": false
+    },
+    {
+      "scenario": "orphan",
+      "tool": "codex",
+      "paths": [
+        ".agents/prompts/check-intent.md",
+        ".agents/prompts/code-review.md",
+        ".agents/prompts/cross-doc-check.md",
+        ".agents/prompts/debt-log.md",
+        ".agents/prompts/debug-failure.md",
+        ".agents/prompts/grill.md",
+        ".agents/prompts/handoff-session.md",
+        ".agents/prompts/implement-change.md",
+        ".agents/prompts/interrogate.md",
+        ".agents/prompts/orient-repo.md",
+        ".agents/prompts/panel.md",
+        ".agents/prompts/premortem.md",
+        ".agents/prompts/prepare-pr.md",
+        ".agents/prompts/prove.md",
+        ".agents/prompts/record-decision.md",
+        ".agents/prompts/refactor-safely.md",
+        ".agents/prompts/repo-hygiene-sweep.md",
+        ".agents/prompts/repo-review.md",
+        ".agents/prompts/respond-to-review.md",
+        ".agents/prompts/risk-review.md",
+        ".agents/prompts/self-refute.md",
+        ".agents/prompts/simplify.md",
+        ".agents/prompts/split-change.md",
+        ".agents/prompts/triage.md",
+        ".agents/prompts/write-doc.md",
+        ".agents/prompts/write-tests.md"
+      ],
+      "verify": true,
+      "verify_line": "EXTRA .agents/prompts/check-intent.md (installed but not in the manifest; re-install or remove)",
+      "git": false,
+      "none": false
+    },
+    {
+      "scenario": "orphan",
+      "tool": "cursor",
+      "paths": [
+        ".cursor/rules/outpost/check-intent.md",
+        ".cursor/rules/outpost/code-review.md",
+        ".cursor/rules/outpost/cross-doc-check.md",
+        ".cursor/rules/outpost/debt-log.md",
+        ".cursor/rules/outpost/debug-failure.md",
+        ".cursor/rules/outpost/grill.md",
+        ".cursor/rules/outpost/handoff-session.md",
+        ".cursor/rules/outpost/implement-change.md",
+        ".cursor/rules/outpost/interrogate.md",
+        ".cursor/rules/outpost/orient-repo.md",
+        ".cursor/rules/outpost/panel.md",
+        ".cursor/rules/outpost/premortem.md",
+        ".cursor/rules/outpost/prepare-pr.md",
+        ".cursor/rules/outpost/prove.md",
+        ".cursor/rules/outpost/record-decision.md",
+        ".cursor/rules/outpost/refactor-safely.md",
+        ".cursor/rules/outpost/repo-hygiene-sweep.md",
+        ".cursor/rules/outpost/repo-review.md",
+        ".cursor/rules/outpost/respond-to-review.md",
+        ".cursor/rules/outpost/risk-review.md",
+        ".cursor/rules/outpost/self-refute.md",
+        ".cursor/rules/outpost/simplify.md",
+        ".cursor/rules/outpost/split-change.md",
+        ".cursor/rules/outpost/triage.md",
+        ".cursor/rules/outpost/write-doc.md",
+        ".cursor/rules/outpost/write-tests.md"
+      ],
+      "verify": true,
+      "verify_line": "EXTRA .cursor/rules/outpost/check-intent.md (installed but not in the manifest; re-install or remove)",
+      "git": false,
+      "none": false
+    },
+    {
+      "scenario": "orphan",
+      "tool": "copilot",
+      "paths": [
+        ".github/prompts/check-intent.prompt.md",
+        ".github/prompts/code-review.prompt.md",
+        ".github/prompts/cross-doc-check.prompt.md",
+        ".github/prompts/debt-log.prompt.md",
+        ".github/prompts/debug-failure.prompt.md",
+        ".github/prompts/grill.prompt.md",
+        ".github/prompts/handoff-session.prompt.md",
+        ".github/prompts/implement-change.prompt.md",
+        ".github/prompts/interrogate.prompt.md",
+        ".github/prompts/orient-repo.prompt.md",
+        ".github/prompts/panel.prompt.md",
+        ".github/prompts/premortem.prompt.md",
+        ".github/prompts/prepare-pr.prompt.md",
+        ".github/prompts/prove.prompt.md",
+        ".github/prompts/record-decision.prompt.md",
+        ".github/prompts/refactor-safely.prompt.md",
+        ".github/prompts/repo-hygiene-sweep.prompt.md",
+        ".github/prompts/repo-review.prompt.md",
+        ".github/prompts/respond-to-review.prompt.md",
+        ".github/prompts/risk-review.prompt.md",
+        ".github/prompts/self-refute.prompt.md",
+        ".github/prompts/simplify.prompt.md",
+        ".github/prompts/split-change.prompt.md",
+        ".github/prompts/triage.prompt.md",
+        ".github/prompts/write-doc.prompt.md",
+        ".github/prompts/write-tests.prompt.md"
+      ],
+      "verify": true,
+      "verify_line": "EXTRA .github/prompts/check-intent.prompt.md (installed but not in the manifest; re-install or remove)",
+      "git": false,
+      "none": false
+    },
+    {
+      "scenario": "orphan",
+      "tool": "windsurf",
+      "paths": [
+        ".windsurf/workflows/outpost-check-intent.md",
+        ".windsurf/workflows/outpost-code-review.md",
+        ".windsurf/workflows/outpost-cross-doc-check.md",
+        ".windsurf/workflows/outpost-debt-log.md",
+        ".windsurf/workflows/outpost-debug-failure.md",
+        ".windsurf/workflows/outpost-grill.md",
+        ".windsurf/workflows/outpost-handoff-session.md",
+        ".windsurf/workflows/outpost-implement-change.md",
+        ".windsurf/workflows/outpost-interrogate.md",
+        ".windsurf/workflows/outpost-orient-repo.md",
+        ".windsurf/workflows/outpost-panel.md",
+        ".windsurf/workflows/outpost-premortem.md",
+        ".windsurf/workflows/outpost-prepare-pr.md",
+        ".windsurf/workflows/outpost-prove.md",
+        ".windsurf/workflows/outpost-record-decision.md",
+        ".windsurf/workflows/outpost-refactor-safely.md",
+        ".windsurf/workflows/outpost-repo-hygiene-sweep.md",
+        ".windsurf/workflows/outpost-repo-review.md",
+        ".windsurf/workflows/outpost-respond-to-review.md",
+        ".windsurf/workflows/outpost-risk-review.md",
+        ".windsurf/workflows/outpost-self-refute.md",
+        ".windsurf/workflows/outpost-simplify.md",
+        ".windsurf/workflows/outpost-split-change.md",
+        ".windsurf/workflows/outpost-triage.md",
+        ".windsurf/workflows/outpost-write-doc.md",
+        ".windsurf/workflows/outpost-write-tests.md"
+      ],
+      "verify": true,
+      "verify_line": "EXTRA .windsurf/workflows/outpost-check-intent.md (installed but not in the manifest; re-install or remove)",
+      "git": false,
+      "none": false
+    },
+    {
+      "scenario": "orphan",
+      "tool": "gemini",
+      "paths": [
+        ".gemini/commands/outpost/check-intent.toml",
+        ".gemini/commands/outpost/code-review.toml",
+        ".gemini/commands/outpost/cross-doc-check.toml",
+        ".gemini/commands/outpost/debt-log.toml",
+        ".gemini/commands/outpost/debug-failure.toml",
+        ".gemini/commands/outpost/grill.toml",
+        ".gemini/commands/outpost/handoff-session.toml",
+        ".gemini/commands/outpost/implement-change.toml",
+        ".gemini/commands/outpost/interrogate.toml",
+        ".gemini/commands/outpost/orient-repo.toml",
+        ".gemini/commands/outpost/panel.toml",
+        ".gemini/commands/outpost/premortem.toml",
+        ".gemini/commands/outpost/prepare-pr.toml",
+        ".gemini/commands/outpost/prove.toml",
+        ".gemini/commands/outpost/record-decision.toml",
+        ".gemini/commands/outpost/refactor-safely.toml",
+        ".gemini/commands/outpost/repo-hygiene-sweep.toml",
+        ".gemini/commands/outpost/repo-review.toml",
+        ".gemini/commands/outpost/respond-to-review.toml",
+        ".gemini/commands/outpost/risk-review.toml",
+        ".gemini/commands/outpost/self-refute.toml",
+        ".gemini/commands/outpost/simplify.toml",
+        ".gemini/commands/outpost/split-change.toml",
+        ".gemini/commands/outpost/triage.toml",
+        ".gemini/commands/outpost/write-doc.toml",
+        ".gemini/commands/outpost/write-tests.toml"
+      ],
+      "verify": true,
+      "verify_line": "EXTRA .gemini/commands/outpost/check-intent.toml (installed but not in the manifest; re-install or remove)",
+      "git": false,
+      "none": false
+    },
+    {
+      "scenario": "guide-edited",
+      "tool": "claude",
+      "paths": [
+        "CLAUDE.md"
+      ],
+      "verify": false,
+      "verify_line": "ok CLAUDE.md (present)",
+      "git": true,
+      "none": false
+    },
+    {
+      "scenario": "guide-edited",
+      "tool": "codex",
+      "paths": [
+        "AGENTS.md"
+      ],
+      "verify": false,
+      "verify_line": "ok AGENTS.md (present)",
+      "git": true,
+      "none": false
+    },
+    {
+      "scenario": "guide-edited",
+      "tool": "cursor",
+      "paths": [
+        ".cursor/rules/outpost.mdc"
+      ],
+      "verify": false,
+      "verify_line": "ok .cursor/rules/outpost.mdc (present)",
+      "git": true,
+      "none": false
+    },
+    {
+      "scenario": "guide-edited",
+      "tool": "copilot",
+      "paths": [
+        ".github/copilot-instructions.md"
+      ],
+      "verify": false,
+      "verify_line": "ok .github/copilot-instructions.md (present)",
+      "git": true,
+      "none": false
+    },
+    {
+      "scenario": "guide-edited",
+      "tool": "windsurf",
+      "paths": [
+        ".windsurf/rules/outpost.md"
+      ],
+      "verify": false,
+      "verify_line": "ok .windsurf/rules/outpost.md (present)",
+      "git": true,
+      "none": false
+    },
+    {
+      "scenario": "guide-edited",
+      "tool": "gemini",
+      "paths": [
+        "GEMINI.md"
+      ],
+      "verify": false,
+      "verify_line": "ok GEMINI.md (present)",
+      "git": true,
+      "none": false
+    }
+  ],
+  "totals": {
+    "verify": [
+      24,
+      30
+    ],
+    "git": [
+      18,
+      30
+    ],
+    "none": [
+      0,
+      30
+    ]
+  }
+}
