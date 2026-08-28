@@ -1,5 +1,6 @@
 """The installer is safe and idempotent: dry-run writes nothing, a real install is repeatable, and
 a user-owned file is never overwritten."""
+import dataclasses
 import json
 import pathlib
 
@@ -234,6 +235,15 @@ def test_verify_treats_crlf_kit_file_as_in_sync(tmp_path):
     skill.write_bytes(text.replace("\n", "\r\n").encode("utf-8"))  # same text, CRLF
     rc = install.main(["--tool", "claude", "--project", str(tmp_path), "--verify"])
     assert rc == 0  # newline-normalized comparison treats same-text as in sync
+
+
+def test_verify_treats_crlf_guide_as_not_edited(tmp_path, capsys):
+    install.main(["--tool", "claude", "--project", str(tmp_path)])
+    guide = tmp_path / "CLAUDE.md"
+    guide.write_bytes(guide.read_text(encoding="utf-8").replace("\n", "\r\n").encode("utf-8"))
+    capsys.readouterr()
+    assert install.main(["--tool", "claude", "--project", str(tmp_path), "--verify"]) == 0
+    assert "EDITED" not in capsys.readouterr().out
 
 
 # Team tailoring: prompt subset selection (Task 4)
@@ -2105,3 +2115,78 @@ def test_apply_skips_a_symlink_loop_instead_of_crashing(tmp_path, monkeypatch, c
 
     assert tally["skip (escapes)"] == 1
     assert "loop.md (resolves outside the project via a symlink; left alone)" in out
+
+
+# Phase 3b: verify reports a kit-written guide whose bytes no longer match the manifest kit_hash.
+# The guide stays the user's: EDITED is information, never drift, so the exit code is unchanged.
+
+def _verify_lines(out: str) -> list:
+    return [" ".join(line.split()) for line in out.splitlines()]
+
+
+def test_verify_reports_an_edited_kit_written_guide(tmp_path, capsys):
+    install.main(["--tool", "claude", "--project", str(tmp_path)])
+    capsys.readouterr()
+    assert install.main(["--tool", "claude", "--project", str(tmp_path), "--verify"]) == 0
+    assert "EDITED" not in capsys.readouterr().out  # an untouched guide is not edited
+    guide = tmp_path / "CLAUDE.md"
+    guide.write_text(guide.read_text(encoding="utf-8") + "\nmy own line\n", encoding="utf-8")
+    rc = install.main(["--tool", "claude", "--project", str(tmp_path), "--verify"])
+    out = capsys.readouterr().out
+    assert rc == 0  # information, not drift
+    lines = _verify_lines(out)
+    assert "EDITED CLAUDE.md (yours to keep; differs from what the kit wrote)" in lines
+    assert not any(line.startswith("ok CLAUDE.md") for line in lines)
+    assert "DRIFT:" not in out
+    assert "in sync" in out
+    assert sum(line.startswith("NOTE: 1 guide") for line in lines) == 1
+
+
+def test_verify_is_silent_for_an_edited_pre_existing_guide(tmp_path, capsys):
+    guide = tmp_path / "CLAUDE.md"
+    guide.write_text("my own guide\n", encoding="utf-8")
+    install.main(["--tool", "claude", "--project", str(tmp_path)])
+    guide.write_text("my own guide, edited\n", encoding="utf-8")
+    capsys.readouterr()
+    rc = install.main(["--tool", "claude", "--project", str(tmp_path), "--verify"])
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert "ok CLAUDE.md (present)" in _verify_lines(out)
+    assert "EDITED" not in out and "NOTE:" not in out  # no kit baseline, nothing to report
+
+
+def test_verify_edited_note_counts_across_tools(tmp_path, capsys):
+    install.main(["--tool", "all", "--project", str(tmp_path)])
+    for name in ("CLAUDE.md", "AGENTS.md"):
+        guide = tmp_path / name
+        guide.write_text(guide.read_text(encoding="utf-8") + "\nmy own line\n", encoding="utf-8")
+    capsys.readouterr()
+    rc = install.main(["--tool", "all", "--project", str(tmp_path), "--verify"])
+    out = capsys.readouterr().out
+    assert rc == 0
+    lines = _verify_lines(out)
+    assert any(line.startswith("EDITED CLAUDE.md ") for line in lines)
+    assert any(line.startswith("EDITED AGENTS.md ") for line in lines)
+    assert any(line.startswith("ok GEMINI.md (present)") for line in lines)  # untouched
+    notes = [line for line in lines if line.startswith("NOTE:")]
+    assert len(notes) == 1 and notes[0].startswith("NOTE: 2 guide")
+
+
+def test_verify_baseline_is_the_manifest_hash_not_the_current_template(tmp_path, monkeypatch,
+                                                                         capsys):
+    # A guide the kit wrote at an older version, left alone, stays ok after the template changes:
+    # the baseline is the manifest kit_hash, not a re-rendered template.
+    install.main(["--tool", "claude", "--project", str(tmp_path)])
+    real_plan = install.plan_for
+
+    def newer_kit(*args, **kwargs):
+        return [dataclasses.replace(a, content=a.content + "\nnewer kit line\n")
+                if a.path == "CLAUDE.md" else a for a in real_plan(*args, **kwargs)]
+
+    monkeypatch.setattr(install, "plan_for", newer_kit)
+    capsys.readouterr()
+    rc = install.main(["--tool", "claude", "--project", str(tmp_path), "--verify"])
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert "ok CLAUDE.md (present)" in _verify_lines(out)
+    assert "EDITED" not in out and "NOTE:" not in out

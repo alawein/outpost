@@ -193,6 +193,16 @@ def _user_owned_paths(manifest: dict, tools) -> set:
     return owned
 
 
+def _kit_hashes(manifest: dict, tools) -> dict:
+    """Per kit-created path, the hash of what the kit wrote: verify's baseline for a guide."""
+    hashes = {}
+    for t in tools:
+        files = (manifest.get("tools", {}).get(t) or {}).get("files") or {}
+        hashes.update({p: r["kit_hash"] for p, r in files.items()
+                       if not r.get("existed") and r.get("kit_hash")})
+    return hashes
+
+
 def manifest_action(prev_manifest: dict, tool, select_label, select_set, cat,
                     terse: bool, records_by_tool: dict) -> Action:
     """One merge Action recording, per installed tool, the resolved prompts, whether terse was used,
@@ -731,8 +741,8 @@ def render_plan(actions, project_root: pathlib.Path, protected=frozenset()) -> l
     return lines
 
 
-def verify(actions, project_root: pathlib.Path,
-          user_owned=frozenset()) -> tuple[bool, list[str], list[str], bool]:
+def verify(actions, project_root: pathlib.Path, user_owned=frozenset(),
+          kit_hashes: dict | None = None) -> tuple[bool, list[str], list[str], bool]:
     """Check an existing install against the plan without writing. A kit-owned action (write or
     merge) that is missing or content-drifted is a failure; a user-owned target (a create action,
     or a path the manifest records as pre-existing) is fine present or absent. A kit-owned action
@@ -742,7 +752,9 @@ def verify(actions, project_root: pathlib.Path,
     a symlink escape to re-run install when nothing about re-running install touches it. Returns
     (in_sync, report_lines, escaped_paths, missing_or_drifted): escaped_paths are the action paths
     reported ESCAPED above, and missing_or_drifted is True when at least one action is genuinely
-    MISSING or DRIFTED, i.e. something a re-install actually fixes."""
+    MISSING or DRIFTED, i.e. something a re-install actually fixes. EDITED (a kit-written guide
+    off its kit_hash) is information only."""
+    kit_hashes = kit_hashes or {}
     ok = True
     missing_or_drifted = False
     lines: list[str] = []
@@ -750,7 +762,17 @@ def verify(actions, project_root: pathlib.Path,
     for a in actions:
         status = a.status(project_root)
         if a.mode == "create" or (a.mode == "write" and a.path in user_owned):
-            where = "present" if (project_root / a.path).exists() else "absent (optional)"
+            target = project_root / a.path
+            where = "present" if target.exists() else "absent (optional)"
+            try:  # a kit-written guide (kit_hash recorded) whose text moved: the user's edit.
+                # Newline-normalized like the kit-file check, so a CRLF checkout is not EDITED.
+                edited = (a.mode == "create" and a.path in kit_hashes and target.is_file()
+                          and _hash_str(target.read_text(encoding="utf-8")) != kit_hashes[a.path])
+            except (OSError, UnicodeDecodeError):
+                edited = False  # unreadable: nothing to compare, and never a failure here
+            if edited:
+                lines.append(f"  EDITED  {a.path} (yours to keep; differs from what the kit wrote)")
+                continue
             lines.append(f"  ok      {a.path} ({where})")
             continue
         if a.mode in ("write", "create", "merge") and not _is_contained(project_root, a.path):
@@ -848,7 +870,8 @@ def main(argv: list[str] | None = None) -> int:
             # a corrupt config (the Claude settings file) can't be planned against; say so cleanly
             print(f"error: {e}", file=sys.stderr)
             return 1
-        ok, lines, escaped_actions, missing_or_drifted = verify(actions, project_root, user_owned)
+        ok, lines, escaped_actions, missing_or_drifted = verify(
+            actions, project_root, user_owned, _kit_hashes(manifest, _tools_for(args.tool)))
         for line in lines:
             print(line)
         for path in orphans:
@@ -899,6 +922,9 @@ def main(argv: list[str] | None = None) -> int:
         # A stale version stamp is not file drift, so it never changes the verdict: print it as a
         # note after, whether the files are in sync or not.
         note = _version_note(manifest, cat.version)
+        edited = sum(line.startswith("  EDITED") for line in lines)
+        if edited:  # information only: the guides are the user's, so the verdict is unchanged
+            print(f"NOTE: {edited} guide(s) edited since install; yours to keep, not drift")
         # An orphan is drift the other way: a kit-owned prompt the recorded selection excludes is
         # still on disk. verify is a gate, so extras fail it just like a missing or modified file.
         if (ok and not orphans and not stale and not leftovers and not escaped_orphans

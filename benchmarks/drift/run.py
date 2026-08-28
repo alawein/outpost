@@ -275,7 +275,7 @@ def detect_verify(kit_root: pathlib.Path, project: pathlib.Path, paths: list) ->
     """Run `--verify` from `kit_root` and read its report. Caught when a line names one of
     `paths` with a status token other than `ok`. Returns that line (whitespace collapsed), or
     the first `ok` line naming a seeded path on a miss. A healthy report names every seeded
-    path (ok, MISSING, DRIFTED, or EXTRA), so a report naming none means verify did not run
+    path (ok, MISSING, DRIFTED, EXTRA, or EDITED), so a report naming none means verify did not run
     (a corrupt manifest, a plan error) and the run aborts rather than publish a miss."""
     wanted = set(paths)
     seen = ""
