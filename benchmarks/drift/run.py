@@ -412,6 +412,24 @@ def _diff_rows(stored: dict, fresh: dict) -> list:
     return out
 
 
+def check_problems(results: dict, table: str, results_path: pathlib.Path,
+                   readme_path: pathlib.Path) -> list:
+    """Everything --check would complain about: a missing or differing results file, and a
+    missing or stale README table. A missing file is a problem, never a pass, so a check can
+    not go green by pointing at a path that does not exist."""
+    problems = []
+    if not results_path.is_file():
+        problems.append(f"{results_path.name} is missing; run with --write")
+    else:
+        stored = json.loads(results_path.read_text(encoding="utf-8"))
+        problems.extend(_diff_rows(stored, results))
+    if not readme_path.is_file():
+        problems.append(f"{readme_path.name} is missing; run with --write")
+    elif _readme_block(readme_path.read_text(encoding="utf-8")) != table:
+        problems.append(f"the table in {readme_path.name} is stale; run with --write")
+    return problems
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description="Run the drift benchmark.")
     mode = parser.add_mutually_exclusive_group()
@@ -457,14 +475,7 @@ def main(argv=None) -> int:
         return 0
 
     if args.check:
-        problems = []
-        if not results_path.is_file():
-            problems.append(f"{results_path.name} is missing; run with --write")
-        else:
-            stored = json.loads(results_path.read_text(encoding="utf-8"))
-            problems.extend(_diff_rows(stored, results))
-        if readme_path.is_file() and _readme_block(readme_path.read_text(encoding="utf-8")) != table:
-            problems.append(f"the table in {readme_path.name} is stale; run with --write")
+        problems = check_problems(results, table, results_path, readme_path)
         if problems:
             print("check failed:")
             for p in problems:

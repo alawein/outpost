@@ -150,6 +150,22 @@ def test_check_diff_names_a_flipped_row(subset_results):
     assert run._diff_rows(subset_results, subset_results) == []
 
 
+def test_check_problems_treat_a_missing_file_as_a_failure(subset_results, tmp_path):
+    # a check that points at a path with no file must not pass by skipping the comparison
+    table = run.render_table(subset_results)
+    results_path = tmp_path / "results.json"
+    readme_path = tmp_path / "README.md"
+    missing = run.check_problems(subset_results, table, results_path, readme_path)
+    assert any("results.json is missing" in p for p in missing)
+    assert any("README.md is missing" in p for p in missing)
+    results_path.write_text(run._dumps(subset_results), encoding="utf-8")
+    readme_path.write_text(f"intro\n{run.MARK_START}\nstale\n{run.MARK_END}\n", encoding="utf-8")
+    stale = run.check_problems(subset_results, table, results_path, readme_path)
+    assert stale == ["the table in README.md is stale; run with --write"]
+    readme_path.write_text(f"intro\n{run.MARK_START}\n{table}\n{run.MARK_END}\n", encoding="utf-8")
+    assert run.check_problems(subset_results, table, results_path, readme_path) == []
+
+
 def test_rmtree_clears_a_read_only_git_store(pristine, tmp_path):
     copy = _copy(pristine, tmp_path, "gone")
     assert (copy / ".git").is_dir()
