@@ -19,6 +19,9 @@ Format follows Keep a Changelog (https://keepachangelog.com). The kit uses SemVe
   `.windsurf/workflows/outpost-<name>.md`, run as `/outpost-<name>`.
 - A Gemini CLI adapter: `python install.py --tool gemini` installs `GEMINI.md` and the prompts
   as custom commands at `.gemini/commands/outpost/<name>.toml`, run as `/outpost:<name>`.
+- A drift benchmark under `benchmarks/drift/`: five seeded drift scenarios per adapter, scored
+  by `--verify`, `git status`, and no tooling; `results.json` holds the published rows and CI
+  re-runs them with `python benchmarks/drift/run.py --check`.
 
 ## [0.1.0] - 2026-08-27
 
