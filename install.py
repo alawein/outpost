@@ -768,8 +768,12 @@ def verify(actions, project_root: pathlib.Path, user_owned=frozenset(),
                 # Newline-normalized like the kit-file check, so a CRLF checkout is not EDITED.
                 edited = (a.mode == "create" and a.path in kit_hashes and target.is_file()
                           and _hash_str(target.read_text(encoding="utf-8")) != kit_hashes[a.path])
-            except (OSError, UnicodeDecodeError):
-                edited = False  # unreadable: nothing to compare, and never a failure here
+            except UnicodeDecodeError:
+                # the kit writes UTF-8, so bytes that no longer decode are the user's edit
+                edited = True
+            except OSError:
+                edited = False  # nothing to compare; say so rather than report a clean guide
+                where = "present, unreadable"
             if edited:
                 lines.append(f"  EDITED  {a.path} (yours to keep; differs from what the kit wrote)")
                 continue

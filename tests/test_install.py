@@ -246,6 +246,17 @@ def test_verify_treats_crlf_guide_as_not_edited(tmp_path, capsys):
     assert "EDITED" not in capsys.readouterr().out
 
 
+def test_verify_reports_a_guide_that_no_longer_decodes_as_edited(tmp_path, capsys):
+    # the kit writes UTF-8; a guide holding bytes that do not decode was changed by someone else
+    install.main(["--tool", "claude", "--project", str(tmp_path)])
+    (tmp_path / "CLAUDE.md").write_bytes(b"\xff\xfe not utf-8\n")
+    capsys.readouterr()
+    assert install.main(["--tool", "claude", "--project", str(tmp_path), "--verify"]) == 0
+    out = capsys.readouterr().out
+    assert "EDITED CLAUDE.md" in " ".join(out.split())
+    assert "NOTE: 1 guide(s) edited" in out
+
+
 # Team tailoring: prompt subset selection (Task 4)
 
 CATALOG_NAMES = {p["name"] for p in
