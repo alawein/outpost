@@ -19,6 +19,85 @@ def _cat(**overrides):
     return Catalog(**base)
 
 
+SIX_TOOLS = ["claude", "codex", "cursor", "copilot", "windsurf", "gemini"]
+TOTALS = {"verify": [30, 30], "git": [18, 30], "none": [0, 30]}
+HEADLINE = ("verify caught 30 of 30 seeded drifts across 6 tools; "
+            "plain git status caught 18 of 30; copying by hand caught 0")
+
+
+def _write_results(root, totals=TOTALS, tools=SIX_TOOLS):
+    """A benchmark results fixture at the path the headline renderer reads."""
+    import json
+    d = root / "benchmarks" / "drift"
+    d.mkdir(parents=True, exist_ok=True)
+    d.joinpath("results.json").write_text(
+        json.dumps({"kit_version": "0.0.0", "tools": tools, "scenarios": [], "rows": [],
+                    "totals": totals}),
+        encoding="utf-8")
+
+
+# a README fixture carrying both of its required spans, the count in sync with the one-prompt
+# catalog the build_docs tests write and the headline in sync with _write_results
+README_IN_SYNC = (
+    "The kit ships <!-- GENERATED:core-count-words -->one<!-- /GENERATED:core-count-words --> prompts.\n"
+    f"<!-- GENERATED:benchmark-headline -->{HEADLINE}<!-- /GENERATED:benchmark-headline -->\n"
+)
+
+
+def test_benchmark_headline_renders_the_exact_sentence_from_results(tmp_path):
+    from kit.docs_build import _render_benchmark_headline
+    _write_results(tmp_path)
+    assert _render_benchmark_headline(tmp_path) == HEADLINE
+
+
+def test_benchmark_headline_follows_the_totals_and_tool_count(tmp_path):
+    # the numbers come from totals and the tool count from len(tools), not from constants
+    from kit.docs_build import _render_benchmark_headline
+    _write_results(tmp_path, totals={"verify": [29, 30], "git": [17, 30], "none": [1, 30]},
+                   tools=["claude", "codex"])
+    assert _render_benchmark_headline(tmp_path) == (
+        "verify caught 29 of 30 seeded drifts across 2 tools; "
+        "plain git status caught 17 of 30; copying by hand caught 1")
+
+
+def test_benchmark_headline_raises_a_value_error_when_results_are_missing(tmp_path):
+    # docs_sync reports ValueError as a check failure; any other exception would crash the gate
+    from kit.docs_build import _render_benchmark_headline
+    with pytest.raises(ValueError, match="results.json"):
+        _render_benchmark_headline(tmp_path)
+
+
+def test_benchmark_headline_raises_a_value_error_on_malformed_totals(tmp_path):
+    from kit.docs_build import _render_benchmark_headline
+    _write_results(tmp_path, totals={"verify": [30, 30]})
+    with pytest.raises(ValueError, match="totals"):
+        _render_benchmark_headline(tmp_path)
+
+
+def test_readme_requires_the_benchmark_headline_marker():
+    from kit.docs_build import REQUIRED_MARKERS
+    assert REQUIRED_MARKERS["README.md"] == {"core-count-words", "benchmark-headline"}
+
+
+def test_build_docs_rerenders_a_stale_readme_headline(tmp_path):
+    cat_dir = tmp_path / "kit" / "catalog"
+    cat_dir.mkdir(parents=True)
+    import json
+    cat_dir.joinpath("catalog.json").write_text(json.dumps({
+        "version": "0.0.0",
+        "stages": [{"name": "Start", "summary": "begin"}],
+        "prompts": [{"name": "orient-repo", "path": "prompts/core/orient-repo.md",
+                     "summary": "map a repo", "stage": "Start"}],
+        "templates": [], "adapters": [], "checks": [],
+    }), encoding="utf-8")
+    _write_results(tmp_path)
+    (tmp_path / "README.md").write_text(
+        README_IN_SYNC.replace("30 of 30 seeded", "29 of 30 seeded"), encoding="utf-8")
+    result = build_docs(tmp_path)
+    assert "README.md" in result
+    assert f"<!-- GENERATED:benchmark-headline -->{HEADLINE}<!-- /GENERATED:benchmark-headline -->" in result["README.md"]
+
+
 def test_apply_markers_replaces_matched_span():
     text = "before <!-- GENERATED:x --> stale <!-- /GENERATED:x --> after\n"
     out = apply_markers(text, {"x": lambda: "fresh"})
@@ -63,9 +142,9 @@ def test_build_docs_covers_only_docs_with_drift(tmp_path):
                      "summary": "map a repo", "stage": "Start"}],
         "templates": [], "adapters": [], "checks": [],
     }), encoding="utf-8")
-    (tmp_path / "README.md").write_text(
-        "The kit ships <!-- GENERATED:core-count-words -->nine<!-- /GENERATED:core-count-words --> prompts.\n",
-        encoding="utf-8")
+    _write_results(tmp_path)
+    (tmp_path / "README.md").write_text(README_IN_SYNC.replace("-->one<!--", "-->nine<!--"),
+                                        encoding="utf-8")
     (tmp_path / "docs").mkdir()
     (tmp_path / "docs" / "onboarding.md").write_text("# Onboarding\n\nno markers here.\n",
                                                        encoding="utf-8")
@@ -101,9 +180,8 @@ def test_build_docs_raises_when_a_required_marker_is_stripped(tmp_path):
                      "summary": "map a repo", "stage": "Start"}],
         "templates": [], "adapters": [], "checks": [],
     }), encoding="utf-8")
-    (tmp_path / "README.md").write_text(
-        "The kit ships <!-- GENERATED:core-count-words -->one<!-- /GENERATED:core-count-words --> prompts.\n",
-        encoding="utf-8")
+    _write_results(tmp_path)
+    (tmp_path / "README.md").write_text(README_IN_SYNC, encoding="utf-8")
     (tmp_path / "docs").mkdir()
     (tmp_path / "docs" / "workflow.md").write_text(
         "<!-- GENERATED:core-count-digits -->1<!-- /GENERATED:core-count-digits -->\n", encoding="utf-8")
@@ -127,9 +205,8 @@ def test_build_docs_raises_on_a_core_prompt_with_a_typo_d_stage(tmp_path):
                      "summary": "map a repo", "stage": "Start-typo"}],
         "templates": [], "adapters": [], "checks": [],
     }), encoding="utf-8")
-    (tmp_path / "README.md").write_text(
-        "The kit ships <!-- GENERATED:core-count-words -->one<!-- /GENERATED:core-count-words --> prompts.\n",
-        encoding="utf-8")
+    _write_results(tmp_path)
+    (tmp_path / "README.md").write_text(README_IN_SYNC, encoding="utf-8")
     (tmp_path / "docs").mkdir()
     (tmp_path / "docs" / "workflow.md").write_text(
         "<!-- GENERATED:core-count-digits -->1<!-- /GENERATED:core-count-digits -->\n"

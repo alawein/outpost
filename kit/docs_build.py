@@ -7,10 +7,12 @@ content, for every doc whose spliced content differs from what is on disk (mirro
 content between paired `<!-- GENERATED:<key> --> ... <!-- /GENERATED:<key> -->` markers is
 replaced, so every hand-written byte outside a marker survives untouched. Run
 `python tools/build.py docs` after a catalog change that affects a marked span (a new core
-prompt or a stage rename).
+prompt or a stage rename), or after a benchmark rerun changes `benchmarks/drift/results.json`
+(the README headline is rendered from its totals).
 """
 from __future__ import annotations
 
+import json
 import pathlib
 import re
 from typing import Callable
@@ -21,12 +23,16 @@ MARKER = re.compile(r"<!-- GENERATED:([a-z0-9-]+) -->(.*?)<!-- /GENERATED:\1 -->
 
 DOC_FILES = ("README.md", "docs/onboarding.md", "docs/workflow.md", "docs/plugin.md", "docs/ROADMAP.md")
 
+BENCHMARK_RESULTS = pathlib.Path("benchmarks") / "drift" / "results.json"
+
 # The marker keys each doc is expected to carry. build_docs raises ValueError if any of these is
 # missing from a doc's real markers, so a stripped marker (e.g. a hand-edit that reflows README.md
 # and drops the comment pair around the prompt-pack table) fails the build loudly instead of silently
 # un-verifying that content. docs/onboarding.md carries no marker today, so it has no entry here.
+# README.md's benchmark-headline is the hero claim, rendered from the drift benchmark's results
+# file, so the front page cannot quote a number the benchmark no longer produces.
 REQUIRED_MARKERS = {
-    "README.md": {"core-count-words"},
+    "README.md": {"core-count-words", "benchmark-headline"},
     "docs/workflow.md": {"skills-table", "core-count-digits"},
     "docs/plugin.md": {"core-count-words"},
     "docs/ROADMAP.md": {"core-count-words", "stage-counts", "checks-line"},
@@ -102,6 +108,35 @@ def _render_checks_line(cat) -> str:
     return f"{_word(len(cat.checks))} checks ({names})"
 
 
+def _render_benchmark_headline(root: pathlib.Path) -> str:
+    """The README's one-sentence claim, rendered from the drift benchmark's `totals` and tool
+    list so it can only say what `python benchmarks/drift/run.py` last measured. Every failure
+    is a ValueError (a missing or unreadable results file, bad JSON, a totals shape the
+    renderer does not understand), so `docs_sync` reports it as a check failure instead of the
+    gate crashing."""
+    p = root / BENCHMARK_RESULTS
+    rel = BENCHMARK_RESULTS.as_posix()
+    try:
+        data = json.loads(p.read_text(encoding="utf-8"))
+    except OSError as e:
+        raise ValueError(f"benchmark-headline: cannot read {rel}: {e}") from e
+    except json.JSONDecodeError as e:
+        raise ValueError(f"benchmark-headline: {rel} is not valid JSON: {e}") from e
+    try:
+        totals = data["totals"]
+        verify_caught, verify_seeded = totals["verify"]
+        git_caught, git_seeded = totals["git"]
+        none_caught, _none_seeded = totals["none"]
+        tool_count = len(data["tools"])
+    except (KeyError, TypeError, ValueError) as e:
+        raise ValueError(
+            f"benchmark-headline: {rel} needs totals.verify, totals.git, totals.none "
+            f"(each a [caught, seeded] pair) and a tools list: {e!r}") from e
+    return (f"verify caught {verify_caught} of {verify_seeded} seeded drifts across "
+            f"{tool_count} tools; plain git status caught {git_caught} of {git_seeded}; "
+            f"copying by hand caught {none_caught}")
+
+
 _OPEN = re.compile(r"<!-- GENERATED:([a-z0-9-]+) -->")
 _CLOSE = re.compile(r"<!-- /GENERATED:([a-z0-9-]+) -->")
 
@@ -132,8 +167,8 @@ def build_docs(root: pathlib.Path) -> dict[str, str]:
     differs from what is currently on disk. A doc with zero markers is a no-op (not included in
     the result), unless it is listed in REQUIRED_MARKERS, in which case a missing required marker
     raises instead of silently no-op'ing. Raises ValueError (propagated from apply_markers, or
-    raised directly here) on an unknown marker key, an unmatched marker pair, or a doc missing one
-    of its required markers."""
+    raised directly here) on an unknown marker key, an unmatched marker pair, a doc missing one
+    of its required markers, or a benchmark results file the headline renderer cannot read."""
     cat = load_catalog(root / "kit" / "catalog" / "catalog.json")
     renderers = {
         "skills-table": lambda: _render_skills_table(cat),
@@ -141,6 +176,8 @@ def build_docs(root: pathlib.Path) -> dict[str, str]:
         "core-count-digits": lambda: _render_core_count_digits(cat),
         "stage-counts": lambda: _render_stage_counts(cat),
         "checks-line": lambda: _render_checks_line(cat),
+        # read lazily, so a root without the results file only fails on a doc that uses the key
+        "benchmark-headline": lambda: _render_benchmark_headline(root),
     }
     out: dict[str, str] = {}
     for rel in DOC_FILES:
