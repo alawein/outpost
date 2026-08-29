@@ -68,6 +68,18 @@ Install a subset with `--only plan-change,write-tests` or `--exclude grill`. The
 
 For the full install path, see [docs/onboarding.md](docs/onboarding.md).
 
+## Watch a library you do not own
+
+Point the installer at a skill library you cloned (obra/superpowers, or any tree in the Agent Skills layout) and its skills install next to the core prompts, for every tool, checked by the same `--verify`:
+
+```bash
+git clone https://github.com/obra/superpowers /path/to/superpowers
+python install.py --tool claude --project /path/to/your/repo --source /path/to/superpowers
+python install.py --tool claude --project /path/to/your/repo --verify
+```
+
+Pull the clone and every installed copy of a skill that changed reads `DRIFTED` until you re-install. The kit never fetches. See [docs/sources.md](docs/sources.md) for the per-tool paths and the limits.
+
 ## Commands
 
 ```bash
@@ -144,6 +156,7 @@ Each tool writes to its own paths, so they can live in one project. The installe
 - [docs/ROADMAP.md](docs/ROADMAP.md)
 - [benchmarks/drift/README.md](benchmarks/drift/README.md)
 - [docs/adapters.md](docs/adapters.md)
+- [docs/sources.md](docs/sources.md)
 - [docs/how-this-is-built.md](docs/how-this-is-built.md)
 - [docs/plugin.md](docs/plugin.md)
 - [docs/labels.md](docs/labels.md)

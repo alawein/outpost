@@ -47,6 +47,10 @@ Paths stay separate across tools, so more than one install in the same repo does
   install.
 - `--verify`, `--prune`, and `--remove` are mutually exclusive with each other and with
   `--list`/`--dry-run`; see their own sections below.
+- `--source <dir>` (repeatable) also installs the skills of a library you cloned, in the Agent
+  Skills layout, next to the core prompts. It works with `--dry-run`, `--verify`, `--prune`, and
+  `--remove` and with `--only`/`--exclude`; `--list` shows the core pack only. See
+  `docs/sources.md` for the per-tool paths and the limits.
 
 ## The install manifest
 

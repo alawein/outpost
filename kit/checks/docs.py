@@ -10,6 +10,7 @@ REQUIRED_DOCS = {
     "docs/workflow.md": 200,
     "docs/writing-standard.md": 40,
     "docs/adapters.md": 60,
+    "docs/sources.md": 120,
     "docs/contributing.md": 60,
     "docs/releasing.md": 60,
     "docs/ROADMAP.md": 120,
