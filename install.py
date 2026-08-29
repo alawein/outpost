@@ -36,6 +36,12 @@ Usage:
   python install.py --tool claude --project /path/to/your/repo --terse    # also install the terse output style
   python install.py --list                                                 # show what installs, write nothing
   python install.py --tool claude --project /path/to/your/repo --verify   # check kit files are present and unmodified
+  python install.py --tool all --project /path/to/your/repo --source ~/src/superpowers  # also install a cloned skill library
+
+A source (--source, repeatable) is a skill library the kit does not own: a directory the user
+cloned, holding <source>/skills/<name>/SKILL.md. Its skills install beside the core pack under
+every tool, the manifest records the source's path, and --verify, --prune, and --remove read the
+recorded path back, so the flag is needed only when installing. See kit/sources.py.
 """
 from __future__ import annotations
 
@@ -46,12 +52,13 @@ import pathlib
 import sys
 
 from kit.adapters import TOOLS, plan_for
-from kit.adapters.base import Action, TERSE_OUTPUT_STYLE
+from kit.adapters.base import Action, Skip, TERSE_OUTPUT_STYLE
 from kit.catalog import load_catalog
 from kit.installers.manifest import (
     MANIFEST_PATH, drop_tool, dumps as manifest_dumps,
     merge_manifest, parse_manifest)
 from kit.installers.settings import unmerged_text
+from kit.sources import discover
 
 KIT_ROOT = pathlib.Path(__file__).resolve().parent
 
@@ -141,19 +148,21 @@ def _legacy_claim(project_root: pathlib.Path, tool: str, prev_entry: dict) -> se
 
 
 def _file_records(project_root: pathlib.Path, tool: str, terse: bool, select_set,
-                  prev_manifest: dict) -> dict:
+                  prev_manifest: dict, sources=()) -> dict:
     """Per path this tool's plan touches, whether a file existed there before the kit ever wrote
     it. The existed flag is the ownership proof: apply never overwrites a path recorded as
     pre-existing, and --remove and --prune delete only paths recorded as kit-created. The
     pre-install hash stored with a pre-existing record is a forensic trace of what was on disk,
     not an input to any decision. A prior record wins over disk state, so the original truth
     survives reinstalls. A merge-mode path (the Claude settings file) is recorded too, so
-    --remove deletes that file only when the kit created it."""
+    --remove deletes that file only when the kit created it. A source skill's files are recorded
+    like any other; a recorded source this run does not pass keeps its records untouched."""
     prev_entry = prev_manifest.get("tools", {}).get(tool) or {}
     prev_files = prev_entry.get("files")
     records = dict(prev_files) if prev_files else {}
     legacy_claim = None
-    for a in plan_for(tool, KIT_ROOT, project_root, terse=terse, select=select_set):
+    for a in plan_for(tool, KIT_ROOT, project_root, terse=terse, select=select_set,
+                      sources=sources):
         if a.mode not in ("write", "create", "merge"):
             continue
         target = project_root / a.path
@@ -204,20 +213,121 @@ def _kit_hashes(manifest: dict, tools) -> dict:
 
 
 def manifest_action(prev_manifest: dict, tool, select_label, select_set, cat,
-                    terse: bool, records_by_tool: dict) -> Action:
+                    terse: bool, records_by_tool: dict, sources=()) -> Action:
     """One merge Action recording, per installed tool, the resolved prompts, whether terse was used,
-    the per-path ownership records, and the kit version."""
+    the per-path ownership records, the skills kept from each source this run installs for that
+    tool, and the kit version; plus, per source, its resolved path at the top level so a later run
+    can re-discover it. Installs are per tool, so the skill list lives with the tool: a source
+    installed for codex alone is never demanded of claude. A recorded source this run does not
+    pass stays recorded as it was."""
     updates = {}
     for t in _tools_for(tool):
         # per tool: a prompt the catalog limits to other hosts (converge is Claude-only) is not
         # eligible here, so --verify never reports it as missing
         eligible = {p["name"] for p in cat.prompts_for(t)}
         installed = sorted(eligible if select_set is None else (eligible & select_set))
+        prev_entry = prev_manifest.get("tools", {}).get(t) or {}
+        tool_sources = dict(prev_entry.get("sources") or {})
+        for s in sources:
+            tool_sources[s.name] = [k.name for k in s.skills
+                                    if select_set is None or k.name in select_set]
         updates[t] = {"selection": select_label, "prompts": installed, "terse": terse,
-                      "files": records_by_tool[t]}
-    content = manifest_dumps(merge_manifest(prev_manifest, updates, cat.version))
+                      "files": records_by_tool[t], "sources": tool_sources}
+    recorded = {s.name: {"path": s.path.as_posix()} for s in sources} or None
+    content = manifest_dumps(merge_manifest(prev_manifest, updates, cat.version, recorded))
     return Action(path=MANIFEST_PATH, content=content, mode="merge",
                   note="record installed prompts and file ownership per tool")
+
+
+def _cli_sources(raw_paths) -> list:
+    """Discover every --source directory. Two with one name (two clones of the same library) would
+    plan the same paths, so that fails here, before any write."""
+    sources: list = []
+    for raw in raw_paths or ():
+        src = discover(pathlib.Path(raw))
+        if any(s.name == src.name for s in sources):
+            raise ValueError(f"two sources are named {src.name!r}; pass one clone per library")
+        sources.append(src)
+    return sources
+
+
+def _recorded_source_names(manifest: dict, tools) -> set:
+    """The source names any of `tools` records an install from."""
+    names: set = set()
+    for t in tools:
+        names |= set((manifest.get("tools", {}).get(t) or {}).get("sources") or {})
+    return names
+
+
+def _tool_sources(manifest: dict, tool: str, sources) -> list:
+    """The sources one tool's install is judged against: those its manifest entry records, so a
+    source installed for another tool alone is never planned, demanded, or removed for this one.
+    A pre-records entry (no `files` map) records no source either; no kit that wrote such an
+    entry ever installed one, so a byte match against a library the user placed by hand is never
+    taken as the kit's own file."""
+    entry = manifest.get("tools", {}).get(tool) or {}
+    if entry.get("files") is None:
+        return []
+    recorded = entry.get("sources") or {}
+    return [s for s in sources if s.name in recorded]
+
+
+def _sources_for(manifest: dict, raw_paths, project_root: pathlib.Path, tools,
+                 lenient: bool = False) -> tuple[list, list]:
+    """The sources verify, prune, and remove plan against: every source the manifest records for
+    one of `tools`, re-discovered from its recorded path, with a --source of the same name
+    replacing it. A relative recorded path (a hand edit; the kit records absolute ones) is taken
+    from the project root, never the working directory. Returns (sources, missing), where missing
+    lists (name, path) for a recorded source whose directory is gone; the caller decides whether
+    that is fatal (verify and prune) or a retirement (remove). With `lenient`, a recorded clone
+    that exists but no longer discovers (emptied, broken) counts as missing too, so --remove is
+    never blocked by it; a --source path still fails loudly."""
+    cli = {s.name: s for s in _cli_sources(raw_paths)}
+    needed = _recorded_source_names(manifest, tools)
+    sources: dict = {}
+    missing: list = []
+    for name, rec in sorted((manifest.get("sources") or {}).items()):
+        if name in cli or name not in needed:
+            continue
+        path = pathlib.Path(rec["path"])
+        if not path.is_absolute():
+            path = project_root / path
+        if not path.is_dir():
+            missing.append((name, rec["path"]))
+            continue
+        try:
+            sources[name] = discover(path)
+        except ValueError:
+            if not lenient:
+                raise
+            missing.append((name, rec["path"]))
+    sources.update(cli)
+    return list(sources.values()), missing
+
+
+def _skill_names(sources) -> set:
+    return {k.name for s in sources for k in s.skills}
+
+
+def _shadowed(actions, protected) -> set:
+    """Paths planned inside a skill directory whose SKILL.md the manifest records as the user's:
+    a source skill's supporting files, when the user already has a skill of that name. The user's
+    directory stays whole, so they are never written, recorded, or verified."""
+    dirs = {p[:-len("SKILL.md")] for p in protected if p.endswith("/SKILL.md")}
+    return {a.path for a in actions if a.mode == "write" and a.path not in protected
+            and any(a.path.startswith(d) for d in dirs)}
+
+
+def _unique_skips(skips) -> list:
+    """Skips in first-seen order, one per path: a skipped skill directory is reported by every
+    tool's plan under `--tool all`, and once is enough."""
+    seen: set = set()
+    out: list = []
+    for s in skips:
+        if s.path not in seen:
+            seen.add(s.path)
+            out.append(s)
+    return out
 
 
 def _read_manifest(project_root: pathlib.Path) -> dict:
@@ -239,10 +349,17 @@ def _load_validated_manifest(project_root: pathlib.Path, catalog_names) -> dict:
 
 
 def _selection_for(manifest: dict, tool: str):
+    """The names a tool's recorded install selects: its prompts, plus the skills its own entry
+    records from each source (a skill the source grew since install is not demanded, one it
+    dropped is a leftover). None when the tool has no record, so verify runs against the full
+    pack."""
     entry = manifest.get("tools", {}).get(tool)
     if not entry:
         return None  # no record: verify against the full pack
-    return set(entry.get("prompts", []))
+    selected = set(entry.get("prompts", []))
+    for skills in (entry.get("sources") or {}).values():
+        selected |= set(skills)
+    return selected
 
 
 def _terse_for(manifest: dict, tool: str, override: bool = False) -> bool:
@@ -290,7 +407,7 @@ def _check_manifest_names(manifest: dict, catalog_names) -> None:
 
 
 def _orphans(project_root: pathlib.Path, tool: str, select_set, terse: bool,
-             user_owned=frozenset()) -> tuple[list[str], list[str]]:
+             user_owned=frozenset(), sources=()) -> tuple[list[str], list[str]]:
     """Kit-owned prompt files on disk that the manifest no longer selects, split into (extras,
     escaped). Narrowing an install (`--only`/`--exclude` after a broader one) leaves the
     de-selected prompt files behind, since the installer never deletes. The full plan minus the
@@ -302,10 +419,11 @@ def _orphans(project_root: pathlib.Path, tool: str, select_set, terse: bool,
     instructs removing a path outside this project. Both lists empty when nothing was narrowed."""
     if select_set is None:
         return [], []  # full pack: nothing to de-select
-    keep = {a.path for a in plan_for(tool, KIT_ROOT, project_root, terse=terse, select=select_set)}
+    keep = {a.path for a in plan_for(tool, KIT_ROOT, project_root, terse=terse, select=select_set,
+                                     sources=sources)}
     extras = []
     escaped = []
-    for a in plan_for(tool, KIT_ROOT, project_root, terse=terse, select=None):
+    for a in plan_for(tool, KIT_ROOT, project_root, terse=terse, select=None, sources=sources):
         if (a.mode == "write" and a.path not in keep and a.path not in user_owned
                 and (project_root / a.path).exists()):
             if _is_contained(project_root, a.path):
@@ -316,7 +434,7 @@ def _orphans(project_root: pathlib.Path, tool: str, select_set, terse: bool,
 
 
 def _retired_paths(project_root: pathlib.Path, tool: str, manifest: dict, terse: bool,
-                   tolerant: bool = False) -> list[str]:
+                   tolerant: bool = False, sources=()) -> list[str]:
     """Manifest-recorded, kit-created files that this tool's current full plan no longer derives:
     the leftovers of a prompt that stopped shipping to this host or left the pack. The plan alone
     cannot see them, so verify, prune, and remove consult the union of the plan and the manifest's
@@ -324,7 +442,7 @@ def _retired_paths(project_root: pathlib.Path, tool: str, manifest: dict, terse:
     user's file, never flagged or deleted. Returns the paths still on disk, sorted."""
     files = (manifest.get("tools", {}).get(tool) or {}).get("files") or {}
     current = {a.path for a in plan_for(tool, KIT_ROOT, project_root, terse=terse, select=None,
-                                        tolerant=tolerant)}
+                                        tolerant=tolerant, sources=sources)}
     return [path for path, rec in sorted(files.items())
             if not rec.get("existed") and path not in current
             and (project_root / path).is_file()
@@ -360,7 +478,8 @@ def _remove_empty_parents(target: pathlib.Path, root: pathlib.Path) -> None:
         d = d.parent
 
 
-def prune_orphans(project_root: pathlib.Path, tools, manifest: dict, args_terse: bool):
+def prune_orphans(project_root: pathlib.Path, tools, manifest: dict, args_terse: bool,
+                  sources=()):
     """Delete orphan kit-owned prompt files (those the manifest no longer selects), so disk matches
     the recorded selection. Safe: only write-mode prompt files are touched, never a user-owned or
     merged file; an orphan whose content was hand-edited (not the kit version), or that carries no
@@ -372,12 +491,15 @@ def prune_orphans(project_root: pathlib.Path, tools, manifest: dict, args_terse:
     retired: list[str] = []   # kit-created files whose prompt no longer ships to this host
     for t in tools:
         terse = _terse_for(manifest, t, args_terse)
+        # only the sources this tool's entry records, and none for a pre-records entry: a legacy
+        # manifest can own no source file, so a byte match against the library proves nothing
+        srcs = _tool_sources(manifest, t, sources)
         # Retired files first: a kit-created record whose path even the full plan no longer
         # derives (the prompt left this host or the pack). The manifest record is the ownership
         # proof, but a hand edit since install is still the user's: only an unedited retired file
         # is deleted, matching the de-selected-orphan check just below.
         retired_files = (manifest.get("tools", {}).get(t) or {}).get("files") or {}
-        for path in _retired_paths(project_root, t, manifest, terse):
+        for path in _retired_paths(project_root, t, manifest, terse, sources=srcs):
             if not _retired_unedited(project_root, path, retired_files.get(path, {})):
                 skipped.append(path)  # edited retired file: a possible customization, user decides
                 continue
@@ -399,8 +521,9 @@ def prune_orphans(project_root: pathlib.Path, tools, manifest: dict, args_terse:
         if sel is None:
             continue  # no narrowing recorded: no de-selected orphans to prune
         files = (manifest.get("tools", {}).get(t) or {}).get("files")
-        keep = {a.path for a in plan_for(t, KIT_ROOT, project_root, terse=terse, select=sel)}
-        for a in plan_for(t, KIT_ROOT, project_root, terse=terse, select=None):
+        keep = {a.path for a in plan_for(t, KIT_ROOT, project_root, terse=terse, select=sel,
+                                         sources=srcs)}
+        for a in plan_for(t, KIT_ROOT, project_root, terse=terse, select=None, sources=srcs):
             if a.mode != "write" or a.path in keep:
                 continue
             target = project_root / a.path
@@ -450,7 +573,8 @@ def _is_kit_content(target: pathlib.Path, content: str) -> bool:
         return False
 
 
-def remove_for_tools(project_root: pathlib.Path, tools, manifest: dict, args_terse: bool):
+def remove_for_tools(project_root: pathlib.Path, tools, manifest: dict, args_terse: bool,
+                     sources=()):
     """Back a tool's kit-owned files out of a target: every prompt file (write) and the guide it
     created (create), but only when the file is still the kit version. An edited file is a possible
     customization, so it is left in place and reported. The settings merge is handled separately
@@ -461,13 +585,17 @@ def remove_for_tools(project_root: pathlib.Path, tools, manifest: dict, args_ter
     failed: list[str] = []
     retired: list[str] = []   # kit-created files whose prompt no longer ships to this host
     for t in tools:
+        # only the sources this tool's entry records, and none for a pre-records entry: no kit
+        # that wrote one ever installed a source, so the byte-match fallback below must never
+        # reach a library the user copied in by hand
+        srcs = _tool_sources(manifest, t, sources)
         # A retired file (kit-created per the manifest, absent from the current full plan) has no
         # plan action to drive the loop below, so it is backed out here on the record's proof --
         # but only when it still matches the hash recorded at install time; a hand edit since is
         # the user's, same as the byte-match guard just below for still-shipping paths.
         retired_files = (manifest.get("tools", {}).get(t) or {}).get("files") or {}
         for path in _retired_paths(project_root, t, manifest, _terse_for(manifest, t, args_terse),
-                                   tolerant=True):
+                                   tolerant=True, sources=srcs):
             if not _retired_unedited(project_root, path, retired_files.get(path, {})):
                 skipped.append(path)  # edited retired file: a possible customization, never deleted
                 continue
@@ -488,7 +616,7 @@ def remove_for_tools(project_root: pathlib.Path, tools, manifest: dict, args_ter
         # the legacy fallback just because `files` is also None in that case.
         legacy_manifest = bool(entry) and files is None
         for a in plan_for(t, KIT_ROOT, project_root, terse=_terse_for(manifest, t, args_terse),
-                          select=None, tolerant=True):
+                          select=None, tolerant=True, sources=srcs):
             if a.mode not in ("write", "create"):
                 continue  # the settings merge is un-installed by unmerge_kit_settings
             target = project_root / a.path
@@ -710,8 +838,14 @@ def apply(actions, project_root: pathlib.Path, protected=frozenset()) -> dict:
             tally["unchanged"] += 1
             continue
         if status in ("update", "overwrite") and a.mode == "write":
-            print(f"  WARN   {a.path} was edited; overwriting with the kit version "
-                  f"(to customize a prompt, use the prompts/<tool>/ overlay instead)")
+            if " from source " in a.note:
+                # a source skill: the overlay is for core prompts and does not apply here
+                print(f"  WARN   {a.path} was edited; overwriting with the source's copy "
+                      "(a source skill is restored from the clone; keep local changes in your "
+                      "own skill directory)")
+            else:
+                print(f"  WARN   {a.path} was edited; overwriting with the kit version "
+                      f"(to customize a prompt, use the prompts/<tool>/ overlay instead)")
         target.parent.mkdir(parents=True, exist_ok=True)
         # Write bytes with explicit LF so the installed files keep the kit's line-ending policy on
         # every platform (pathlib.write_text would translate to CRLF on Windows).
@@ -805,6 +939,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--project", default=".", help="target project directory (default: .)")
     parser.add_argument("--terse", action="store_true",
                         help="(claude) also install and default the terse output style")
+    parser.add_argument("--source", action="append", metavar="DIR",
+                        help="a cloned skill library (<dir>/skills/<name>/SKILL.md) to install "
+                             "beside the core pack; repeatable. Recorded in the manifest, so "
+                             "--verify, --prune, and --remove find it again without the flag")
     select_group = parser.add_mutually_exclusive_group()
     select_group.add_argument("--only", help="install only these comma-separated prompts "
                                              "(plus the tool's guide and settings)")
@@ -860,20 +998,36 @@ def main(argv: list[str] | None = None) -> int:
         leftovers: list[str] = []
         user_owned = _user_owned_paths(manifest, _tools_for(args.tool))
         try:
+            # a recorded source is read back from its recorded path; one that is gone cannot be
+            # verified against, and treating it as absent would read every copy as a leftover
+            sources, missing_sources = _sources_for(manifest, args.source, project_root,
+                                                    _tools_for(args.tool))
+            for name, path in missing_sources:
+                print(f"  SOURCE MISSING {name} {path}")
+            if missing_sources:
+                print(f"DRIFT: {len(missing_sources)} recorded source(s) not found on disk; "
+                      "restore the clone or re-install with --source")
+                return 1
             for t in _tools_for(args.tool):
                 sel = _selection_for(manifest, t)
                 terse = _terse_for(manifest, t, args.terse)
-                actions.extend(plan_for(t, KIT_ROOT, project_root, terse=terse, select=sel))
-                extra, escaped = _orphans(project_root, t, sel, terse, user_owned)
+                srcs = _tool_sources(manifest, t, sources)  # this tool's own source installs
+                actions.extend(plan_for(t, KIT_ROOT, project_root, terse=terse, select=sel,
+                                        sources=srcs))
+                extra, escaped = _orphans(project_root, t, sel, terse, user_owned, srcs)
                 orphans.extend(extra)
                 escaped_orphans.extend(escaped)
                 # a plan-derived check cannot see a kit-created file whose prompt no longer ships
                 # to this host; the manifest's file records surface it as a leftover
-                leftovers.extend(_retired_paths(project_root, t, manifest, terse))
+                leftovers.extend(_retired_paths(project_root, t, manifest, terse, sources=srcs))
         except (ValueError, OSError) as e:
             # a corrupt config (the Claude settings file) can't be planned against; say so cleanly
             print(f"error: {e}", file=sys.stderr)
             return 1
+        # a source skill's supporting files inside the user's own skill directory were never
+        # written (see _shadowed), so they are not the kit's to demand
+        shadow = _shadowed(actions, user_owned)
+        actions = [a for a in actions if a.path not in shadow]
         ok, lines, escaped_actions, missing_or_drifted = verify(
             actions, project_root, user_owned, _kit_hashes(manifest, _tools_for(args.tool)))
         for line in lines:
@@ -982,8 +1136,17 @@ def main(argv: list[str] | None = None) -> int:
             print(f"error: {e}", file=sys.stderr)
             return 1
         try:
+            sources, missing_sources = _sources_for(manifest, args.source, project_root,
+                                                    _tools_for(args.tool))
+            for name, path in missing_sources:
+                print(f"  SOURCE MISSING {name} {path}")
+            if missing_sources:
+                # without the clone every copy would look retired; never prune on that guess
+                print("error: a recorded source is missing; restore the clone (or --remove the "
+                      "tool) before pruning", file=sys.stderr)
+                return 1
             removed, skipped, failed, retired = prune_orphans(
-                project_root, _tools_for(args.tool), manifest, args.terse)
+                project_root, _tools_for(args.tool), manifest, args.terse, sources)
         except (ValueError, OSError) as e:
             # a corrupt config (the Claude settings file) can't be planned against; say so cleanly
             print(f"error: {e}", file=sys.stderr)
@@ -1026,8 +1189,22 @@ def main(argv: list[str] | None = None) -> int:
         except (ValueError, OSError) as e:
             print(f"warning: manifest unreadable, left as-is: {e}", file=sys.stderr)
             manifest = {}
-        removed, skipped, failed, retired = remove_for_tools(project_root, tools, manifest,
-                                                             args.terse)
+        try:
+            sources, missing_sources = _sources_for(manifest, args.source, project_root, tools,
+                                                    lenient=True)
+            for name, path in missing_sources:
+                # the clone is gone or broken, so its files cannot be planned; the manifest's
+                # own records still prove which ones the kit created, and remove_for_tools
+                # retires those by hash
+                print(f"  note   source {name} at {path} is missing or unreadable; its recorded "
+                      "files are removed by record")
+            removed, skipped, failed, retired = remove_for_tools(project_root, tools, manifest,
+                                                                 args.terse, sources)
+        except (ValueError, OSError) as e:
+            # a corrupt config, or a hand-edited manifest recording two sources that plan one
+            # path: say so cleanly rather than trace back
+            print(f"error: {e}", file=sys.stderr)
+            return 1
         settings = unmerge_kit_settings(project_root, tools, manifest, args.terse)
         # forget the removed tools in the manifest; delete it if no tool is left
         if manifest.get("tools"):
@@ -1072,20 +1249,40 @@ def main(argv: list[str] | None = None) -> int:
         return 1 if failed or settings_failed else 0
 
     try:
+        # inside the try: a corrupt existing manifest must fail cleanly, like a bad settings file
+        prev_manifest = _read_manifest(project_root)
+        # a source is installed only when passed; a recorded one this run omits keeps its files
+        # and its record untouched (verify, prune, and remove still read it back)
+        sources = _cli_sources(args.source)
+        # The collision guard in plan_for sees only the plan it is given. A selected plan can
+        # leave out the core prompt or the recorded source a new source's path collides with, and
+        # the collision would then land on disk and block every later mode. So plan the full pack
+        # per tool, with this tool's recorded sources (a --source of the same name replacing one)
+        # and every new one, before any write; a recorded clone that is gone cannot be checked
+        # and is left to verify.
+        recorded, _ = _sources_for(prev_manifest, None, project_root, _tools_for(args.tool),
+                                   lenient=True)
+        for t in _tools_for(args.tool):
+            full = {s.name: s for s in _tool_sources(prev_manifest, t, recorded)}
+            full.update({s.name: s for s in sources})
+            plan_for(t, KIT_ROOT, project_root, terse=args.terse, select=None,
+                     sources=list(full.values()))
+        skill_names = _skill_names(sources)
         select_label, select_set = resolve_selection(args.only, args.exclude,
-                                                     {p["name"] for p in cat.prompts})
+                                                     {p["name"] for p in cat.prompts} | skill_names)
         if select_label == "only":
             # an --only name that is a real prompt but host-limited away from this tool would
             # otherwise install nothing for it silently; say so instead
             for t in _tools_for(args.tool):
-                not_shipped = select_set - {p["name"] for p in cat.prompts_for(t)}
+                not_shipped = select_set - {p["name"] for p in cat.prompts_for(t)} - skill_names
                 if not_shipped:
                     print(f"warning: {', '.join(sorted(not_shipped))} does not ship to {t}; "
                           "skipped for that tool", file=sys.stderr)
-        actions = plan_for(args.tool, KIT_ROOT, project_root, terse=args.terse, select=select_set)
-        # inside the try: a corrupt existing manifest must fail cleanly, like a bad settings file
-        prev_manifest = _read_manifest(project_root)
-        records_by_tool = {t: _file_records(project_root, t, args.terse, select_set, prev_manifest)
+        skips: list[Skip] = []
+        actions = plan_for(args.tool, KIT_ROOT, project_root, terse=args.terse, select=select_set,
+                           sources=sources, skipped=skips)
+        records_by_tool = {t: _file_records(project_root, t, args.terse, select_set, prev_manifest,
+                                            sources)
                            for t in _tools_for(args.tool)}
         # A path apply() will actually skip (it resolves outside the project via a symlink) must
         # carry no ownership record at all: a false "the kit created this" claim is what lets a
@@ -1094,7 +1291,8 @@ def main(argv: list[str] | None = None) -> int:
         # of ownership, leave it alone", so removing the record is sufficient; no new guard
         # vocabulary is needed downstream.
         for t in _tools_for(args.tool):
-            for a in plan_for(t, KIT_ROOT, project_root, terse=args.terse, select=select_set):
+            for a in plan_for(t, KIT_ROOT, project_root, terse=args.terse, select=select_set,
+                              sources=sources):
                 if a.mode in ("write", "create", "merge") and not _is_contained(project_root, a.path):
                     records_by_tool[t].pop(a.path, None)
         # A completed withdrawal (this run deletes the kit's own style file) ends the kit's
@@ -1108,18 +1306,32 @@ def main(argv: list[str] | None = None) -> int:
                                                               args.terse)
                 and _is_contained(project_root, TERSE_STYLE_PATH)):
             records_by_tool.get("claude", {}).pop(TERSE_STYLE_PATH, None)
+        protected = {p for recs in records_by_tool.values()
+                     for p, rec in recs.items() if rec.get("existed")}
+        # A source skill whose SKILL.md is the user's own keeps its whole directory: its
+        # supporting files are neither written nor recorded, so no later --remove or --prune
+        # reaches into the user's skill, and verify does not demand them.
+        shadow = _shadowed(actions, protected)
+        if shadow:
+            for recs in records_by_tool.values():
+                for p in shadow:
+                    recs.pop(p, None)
+            actions = [a for a in actions if a.path not in shadow]
+            skips.extend(Skip(p, "exists", "inside your own skill directory; left alone")
+                         for p in sorted(shadow))
         actions.append(manifest_action(prev_manifest, args.tool, select_label, select_set, cat,
-                                       args.terse, records_by_tool))
+                                       args.terse, records_by_tool, sources))
     except (ValueError, OSError) as e:
         print(f"error: {e}", file=sys.stderr)
         return 1
-    protected = {p for recs in records_by_tool.values()
-                 for p, rec in recs.items() if rec.get("existed")}
+    skips = _unique_skips(skips)
 
     if args.dry_run:
         print(f"dry-run: install '{args.tool}' into {project_root} (no files written)")
         for line in render_plan(actions, project_root, protected):
             print(line)
+        for s in skips:
+            print(f"  [{s.label:14}] skip   {s.path}  - {s.reason}")
         # Mirror apply_stale_terse()'s containment check: a "remove"/"clear" op whose path
         # escapes the project via a symlink is left alone, not previewed as an unconditional
         # write ("keep" never writes, so it needs no check, matching apply_stale_terse()).
@@ -1144,6 +1356,8 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     apply_stale_terse(project_root,
                       _withdrawn_terse(project_root, prev_manifest, args.tool, args.terse))
+    for s in skips:
+        print(f"  skip   {s.path} ({s.kind}: {s.reason})")
     escapes = tally.get("skip (escapes)", 0)
     escape_note = (f", {escapes} left alone (escaping the project via a symlink)"
                    if escapes else "")

@@ -58,6 +58,93 @@ class Action:
         return "create"
 
 
+@dataclass(frozen=True)
+class Skip:
+    """A source file the plan leaves out on purpose, so a dry-run and an install can say so.
+    `path` is the path the file would have taken (or the source-relative path when a whole skill
+    directory was skipped), `kind` the short cause ("over cap"), `reason` the fuller note."""
+    path: str
+    kind: str
+    reason: str
+
+    @property
+    def label(self) -> str:
+        """The status a dry-run plan line shows, shaped like Action.status() values."""
+        return f"skip ({self.kind})"
+
+
+_SKIP_REASONS = {
+    "symlink": "a symlink inside the source; never followed",
+    "bad path": "supporting file path is not a plain relative path",
+}
+
+
+def source_actions(tool: str, source, select=None, skipped=None) -> list[Action]:
+    """The Actions that install one source's skills for `tool`, appended after the core plan.
+    Claude and Codex take the skill directory whole (SKILL.md plus every UTF-8 text supporting
+    file at its relative path); Cursor, Copilot, and Windsurf take SKILL.md verbatim under a
+    source-namespaced name; Gemini renders it as a command with `to_command_toml`. Every path is
+    `write` mode: the installer's own ownership records keep a user's pre-existing file of the same
+    name untouched. Whatever is left out (an over-cap Windsurf skill, a non-text or symlinked
+    supporting file, a skill Gemini cannot render) is appended to `skipped` as a Skip, never
+    installed truncated or altered. `select` (a set of names, or None for all) filters skills."""
+    from .gemini import to_command_toml
+    from .windsurf import WINDSURF_LIMIT
+    skips = skipped if skipped is not None else []
+    actions: list[Action] = []
+    for rel, kind in source.skipped:
+        skips.append(Skip(f"{source.name}/{rel}", kind, _SKIP_REASONS[kind]))
+    for skill in source.skills:
+        if select is not None and skill.name not in select:
+            continue
+        note = f"skill {skill.name} from source {source.name}"
+        if tool in ("claude", "codex"):
+            base = (".claude/skills" if tool == "claude" else ".agents/skills") + f"/{skill.name}"
+            actions.append(Action(path=f"{base}/SKILL.md", content=skill.body, mode="write",
+                                  note=note + " (verbatim)"))
+            for rel, data in sorted(skill.files.items()):
+                try:
+                    text = data.decode("utf-8")
+                except UnicodeDecodeError:
+                    skips.append(Skip(f"{base}/{rel}", "not text",
+                                      "supporting file is not UTF-8 text; not installed"))
+                    continue
+                # the same newline translation read_text gives SKILL.md, so a clone checked out
+                # with CRLF installs with the kit's LF policy and verifies in sync
+                text = text.replace("\r\n", "\n").replace("\r", "\n")
+                actions.append(Action(path=f"{base}/{rel}", content=text, mode="write",
+                                      note=f"supporting file of {note}"))
+            for rel, kind in skill.skipped:
+                skips.append(Skip(f"{base}/{rel}", kind, _SKIP_REASONS[kind]))
+        elif tool == "cursor":
+            actions.append(Action(path=f".cursor/rules/{source.name}/{skill.name}.md",
+                                  content=skill.body, mode="write", note=note + " (verbatim)"))
+        elif tool == "copilot":
+            actions.append(Action(path=f".github/prompts/{source.name}-{skill.name}.prompt.md",
+                                  content=skill.body, mode="write", note=note + " (verbatim)"))
+        elif tool == "windsurf":
+            path = f".windsurf/workflows/{source.name}-{skill.name}.md"
+            if skill.chars > WINDSURF_LIMIT:
+                skips.append(Skip(path, "over cap",
+                                  f"{skill.chars} characters, over Windsurf's {WINDSURF_LIMIT}-"
+                                  "character workflow cap; not installed, never truncated"))
+                continue
+            actions.append(Action(path=path, content=skill.body, mode="write",
+                                  note=note + f", invoked as /{source.name}-{skill.name}"))
+        elif tool == "gemini":
+            path = f".gemini/commands/{source.name}/{skill.name}.toml"
+            try:
+                content = to_command_toml(skill.name, skill.body)
+            except ValueError as e:
+                skips.append(Skip(path, "unrenderable", f"{e}; not installed"))
+                continue
+            actions.append(Action(path=path, content=content, mode="write",
+                                  note=note + f", invoked as /{source.name}:{skill.name}"))
+        else:
+            raise ValueError(f"unknown tool {tool!r}")
+    return actions
+
+
 def _host_excluded(kit_root: pathlib.Path, tool: str) -> set[str]:
     """Prompt names whose catalog entry limits them to other hosts (`converge`
     ships to Claude only). One home for the rule: the catalog `hosts` field, honored here so
