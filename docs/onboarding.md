@@ -44,7 +44,7 @@ Verify prints one status per file:
 - `MISSING`: the copy is gone. Re-install to restore it.
 - `EXTRA`: a leftover from a narrower re-install. `--prune` removes it.
 - `EDITED`: a guide the kit wrote (`CLAUDE.md` and the like) that you changed since. Yours to keep; reported, never a failure.
-- `LEFTOVER`: a kit-installed file whose prompt no longer ships to this tool, or a source skill the library dropped. `--prune` removes it.
+- `LEFTOVER`: a kit-installed file whose prompt no longer ships to this tool, or a source skill the library dropped. `--prune` removes it when it still matches what the kit wrote; one you edited, or one the kit has no record of writing, is left for you to delete.
 - `ESCAPED`: the path resolves outside the project through a symlink. Never touched.
 
 Any status but `ok` and `EDITED` fails the run.

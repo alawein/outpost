@@ -74,6 +74,15 @@ def test_benchmark_headline_raises_a_value_error_on_malformed_totals(tmp_path):
         _render_benchmark_headline(tmp_path)
 
 
+@pytest.mark.parametrize("bad", [{"caught": 30, "seeded": 30}, "30", [30], [30, "30"], [True, 30]])
+def test_benchmark_headline_rejects_a_total_that_is_not_a_pair_of_numbers(tmp_path, bad):
+    # a two-key dict or a two-character string also unpacks into two names; the shape is checked
+    from kit.docs_build import _render_benchmark_headline
+    _write_results(tmp_path, totals={"verify": bad, "git": [18, 30], "none": [0, 30]})
+    with pytest.raises(ValueError, match="pair"):
+        _render_benchmark_headline(tmp_path)
+
+
 def test_readme_requires_the_benchmark_headline_marker():
     from kit.docs_build import REQUIRED_MARKERS
     assert REQUIRED_MARKERS["README.md"] == {"core-count-words", "benchmark-headline"}

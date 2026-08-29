@@ -122,11 +122,19 @@ def _render_benchmark_headline(root: pathlib.Path) -> str:
         raise ValueError(f"benchmark-headline: cannot read {rel}: {e}") from e
     except json.JSONDecodeError as e:
         raise ValueError(f"benchmark-headline: {rel} is not valid JSON: {e}") from e
+    def pair(value):
+        # a [caught, seeded] list of two whole numbers; a dict or a string of length two also
+        # unpacks into two names, so the shape is checked, not just the arity
+        if (isinstance(value, (list, tuple)) and len(value) == 2
+                and all(isinstance(n, int) and not isinstance(n, bool) for n in value)):
+            return value
+        raise ValueError(f"expected a [caught, seeded] pair, got {value!r}")
+
     try:
         totals = data["totals"]
-        verify_caught, verify_seeded = totals["verify"]
-        git_caught, git_seeded = totals["git"]
-        none_caught, _none_seeded = totals["none"]
+        verify_caught, verify_seeded = pair(totals["verify"])
+        git_caught, git_seeded = pair(totals["git"])
+        none_caught, _none_seeded = pair(totals["none"])
         tool_count = len(data["tools"])
     except (KeyError, TypeError, ValueError) as e:
         raise ValueError(
