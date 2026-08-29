@@ -76,6 +76,7 @@ class Skip:
 _SKIP_REASONS = {
     "symlink": "a symlink inside the source; never followed",
     "bad path": "supporting file path is not a plain relative path",
+    "vcs": "git metadata inside the skill; not installed",
 }
 
 

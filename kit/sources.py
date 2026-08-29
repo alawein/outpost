@@ -20,6 +20,7 @@ from __future__ import annotations
 import os
 import pathlib
 import re
+import stat
 from dataclasses import dataclass
 
 from .checks import frontmatter_field, split_frontmatter
@@ -36,7 +37,7 @@ class Skill:
     description: str
     files: dict                  # supporting files: skill-relative POSIX path -> bytes
     chars: int                   # len(body), judged against the Windsurf cap
-    skipped: tuple = ()          # (skill-relative path, reason) pairs: "symlink" | "bad path"
+    skipped: tuple = ()          # (skill-relative path, reason): "symlink" | "bad path" | "vcs"
 
 
 @dataclass(frozen=True)
@@ -48,6 +49,12 @@ class Source:
 
 
 _BLOCK_SCALARS = (">", "|", ">-", "|-", ">+", "|+")
+
+# The NTFS reparse tags that redirect a path: a symlink and a junction (mount point). The stat
+# module names them on Windows only, so the values are pinned for the other platforms, where a
+# faked stat result in a test is the only way they appear.
+_LINK_TAGS = (getattr(stat, "IO_REPARSE_TAG_SYMLINK", 0xA000000C),
+              getattr(stat, "IO_REPARSE_TAG_MOUNT_POINT", 0xA0000003))
 
 
 def source_name(source_dir: pathlib.Path) -> str:
@@ -61,12 +68,20 @@ def source_name(source_dir: pathlib.Path) -> str:
 
 
 def is_link(path: pathlib.Path) -> bool:
-    """True when `path` resolves anywhere but its own logical place: a symlink, an NTFS junction
-    (Path.is_symlink() is False for one on Python 3.12+, and os.walk descends into it), or a path
-    under either. `path` must be built from an already resolved root, so the comparison is
-    exact. A loop, a broken link, or an unresolvable path counts as a link: skipped, never
-    followed. Works on the 3.9 floor and on every OS the same way."""
+    """True when `path` is a link or sits under one: a symlink (Path.is_symlink), an NTFS
+    reparse point whose tag is a symlink or a junction (a junction is not a symlink to
+    Path.is_symlink() on Python 3.12+, and os.walk descends into it; the tag comes from
+    os.lstat), or a path that resolves anywhere but its own logical place. The tag, not the
+    reparse attribute, decides: a cloud placeholder (a OneDrive or Dropbox online-only file) is
+    a reparse point too and must read as a plain file. `path` must be built from an already
+    resolved root, so that last comparison is exact. A loop, a broken link, or an unresolvable
+    path counts as a link: skipped, never followed. Works on the 3.9 floor and on every OS the
+    same way."""
     try:
+        if path.is_symlink():
+            return True
+        if getattr(os.lstat(path), "st_reparse_tag", 0) in _LINK_TAGS:
+            return True
         return path.resolve() != path
     except (OSError, RuntimeError):
         return True
@@ -98,6 +113,12 @@ def _read_skill(skill_dir: pathlib.Path, skill_md: pathlib.Path) -> Skill:
     skill_root = skill_dir.resolve()
     for dirpath, dirnames, filenames in os.walk(skill_root, followlinks=False):
         here = pathlib.Path(dirpath)
+        # git metadata inside a skill (a nested clone, or a submodule's .git file) would install
+        # as supporting files and hand the project a repo config it then honors (hooksPath,
+        # aliases); drop it here, reported once, never read
+        if ".git" in dirnames:
+            skipped.append(((here / ".git").relative_to(skill_root).as_posix(), "vcs"))
+            dirnames.remove(".git")
         # os.walk lists a linked directory and, for a junction, would descend into it; drop it
         # here so it is reported once and its contents never read
         for sub in sorted(dirnames):
@@ -109,6 +130,9 @@ def _read_skill(skill_dir: pathlib.Path, skill_md: pathlib.Path) -> Skill:
             p = here / filename
             rel = p.relative_to(skill_root).as_posix()
             if rel == "SKILL.md":
+                continue
+            if filename == ".git":
+                skipped.append((rel, "vcs"))
                 continue
             if is_link(p):
                 skipped.append((rel, "symlink"))
@@ -144,11 +168,13 @@ def discover(source_dir) -> Source:
             skipped.append((rel, "symlink"))
             continue
         skill_md = child / "SKILL.md"
+        if not skill_md.is_symlink() and not skill_md.exists():
+            continue  # a directory without a SKILL.md (docs/, scripts/) is not a skill
         if is_link(skill_md):
-            skipped.append((rel, "symlink"))
+            skipped.append((rel, "symlink"))  # a linked, broken, or junctioned SKILL.md
             continue
         if not skill_md.is_file():
-            continue  # a directory without a SKILL.md is not a skill
+            continue
         skills.append(_read_skill(child, skill_md))
     if not skills:
         raise ValueError(f"source {root} holds no skills (expected <source>/skills/<name>/SKILL.md "

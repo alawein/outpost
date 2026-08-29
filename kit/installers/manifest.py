@@ -34,12 +34,13 @@ def merge_manifest(existing: dict, updates: dict, kit_version: str, sources=None
     `{"selection": str, "prompts": list[str]}`, optionally with a `files` ownership map: per path,
     whether the file existed before the kit first wrote there (a pre-install hash may ride along
     as a forensic record). The existed flag is what lets removal delete only files the kit
-    created. A tool entry may also carry `sources`: per source name, the skill names this tool's
-    install kept from it (installs are per tool, so the skill list lives with the tool). The
-    top-level `sources` maps a source name to `{"path": str}` only, where the clone lives, so a
-    later run can re-discover it; it is merged over the recorded sources by name, and None keeps
-    the recorded ones as they are, so an install that passes no --source forgets nothing. Raises
-    ValueError on a malformed existing manifest."""
+    created. `sources` maps a source name to `{"path": str, "tools": {tool: [skill names]}}`:
+    where the clone lives, so a later run can re-discover it, and per tool the skills that
+    tool's install kept from it (installs are per tool, so one tool's list never speaks for
+    another). It is merged over the recorded sources by name: the path is replaced, and only the
+    tools this run names get a new list, so a re-install of one tool never rewrites another's.
+    None keeps the recorded sources as they are, so an install that passes no --source forgets
+    nothing. Raises ValueError on a malformed existing manifest."""
     if not isinstance(existing, dict):
         raise ValueError("manifest must be a JSON object")
     raw_tools = existing.get("tools")
@@ -56,17 +57,17 @@ def merge_manifest(existing: dict, updates: dict, kit_version: str, sources=None
         }
         if "files" in entry:
             record["files"] = dict(entry["files"])
-        if entry.get("sources"):
-            record["sources"] = {name: sorted(skills)
-                                 for name, skills in entry["sources"].items()}
         tools[tool] = record
     merged = {"kit_version": kit_version, "tools": tools}
     recorded = existing.get("sources") or {}
     if not isinstance(recorded, dict):
         raise ValueError("manifest 'sources' must be a JSON object")
-    all_sources = dict(recorded)
+    all_sources = {name: dict(rec) for name, rec in recorded.items()}
     for name, rec in (sources or {}).items():
-        all_sources[name] = {"path": rec["path"]}
+        prior = all_sources.get(name) or {}
+        per_tool = dict(prior.get("tools") or {})
+        per_tool.update({tool: sorted(skills) for tool, skills in rec.get("tools", {}).items()})
+        all_sources[name] = {"path": rec["path"], "tools": per_tool}
     if all_sources:
         merged["sources"] = all_sources
     return merged
@@ -91,15 +92,6 @@ def parse_manifest(text: str) -> dict:
         prompts = entry.get("prompts", [])
         if not isinstance(prompts, list) or not all(isinstance(p, str) for p in prompts):
             raise ValueError(f"manifest 'prompts' for {tool!r} must be a list of strings")
-        tool_sources = entry.get("sources")
-        if tool_sources is not None:
-            # per source name, the skills this tool's install kept; verify and prune read it as
-            # the tool's selection, so a wrong shape must fail here
-            if not isinstance(tool_sources, dict) or not all(
-                    isinstance(skills, list) and all(isinstance(s, str) for s in skills)
-                    for skills in tool_sources.values()):
-                raise ValueError(f"manifest 'sources' for {tool!r} must map a source name to a "
-                                 "list of skill names")
         files = entry.get("files")
         if files is None:
             continue  # a pre-records manifest; removal falls back to the byte-match rule
@@ -118,25 +110,35 @@ def parse_manifest(text: str) -> dict:
     sources = data.get("sources")
     if sources is not None:
         # a source record names where the clone lives, so verify can re-discover it without the
-        # flag; a wrong-typed one must fail here, not crash discovery later
+        # flag, and per tool the skills that tool kept, which verify and prune read as the
+        # tool's selection; a wrong-typed one must fail here, not crash discovery later
         if not isinstance(sources, dict):
             raise ValueError("manifest 'sources' must be a JSON object")
         for name, rec in sources.items():
             if not isinstance(rec, dict) or not isinstance(rec.get("path"), str) or not rec["path"]:
                 raise ValueError(f"manifest source {name!r} needs a string 'path'")
+            per_tool = rec.get("tools", {})
+            if not isinstance(per_tool, dict) or not all(
+                    isinstance(t, str) and isinstance(skills, list)
+                    and all(isinstance(s, str) for s in skills)
+                    for t, skills in per_tool.items()):
+                raise ValueError(f"manifest source {name!r} 'tools' must map a tool name to a "
+                                 "list of skill names")
     return data
 
 
 def drop_tool(manifest: dict, tool: str) -> dict:
     """Return the manifest with one tool's entry removed. Used by `--remove` to forget a tool.
-    A source's path record stays while any remaining tool still names that source; one no tool
-    names any more is forgotten with it, so a later --verify does not go looking for its clone."""
+    The tool is dropped from every source's `tools` map too; a source no tool kept a skill from
+    any more (an empty list is an install that took nothing) is forgotten with it, so a later
+    --verify does not go looking for its clone."""
     tools = {t: e for t, e in manifest.get("tools", {}).items() if t != tool}
     out = {"kit_version": manifest.get("kit_version", ""), "tools": tools}
-    still_named = set()
-    for entry in tools.values():
-        still_named |= set((entry or {}).get("sources") or {})
-    sources = {n: r for n, r in (manifest.get("sources") or {}).items() if n in still_named}
+    sources = {}
+    for name, rec in (manifest.get("sources") or {}).items():
+        remaining = {t: s for t, s in (rec.get("tools") or {}).items() if t != tool and s}
+        if remaining:
+            sources[name] = {**rec, "tools": remaining}
     if sources:
         out["sources"] = sources
     return out

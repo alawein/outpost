@@ -99,6 +99,15 @@ def test_list_writes_nothing_and_shows_prompts(tmp_path, capsys):
     assert "plan-change" in out and "claude" in out
 
 
+def test_list_ignores_a_source(tmp_path, capsys):
+    # --list shows the core pack alone: a --source, even one that does not exist, is never read
+    rc = install.main(["--list", "--source", str(tmp_path / "nope")])
+    assert rc == 0
+    out, err = capsys.readouterr()
+    assert err == ""
+    assert "plan-change" in out and "skills" not in out
+
+
 def test_no_tool_and_no_list_is_an_error(tmp_path, capsys):
     with pytest.raises(SystemExit) as e:
         install.main(["--project", str(tmp_path)])
@@ -1480,7 +1489,7 @@ def test_remove_does_not_overwrite_the_manifest_through_an_escaping_symlink(tmp_
         "the manifest outside the project was overwritten")
 
 
-def test_retired_paths_excludes_a_path_that_escapes_through_a_symlink(tmp_path):
+def test_retired_paths_splits_out_a_path_that_escapes_through_a_symlink(tmp_path):
     outside = tmp_path / "outside"
     outside.mkdir()
     (outside / "secret.txt").write_text("x", encoding="utf-8")
@@ -1498,7 +1507,38 @@ def test_retired_paths_excludes_a_path_that_escapes_through_a_symlink(tmp_path):
 
     result = install._retired_paths(project, "claude", manifest, terse=False, tolerant=True)
 
-    assert result == []
+    # never in the retired list prune and remove delete from; named so verify can report it
+    assert result == ([], ["link_dir/secret.txt"])
+
+
+def test_verify_reports_a_recorded_kit_file_redirected_outside_the_project(tmp_path, capsys):
+    # a kit-created record whose path a symlink now sends outside the project is nothing prune
+    # or remove may delete, but an in-sync verdict would hide it; verify names it ESCAPED
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    secret = outside / "secret.txt"
+    secret.write_bytes(b"secret\n")
+    project = tmp_path / "project"
+    project.mkdir()
+    try:
+        (project / "planted.txt").symlink_to(secret)
+    except OSError:
+        pytest.skip("symlink creation not permitted in this environment")
+    install.main(["--tool", "claude", "--project", str(project)])
+    mpath = project / ".outpost" / "manifest.json"
+    manifest = json.loads(mpath.read_text(encoding="utf-8"))
+    manifest["tools"]["claude"]["files"]["planted.txt"] = {
+        "existed": False, "kit_hash": install._sha256(secret)}
+    mpath.write_text(json.dumps(manifest), encoding="utf-8")
+    capsys.readouterr()
+    rc = install.main(["--tool", "claude", "--project", str(project), "--verify"])
+    out = capsys.readouterr().out
+    assert rc == 1
+    assert "ESCAPED planted.txt" in out and "in sync" not in out
+    assert "LEFTOVER planted.txt" not in out
+    for mode in ("--prune", "--remove"):
+        install.main(["--tool", "claude", "--project", str(project), mode])
+        assert secret.read_bytes() == b"secret\n" and (project / "planted.txt").is_symlink()
 
 
 def test_a_user_owned_converge_file_is_never_touched(tmp_path, capsys):

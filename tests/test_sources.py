@@ -2,9 +2,11 @@
 Discovery validates it, every adapter installs it beside the core pack, and the manifest records
 it so --verify, --prune, and --remove cover its files without the flag."""
 import json
+import os
 import pathlib
 import re
 import shutil
+import stat
 import sys
 
 import pytest
@@ -167,7 +169,68 @@ def test_discover_ignores_a_directory_without_a_skill_file(tmp_path):
     src = make_source(tmp_path)
     (src / "skills" / "docs").mkdir()
     (src / "skills" / "docs" / "guide.md").write_text("not a skill\n", encoding="utf-8")
-    assert [s.name for s in discover(src).skills] == ["alpha", "beta", "big"]
+    found = discover(src)
+    assert [s.name for s in found.skills] == ["alpha", "beta", "big"]
+    # and it is not reported either: a missing SKILL.md is not a link (a library keeps docs/ or
+    # scripts/ beside its skills, and a false symlink alarm on each would drown a real one)
+    assert found.skipped == ()
+
+
+def test_discover_drops_git_metadata_inside_a_skill_and_reports_it(tmp_path, capsys):
+    # a nested clone's .git directory (or a submodule's .git file) would install as supporting
+    # files and hand the project a repo config it then honors (hooksPath, aliases); neither is
+    # read, and the skip is reported once
+    src = make_source(tmp_path)
+    git_dir = src / "skills" / "alpha" / ".git"
+    git_dir.mkdir()
+    (git_dir / "config").write_bytes(b"[core]\n\thooksPath = /tmp/evil\n")
+    (git_dir / "HEAD").write_bytes(b"ref: refs/heads/main\n")
+    (src / "skills" / "beta" / ".git").write_bytes(b"gitdir: ../../.git/modules/beta\n")
+    alpha, beta, _ = discover(src).skills
+    assert set(alpha.files) == {"notes.md", "scripts/run.sh"}
+    assert alpha.skipped == ((".git", "vcs"),)
+    assert beta.files == {} and beta.skipped == ((".git", "vcs"),)
+    project = tmp_path / "project"
+    project.mkdir()
+    assert _main("--tool", "claude", "--project", project, "--source", src, "--dry-run") == 0
+    out = capsys.readouterr().out
+    assert "[skip (vcs)" in out and ".claude/skills/alpha/.git" in out
+    assert _main("--tool", "claude", "--project", project, "--source", src) == 0
+    assert not (project / ".claude" / "skills" / "alpha" / ".git").exists()
+    assert not (project / ".claude" / "skills" / "beta" / ".git").exists()
+    assert _main("--tool", "claude", "--project", project, "--verify") == 0
+
+
+def test_is_link_reads_the_reparse_tag_not_the_reparse_attribute(tmp_path, monkeypatch):
+    # a cloud placeholder (a OneDrive or Dropbox online-only file) is an NTFS reparse point with
+    # a cloud tag, not a link, so a clone kept in a synced folder must not read as all symlinks;
+    # the symlink and mount-point (junction) tags are links. Faked at os.lstat, since no
+    # placeholder can be made here and the stat module names the tags on Windows alone.
+    from kit.sources import is_link
+    plain = tmp_path.resolve() / "plain.md"
+    plain.write_bytes(b"x\n")
+    real_lstat = os.lstat
+    tag = {"value": 0x9000001A}  # IO_REPARSE_TAG_CLOUD
+
+    class Reparse:
+        def __init__(self, st):
+            self._st = st
+            self.st_file_attributes = (getattr(st, "st_file_attributes", 0)
+                                       | getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 1024))
+            self.st_reparse_tag = tag["value"]
+
+        def __getattr__(self, name):
+            return getattr(self._st, name)
+
+    def fake_lstat(p, *args, **kwargs):
+        st = real_lstat(p, *args, **kwargs)
+        return Reparse(st) if isinstance(p, (str, pathlib.Path)) and pathlib.Path(p) == plain else st
+
+    monkeypatch.setattr(os, "lstat", fake_lstat)
+    assert is_link(plain) is False
+    for value in (0xA000000C, 0xA0000003):  # IO_REPARSE_TAG_SYMLINK, IO_REPARSE_TAG_MOUNT_POINT
+        tag["value"] = value
+        assert is_link(plain) is True
 
 
 def test_discover_skips_a_symlink_inside_a_skill_and_reports_it(tmp_path):
@@ -418,10 +481,11 @@ def test_manifest_records_the_source(tmp_path):
     project.mkdir()
     _main("--tool", "claude", "--project", project, "--source", src)
     manifest = _manifest(project)
-    # the path lives at the top level (one clone, re-discovered by any later run); the skills
-    # kept live with the tool, since installs are per tool
-    assert manifest["sources"] == {"lib": {"path": src.resolve().as_posix()}}
-    assert manifest["tools"]["claude"]["sources"] == {"lib": ["alpha", "beta", "big"]}
+    # one record per source: the clone's path (re-discovered by any later run) and, per tool,
+    # the skills that tool kept, since installs are per tool
+    assert manifest["sources"] == {"lib": {"path": src.resolve().as_posix(),
+                                           "tools": {"claude": ["alpha", "beta", "big"]}}}
+    assert "sources" not in manifest["tools"]["claude"]
     files = manifest["tools"]["claude"]["files"]
     assert files[".claude/skills/alpha/notes.md"]["existed"] is False
     assert ".claude/skills/alpha/scripts/run.sh" in files
@@ -436,13 +500,92 @@ def test_only_and_exclude_apply_to_source_skills(tmp_path):
     skills = project / ".claude" / "skills"
     assert (skills / "beta" / "SKILL.md").is_file() and (skills / "grill" / "SKILL.md").is_file()
     assert not (skills / "alpha").exists()
-    assert _manifest(project)["tools"]["claude"]["sources"]["lib"] == ["beta"]
+    assert _manifest(project)["sources"]["lib"]["tools"] == {"claude": ["beta"]}
     assert _main("--tool", "claude", "--project", project, "--source", src, "--verify") == 0
     other = tmp_path / "other"
     other.mkdir()
     assert _main("--tool", "claude", "--project", other, "--source", src, "--exclude", "alpha") == 0
     assert (other / ".claude" / "skills" / "beta" / "SKILL.md").is_file()
     assert not (other / ".claude" / "skills" / "alpha").exists()
+
+
+def test_a_source_skill_under_only_needs_the_flag_in_the_same_run(tmp_path, capsys):
+    # a run without --source never reads source records, so a recorded skill name is not a
+    # selectable one; the error says what to pass instead of a bare "not a catalog prompt"
+    src = make_source(tmp_path)
+    project = tmp_path / "project"
+    project.mkdir()
+    _main("--tool", "claude", "--project", project, "--source", src)
+    before = _tree(project)
+    capsys.readouterr()
+    assert _main("--tool", "claude", "--project", project, "--only", "beta") == 1
+    err = capsys.readouterr().err
+    assert "not a catalog prompt (a source skill needs --source in the same run): beta" in err
+    assert _tree(project) == before
+
+
+def test_a_source_nothing_was_kept_from_is_not_demanded_later(tmp_path, capsys):
+    # --only naming core prompts alone records the source with an empty list for this tool:
+    # nothing installed from it, so a later verify or prune must not go looking for the clone,
+    # and --remove of the last tool that kept a skill forgets the source
+    src = make_source(tmp_path)
+    project = tmp_path / "project"
+    project.mkdir()
+    assert _main("--tool", "claude", "--project", project, "--source", src, "--only", "grill") == 0
+    assert _manifest(project)["sources"]["lib"]["tools"] == {"claude": []}
+    assert not (project / ".claude" / "skills" / "alpha").exists()
+    shutil.rmtree(src)
+    capsys.readouterr()
+    assert _main("--tool", "claude", "--project", project, "--verify") == 0
+    assert "SOURCE MISSING" not in capsys.readouterr().out
+    assert _main("--tool", "claude", "--project", project, "--prune") == 0
+    other = tmp_path / "other"
+    other.mkdir()
+    again = make_source(tmp_path / "again")
+    assert _main("--tool", "codex", "--project", other, "--source", again) == 0
+    assert _main("--tool", "claude", "--project", other, "--source", again, "--only", "grill") == 0
+    assert _manifest(other)["sources"]["lib"]["tools"] == {"claude": [],
+                                                          "codex": ["alpha", "beta", "big"]}
+    assert _main("--tool", "codex", "--project", other, "--remove") == 0
+    assert "sources" not in _manifest(other)
+
+
+def test_narrowing_to_core_prompts_alone_retires_the_source_copies(tmp_path, capsys):
+    # a broader install's source copies stay recorded as the kit's files, so after the narrowing
+    # run they read LEFTOVER (not demanded, not silently kept) and --prune removes them
+    src = make_source(tmp_path)
+    project = tmp_path / "project"
+    project.mkdir()
+    _main("--tool", "claude", "--project", project, "--source", src)
+    assert _main("--tool", "claude", "--project", project, "--source", src, "--only", "grill") == 0
+    capsys.readouterr()
+    assert _main("--tool", "claude", "--project", project, "--verify") == 1
+    assert "LEFTOVER .claude/skills/alpha/SKILL.md" in capsys.readouterr().out
+    assert _main("--tool", "claude", "--project", project, "--prune") == 0
+    assert not (project / ".claude" / "skills" / "alpha").exists()
+    assert (project / ".claude" / "skills" / "grill" / "SKILL.md").is_file()
+    assert _main("--tool", "claude", "--project", project, "--verify") == 0
+
+
+def test_verify_and_prune_note_a_recorded_skill_the_clone_no_longer_holds(tmp_path, capsys):
+    # an upstream drop is legitimate (LEFTOVER covers its files), so this is a note, not an
+    # error; but a hand-edit typo looks the same and drops the real skill from the selection,
+    # so the note names both readings before verify reports EXTRA and prune acts on it
+    src = make_source(tmp_path)
+    project = tmp_path / "project"
+    project.mkdir()
+    _main("--tool", "claude", "--project", project, "--source", src)
+    manifest = _manifest(project)
+    manifest["sources"]["lib"]["tools"]["claude"] = ["alpah", "beta", "big"]
+    _write_manifest(project, manifest)
+    capsys.readouterr()
+    assert _main("--tool", "claude", "--project", project, "--verify") == 1
+    out = capsys.readouterr().out
+    note = "note: source lib records skill 'alpah' the clone no longer holds"
+    assert note in out and "typo" in out
+    assert "EXTRA   .claude/skills/alpha/SKILL.md" in out
+    assert _main("--tool", "claude", "--project", project, "--prune") == 0
+    assert note in capsys.readouterr().out
 
 
 def test_install_leaves_a_users_own_skill_alone(tmp_path, capsys):
@@ -498,11 +641,13 @@ def test_verify_per_tool_after_a_source_installed_for_another_tool(tmp_path, cap
     assert _main("--tool", "all", "--project", project) == 0
     assert _main("--tool", "codex", "--project", project, "--source", src) == 0
     manifest = _manifest(project)
-    assert "sources" not in manifest["tools"]["claude"]
-    assert manifest["tools"]["codex"]["sources"] == {"lib": ["alpha", "beta", "big"]}
+    assert manifest["sources"]["lib"]["tools"] == {"codex": ["alpha", "beta", "big"]}
     capsys.readouterr()
     # claude never installed the source, so its copies are not demanded of claude
     assert _main("--tool", "claude", "--project", project, "--verify") == 0
+    assert "MISSING" not in capsys.readouterr().out
+    # not even when the flag names the clone: for claude the record, not the flag, decides
+    assert _main("--tool", "claude", "--project", project, "--verify", "--source", src) == 0
     assert "MISSING" not in capsys.readouterr().out
     assert _main("--tool", "all", "--project", project, "--verify") == 0
     assert _main("--tool", "all", "--project", project, "--prune") == 0
@@ -519,13 +664,26 @@ def test_verify_keeps_a_narrower_per_tool_source_selection(tmp_path, capsys):
     project.mkdir()
     assert _main("--tool", "claude", "--project", project, "--source", src, "--only", "beta") == 0
     assert _main("--tool", "codex", "--project", project, "--source", src) == 0
-    manifest = _manifest(project)
-    assert manifest["tools"]["claude"]["sources"] == {"lib": ["beta"]}
-    assert manifest["tools"]["codex"]["sources"] == {"lib": ["alpha", "beta", "big"]}
+    # the codex install never rewrites claude's narrower list
+    assert _manifest(project)["sources"]["lib"]["tools"] == {
+        "claude": ["beta"], "codex": ["alpha", "beta", "big"]}
     capsys.readouterr()
     assert _main("--tool", "claude", "--project", project, "--verify") == 0
     assert "MISSING" not in capsys.readouterr().out
     assert _main("--tool", "codex", "--project", project, "--verify") == 0
+    # and a plain re-install of claude (no --source) keeps both records as they are
+    assert _main("--tool", "claude", "--project", project) == 0
+    assert _manifest(project)["sources"]["lib"]["tools"] == {
+        "claude": ["beta"], "codex": ["alpha", "beta", "big"]}
+    # removing codex drops it from the record and leaves claude's list; removing claude too
+    # forgets the source, so no later run goes looking for its clone
+    assert _main("--tool", "codex", "--project", project, "--remove") == 0
+    assert _manifest(project)["sources"]["lib"]["tools"] == {"claude": ["beta"]}
+    assert not (project / ".agents" / "skills").exists()  # codex's own copies went with it
+    assert (project / ".claude" / "skills" / "beta" / "SKILL.md").is_file()
+    assert _main("--tool", "claude", "--project", project, "--verify") == 0
+    assert _main("--tool", "claude", "--project", project, "--remove") == 0
+    assert not (project / ".outpost").exists()
 
 
 @pytest.mark.parametrize("mode", ["--remove", "--prune"])
@@ -540,8 +698,8 @@ def test_a_legacy_manifest_never_deletes_a_hand_placed_source_copy(tmp_path, cap
     entry = {"prompts": ["grill"], "selection": "only", "terse": False}
     manifest = {"kit_version": "0.0.1", "tools": {"claude": entry}}
     if how == "recorded":
-        entry["sources"] = {"lib": ["alpha", "beta"]}
-        manifest["sources"] = {"lib": {"path": src.resolve().as_posix()}}
+        manifest["sources"] = {"lib": {"path": src.resolve().as_posix(),
+                                       "tools": {"claude": ["alpha", "beta"]}}}
     _write_manifest(project, manifest)
     before = {k: v for k, v in _tree(project).items() if k.startswith(".claude/")}
     argv = ["--tool", "claude", "--project", project, mode]
@@ -584,20 +742,39 @@ def test_install_refuses_a_source_path_that_collides_with_a_core_prompt_under_on
     assert _tree(project) == {}
 
 
-def test_remove_reports_a_recorded_collision_cleanly(tmp_path, capsys):
+@pytest.mark.parametrize("mode", ["--verify", "--prune", "--remove"])
+def test_a_recorded_collision_is_reported_cleanly_in_every_mode(tmp_path, capsys, mode):
     one = make_source(tmp_path / "x", name="lib-one")
     two = make_source(tmp_path / "y", name="lib-two")
     project = tmp_path / "project"
     project.mkdir()
     assert _main("--tool", "claude", "--project", project, "--source", one) == 0
     manifest = _manifest(project)  # a hand edit records a second source with the same skill
-    manifest["tools"]["claude"]["sources"]["lib-two"] = ["alpha"]
-    manifest["sources"]["lib-two"] = {"path": two.resolve().as_posix()}
+    manifest["sources"]["lib-two"] = {"path": two.resolve().as_posix(),
+                                      "tools": {"claude": ["alpha"]}}
     _write_manifest(project, manifest)
+    before = _tree(project)
     capsys.readouterr()
-    assert _main("--tool", "claude", "--project", project, "--remove") == 1
+    assert _main("--tool", "claude", "--project", project, mode) == 1
     err = capsys.readouterr().err
     assert err.startswith("error:") and "planned twice" in err
+    assert _tree(project) == before  # nothing deleted on a plan the guard refused
+
+
+def test_reinstall_over_an_edited_source_copy_names_the_source_remedy(tmp_path, capsys):
+    src = make_source(tmp_path)
+    project = tmp_path / "project"
+    project.mkdir()
+    _main("--tool", "claude", "--project", project, "--source", src)
+    (project / ".claude" / "skills" / "beta" / "SKILL.md").write_text("local edit\n",
+                                                                       encoding="utf-8")
+    capsys.readouterr()
+    assert _main("--tool", "claude", "--project", project, "--source", src) == 0
+    out = capsys.readouterr().out
+    warn = next(line for line in out.splitlines() if "WARN" in line and "beta/SKILL.md" in line)
+    # the prompts/<tool>/ overlay is for core prompts; a source skill has its own remedy
+    assert "restored from the clone" in warn and "overlay" not in warn
+    assert (project / ".claude" / "skills" / "beta" / "SKILL.md").read_text(encoding="utf-8") == BETA
 
 
 def test_a_relative_recorded_source_path_is_taken_from_the_project(tmp_path, monkeypatch):
@@ -762,12 +939,42 @@ def test_manifest_with_a_source_round_trips_through_parse(tmp_path):
     project.mkdir()
     _main("--tool", "claude", "--project", project, "--source", src)
     text = (project / ".outpost" / "manifest.json").read_text(encoding="utf-8")
-    assert "lib" in parse_manifest(text)["sources"]
+    assert parse_manifest(text)["sources"]["lib"]["tools"] == {"claude": ["alpha", "beta", "big"]}
     with pytest.raises(ValueError, match="source"):
         parse_manifest(json.dumps({"tools": {}, "sources": {"lib": {"skills": ["a"]}}}))
     with pytest.raises(ValueError, match="source"):
         parse_manifest(json.dumps({"tools": {}, "sources": ["lib"]}))
-    with pytest.raises(ValueError, match="'sources' for 'claude'"):
-        parse_manifest(json.dumps({"tools": {"claude": {"prompts": [], "sources": ["lib"]}}}))
-    with pytest.raises(ValueError, match="'sources' for 'claude'"):
-        parse_manifest(json.dumps({"tools": {"claude": {"prompts": [], "sources": {"lib": "a"}}}}))
+    with pytest.raises(ValueError, match="'lib' 'tools'"):
+        parse_manifest(json.dumps({"tools": {}, "sources": {"lib": {"path": "x", "tools": ["claude"]}}}))
+    with pytest.raises(ValueError, match="'lib' 'tools'"):
+        parse_manifest(json.dumps({"tools": {}, "sources": {"lib": {"path": "x", "tools": {"claude": "a"}}}}))
+    with pytest.raises(ValueError, match="'lib' 'tools'"):
+        parse_manifest(json.dumps({"tools": {}, "sources": {"lib": {"path": "x", "tools": {"claude": [1]}}}}))
+
+
+def test_merge_manifest_keeps_another_tools_source_list_and_drop_tool_forgets_per_tool():
+    from kit.installers.manifest import drop_tool, merge_manifest
+    first = merge_manifest({}, {"claude": {"selection": "only", "prompts": ["grill"]}}, "1",
+                           {"lib": {"path": "/c/lib", "tools": {"claude": ["beta"]}}})
+    assert first["sources"] == {"lib": {"path": "/c/lib", "tools": {"claude": ["beta"]}}}
+    # a codex install adds its own list and leaves claude's narrower one alone
+    second = merge_manifest(first, {"codex": {"selection": "full", "prompts": ["grill"]}}, "1",
+                            {"lib": {"path": "/c/lib", "tools": {"codex": ["beta", "alpha"]}}})
+    assert second["sources"]["lib"]["tools"] == {"claude": ["beta"], "codex": ["alpha", "beta"]}
+    # a re-install with no --source keeps the record as it is
+    third = merge_manifest(second, {"claude": {"selection": "full", "prompts": ["grill"]}}, "1")
+    assert third["sources"] == second["sources"]
+    # a moved clone updates the path for every tool
+    moved = merge_manifest(third, {"claude": {"selection": "full", "prompts": []}}, "1",
+                           {"lib": {"path": "/d/lib", "tools": {"claude": ["alpha"]}}})
+    assert moved["sources"]["lib"] == {"path": "/d/lib",
+                                       "tools": {"claude": ["alpha"], "codex": ["alpha", "beta"]}}
+    # drop_tool removes the tool from every source; a source no tool names is forgotten
+    after_codex = drop_tool(moved, "codex")
+    assert after_codex["sources"]["lib"]["tools"] == {"claude": ["alpha"]}
+    assert "sources" not in drop_tool(after_codex, "claude")
+    # an empty list is an install that kept nothing: the source goes with the last tool that did
+    taken = merge_manifest({}, {"claude": {"selection": "only", "prompts": ["grill"]}}, "1",
+                           {"lib": {"path": "/c/lib", "tools": {"claude": ["beta"], "codex": []}}})
+    assert taken["sources"]["lib"]["tools"] == {"claude": ["beta"], "codex": []}
+    assert "sources" not in drop_tool(taken, "claude")
