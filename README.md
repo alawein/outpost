@@ -78,7 +78,7 @@ python install.py --tool claude --project /path/to/your/repo --source /path/to/s
 python install.py --tool claude --project /path/to/your/repo --verify
 ```
 
-Pull the clone and every installed copy of a skill that changed reads `DRIFTED` until you re-install. The kit never fetches. See [docs/sources.md](docs/sources.md) for the per-tool paths and the limits.
+Pull the clone and every installed copy of a skill that changed reads `DRIFTED` until you re-install with `--source`. The kit never fetches. See [docs/sources.md](docs/sources.md) for the per-tool paths and the limits.
 
 ## Commands
 

@@ -88,8 +88,9 @@ flowchart TD
 ## Differences that matter
 
 - Only Claude Code loads skills by description, so its prompts load on their own.
-- Codex has no skills or plugins here: plain files under `.agents/prompts/`, used by hand;
-  `AGENTS.md` names the eight common stage prompts, not the full pack.
+- Codex gets the core prompts as plain files under `.agents/prompts/`, used by hand; `AGENTS.md`
+  names the eight common stage prompts, not the full pack. A source skill installs under
+  `.agents/skills/`, which Codex reads on its own.
 - Cursor reads rules, so prompts install as rules.
 - Copilot reads `.github/copilot-instructions.md` repo-wide plus prompt files.
 - Windsurf reads rules with a `trigger` in their frontmatter; the kit's rule is always on. The
