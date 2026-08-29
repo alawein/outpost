@@ -20,7 +20,7 @@ Format follows Keep a Changelog (https://keepachangelog.com). The kit uses SemVe
 - A Gemini CLI adapter: `python install.py --tool gemini` installs `GEMINI.md` and the prompts
   as custom commands at `.gemini/commands/outpost/<name>.toml`, run as `/outpost:<name>`.
 - A drift benchmark under `benchmarks/drift/`: five seeded drift scenarios per adapter, scored
-  by `--verify`, `git status`, and no tooling; `results.json` holds the published rows and CI
+  by `--verify`, `git status`, and copying by hand; `results.json` holds the published rows and CI
   re-runs them with `python benchmarks/drift/run.py --check`.
 - `--verify` reports `EDITED` for a guide the kit wrote (`CLAUDE.md`, `AGENTS.md`, and the
   rest) whose bytes no longer match the manifest's `kit_hash`, with a one-line `NOTE:` count.
@@ -30,6 +30,14 @@ Format follows Keep a Changelog (https://keepachangelog.com). The kit uses SemVe
   manifest records the source, `--verify` reads each installed copy against the source's
   current state, and a user's own skill of the same name is never overwritten. See
   `docs/sources.md`.
+
+### Changed
+
+- The README leads with the drift benchmark: a headline rendered from
+  `benchmarks/drift/results.json` inside a generated span, a transcript of `--verify` catching
+  an edited copy and an edited guide, and a redrawn `docs/brand/flow.svg` showing install and
+  verify across the six tools. The purpose, architecture, and consumer prose moved out; the
+  working-habit lists moved to `docs/workflow.md`.
 
 ## [0.1.0] - 2026-08-27
 

@@ -8,7 +8,7 @@ last_updated: 2026-08-27
 
 # Adapters
 
-One prompt pack, six tools. The core prompts live in `prompts/core/`. Each adapter turns them into the files one tool expects.
+An adapter turns the core prompts in `prompts/core/` into the files one of the six tools expects, and `--verify` reads every installed copy back against that source.
 
 ## The model
 
@@ -56,7 +56,7 @@ Paths stay separate across tools, so more than one install in the same repo does
 
 Each install writes `.outpost/manifest.json` at the project root. It records the kit version and, per tool, which prompts were installed, how they were chosen (`full`, `only`, or `exclude`), and whether `--terse` was used. `--verify` reads that record and checks the installed subset, not the full pack. That keeps excluded prompts from being reported as missing. It also lets `--verify`/`--prune`/`--remove` handle the terse output style without re-passing `--terse`. Installing a second tool adds its entry without dropping the first.
 
-`--verify` prints one line per file. `ok` is in place (a guide may also be absent, which is fine), `MISSING` is gone, `DRIFTED` no longer matches the kit, and `EXTRA` is a leftover from a narrower re-install; any of those but `ok` fails the check. `EDITED` marks a guide (`CLAUDE.md` and the like) the kit wrote that you have since changed. The guide is yours, so `EDITED` is information only and never fails the check.
+`--verify` prints one line per file. `ok` is in place (a guide may also be absent, which is fine), `MISSING` is gone, `DRIFTED` no longer matches the kit, `EXTRA` is a leftover from a narrower re-install, `LEFTOVER` is a kit file whose prompt no longer ships to this tool (`--prune` removes both), and `ESCAPED` resolves outside the project via a symlink; any of those but `ok` fails the check. `EDITED` marks a guide (`CLAUDE.md` and the like) the kit wrote that you have since changed. The guide is yours, so `EDITED` is information only and never fails the check.
 
 The installer never deletes during a normal install. If you narrow an install (`--only`/`--exclude` over a broader one), the de-selected prompt files stay on disk. `--verify` reports them as `EXTRA`, and `--prune` removes them. Prune deletes only kit-owned prompt files the manifest no longer selects. It never deletes a user-owned or merged file, and it skips a hand-edited file. The manifest is the record, so edit prompt names carefully before pruning.
 

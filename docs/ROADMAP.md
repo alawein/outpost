@@ -24,17 +24,16 @@ Current release: v0.1.0. The table is the live state.
 | Sources | built | `--source <dir>` installs a skill library the kit does not own (a clone in the Agent Skills layout, such as obra/superpowers) for every tool, records it in the manifest, and `--verify` reads each installed copy against the source's current state; see `docs/sources.md` |
 | Catalog | built | `kit/catalog/catalog.json`; lists what ships |
 | Checks | built | `python validate.py`: <!-- GENERATED:checks-line -->twenty-three checks (structure, catalog, prompts, templates, adapters, docs, secrets, voice, banned_sync, template_refs, templates_sync, docs_sync, doc_truth, plugin_sync, plugin_orphans, registries, roadmap, command_lists, commands, traces, label_refs, issue_forms, prose_length)<!-- /GENERATED:checks-line --> |
-| Docs | built | Onboarding, workflow, writing standard, adapters, sources, contributing, releasing, plugin, token budget, labels, how this is built, debt, roadmap |
+| Docs | built | Onboarding, workflow, writing standard, adapters, sources, contributing, releasing, plugin, token budget, labels, how this is built, debt, roadmap, and the drift benchmark's README |
 | Tests | built | The kit's own suite over the installer, adapters, catalog, and checks |
 | Claude Code plugin | built | `plugins/outpost/`: the core catalog skills, nine commands (/outpost:stress, /outpost:ship, /outpost:drive, /outpost:doctor, /outpost:repo-review, /outpost:code-review, /outpost:simplify, /outpost:prove, /outpost:triage), one read-only agent (architecture-guardian), one context hook, and a ledger voice output style (ledger-voice); see `docs/plugin.md` |
-| Benchmark | built | `benchmarks/drift/`: five seeded drift scenarios per adapter, each scored by three detectors (the installer's `--verify`, `git status`, and none); `results.json` is the published table, CI re-runs it with `--check`, and a miss stays a published row; see `benchmarks/drift/README.md` |
+| Benchmark | built | `benchmarks/drift/`: five seeded drift scenarios per adapter, each scored by three detectors (the installer's `--verify`, `git status`, and copying by hand); `results.json` is the published table, CI re-runs it with `--check`, and a miss stays a published row; see `benchmarks/drift/README.md` |
 
 The smoke proof: a clean clone with only Python installed runs `python install.py --tool all --project <target>` into a scratch repo, then `python validate.py` from the kit checkout, and both pass. That proves packaging and parity (the files, counts, and generated copies agree, and the install lands), not that the prompts make an agent more effective. A consumer repo verifies its own install with `python install.py --tool <tool> --project <target> --verify`.
 
 ## Planned
 
-- The README rewrite that leads with the benchmark.
-- 1.0 once the item above is real.
+- 1.0, once a release ships the benchmark, the sources mechanism, and the README that leads with the benchmark, with CI green on that release.
 
 ## Out of scope
 

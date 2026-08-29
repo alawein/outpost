@@ -79,3 +79,20 @@ See `docs/adapters.md` for what differs between the tools and why.
 - Make the smallest change that solves the problem. Flag added complexity.
 - One logical change per commit, one concern per PR.
 - Findings first in docs, reviews, and PR bodies. Plain words.
+
+Spend fewer tokens:
+- Install only what you need: `--only` for a focused pack, `--exclude` to drop what you will not use.
+- Let skills load by description in Claude rather than pasting prompt text into the chat.
+- Run `orient-repo` once to map a repo, then reuse the map; do not re-explore every turn.
+- Hand a big file or a wide search to a subagent and keep its conclusion, not the raw context.
+
+Make fewer errors:
+- Run `plan-change` before a multi-file edit, then keep the tree runnable at each step.
+- `grill` or `self-refute` a risky change before you trust it; `premortem` a plan before you commit to it.
+- Run `validate.py` and the tests before you call a change done. Green is the bar, not the diff.
+- `prepare-pr` drafts the commit and PR and runs the pre-merge checks, so nothing ships half-checked.
+
+Work in parallel:
+- Split independent units across separate agents, one per checkout, and review between them.
+- Use `converge` to loop a diff, plan, or doc to clean while you move on to the next unit.
+- `panel` gathers several expert views at once for a wide decision instead of one slow pass.
