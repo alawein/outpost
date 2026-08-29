@@ -31,6 +31,24 @@ def test_planned_paths_are_disjoint(tmp_path):
             assert not (paths[a] & paths[b]), (a, b, paths[a] & paths[b])
 
 
+def test_planned_paths_stay_disjoint_with_a_source(tmp_path):
+    # a source's skills join every tool's plan; their paths must not collide across tools, and
+    # no tool may plan one path twice (a core prompt and a source skill of the same name)
+    from kit.sources import discover
+    from tests.test_sources import make_source
+    src = discover(make_source(tmp_path / "src"))
+    paths = {}
+    for t in TOOLS:
+        planned = [a.path for a in plan_for(t, ROOT, tmp_path, sources=[src])]
+        assert len(planned) == len(set(planned)), t
+        paths[t] = set(planned)
+        assert any("alpha" in p for p in planned), t
+    tools = sorted(paths)
+    for i, a in enumerate(tools):
+        for b in tools[i + 1:]:
+            assert not (paths[a] & paths[b]), (a, b, paths[a] & paths[b])
+
+
 def test_all_adapters_coexist_on_disk(tmp_path):
     install.main(["--tool", "all", "--project", str(tmp_path)])
     assert (tmp_path / "CLAUDE.md").is_file()

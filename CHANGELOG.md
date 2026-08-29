@@ -25,6 +25,11 @@ Format follows Keep a Changelog (https://keepachangelog.com). The kit uses SemVe
 - `--verify` reports `EDITED` for a guide the kit wrote (`CLAUDE.md`, `AGENTS.md`, and the
   rest) whose bytes no longer match the manifest's `kit_hash`, with a one-line `NOTE:` count.
   The guide is the user's, so the exit code is unchanged.
+- `--source <dir>` (repeatable) installs a skill library the kit does not own, a clone in the
+  Agent Skills layout such as obra/superpowers, next to the core prompts for every tool. The
+  manifest records the source, `--verify` reads each installed copy against the source's
+  current state, and a user's own skill of the same name is never overwritten. See
+  `docs/sources.md`.
 
 ## [0.1.0] - 2026-08-27
 
