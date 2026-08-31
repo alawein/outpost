@@ -12,7 +12,7 @@ What exists now, what comes next. `CHANGELOG.md` records what shipped; this file
 
 ## Where it stands
 
-Current release: v0.1.0. The table is the live state.
+Current release: v1.0.0. The table is the live state.
 
 | Area | State | What is in it |
 |---|---|---|
