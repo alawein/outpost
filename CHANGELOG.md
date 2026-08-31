@@ -12,6 +12,8 @@ Format follows Keep a Changelog (https://keepachangelog.com). The kit uses SemVe
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-08-31
+
 ### Added
 
 - A Windsurf adapter: `python install.py --tool windsurf` installs an always-on rule at
