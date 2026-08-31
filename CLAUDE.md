@@ -33,6 +33,7 @@ Run `python validate.py` and `python -m pytest -q` from the repo root. A change 
   a consumer, a repo); reversing it is costly or security-sensitive; a future maintainer will
   need the rationale; it sets ownership, a contract, or a durable exception. A prompt addition
   never qualifies on its own. Records live in `docs/decisions/`, numbered, append-only.
+- A deliberate shortcut lands in docs/DEBT.md in the same PR (the debt-log prompt does this); closing one moves the entry to Closed.
 
 ## Agent authority
 

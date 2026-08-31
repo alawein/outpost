@@ -7,7 +7,12 @@ security-sensitive; a future maintainer will need the rationale; it sets ownersh
 contract, or a durable exception. A prompt addition never qualifies on its own.
 
 Records are numbered `NNNN-title.md`, written from `0000-template.md`, and append-only:
-supersede an old record with a new one, never edit or delete a recorded one.
+supersede an old record with a new one, never edit or delete a recorded one. The one exception
+is errata: a citation that was wrong when written, or a named check or test that has since
+moved, may be corrected in place. The decision itself is never rewritten.
+
+Index bullets are `- NNNN: title`. No other bullet in this file starts with a bare four-digit
+number (a year, say); the ledgers check reads any such bullet as an index entry.
 
 - 0001: solo review model
 - 0002: installer path safety

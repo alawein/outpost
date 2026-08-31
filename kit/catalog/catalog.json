@@ -74,6 +74,7 @@
     { "name": "plugin_orphans", "module": "kit.checks.plugin_orphans", "summary": "No stale skill ships in the plugin tree; every skill directory resolves to a catalog prompt." },
     { "name": "registries", "module": "kit.checks.registries", "summary": "The adapter and check registries match the code on disk." },
     { "name": "roadmap", "module": "kit.checks.roadmap", "summary": "The ROADMAP current-release line matches the kit version." },
+    { "name": "ledgers", "module": "kit.checks.ledgers", "summary": "The decision index, debt entries, and roadmap sections hold their ledger contract." },
     { "name": "command_lists", "module": "kit.checks.command_lists", "summary": "Every plugin command is named in docs/workflow.md." },
     { "name": "commands", "module": "kit.checks.commands", "summary": "Every plugin command file has a real description and is not a stub." },
     { "name": "traces", "module": "kit.checks.traces", "summary": "No personal email, handle, or machine path in the tracked tree." },

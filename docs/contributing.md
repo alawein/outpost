@@ -18,6 +18,7 @@ How to add to the kit without breaking it. The catalog lists what ships, and `py
 - One concern per pull request; target 400 changed lines and 20 files or fewer, and say why in
   the body when you exceed it. Delete the branch on merge.
 - Stage exact paths. Keep `.env` and secrets out of the tree.
+- A deliberate shortcut lands in `docs/DEBT.md` in the same PR.
 - Plain ASCII, no em dashes, none of the banned words in `docs/writing-standard.md`.
 
 ## Add a prompt

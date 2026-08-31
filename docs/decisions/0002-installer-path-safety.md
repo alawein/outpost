@@ -11,7 +11,8 @@ path, could otherwise steer a write or a delete outside the project root.
 
 ## Decision
 
-Four rules, each enforced in code and covered by `tests/test_install.py`:
+Four rules, each enforced in code and covered by `tests/test_install.py` and
+`tests/test_manifest_merge.py` (the manifest-key rejections live in the latter):
 
 - A manifest `files` key is a project-relative POSIX path. `parse_manifest` (in
   `kit/installers/manifest.py`) rejects an absolute path, parent traversal, a backslash, a
