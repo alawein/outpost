@@ -1,7 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 240" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 260" role="img" aria-label="One prompt pack installs into six tools. A verify pass runs from the tools back to the pack and catches drift." font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif">
   <defs>
     <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
       <path d="M0,0 L6,3 L0,6 Z" fill="#768390"/>
+    </marker>
+    <marker id="arrow-verify" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 Z" fill="#7a5cff"/>
     </marker>
     <linearGradient id="spine" x1="0" y1="0" x2="1" y2="0">
       <stop offset="0" stop-color="#2f81f7"/>
@@ -9,59 +12,55 @@
     </linearGradient>
   </defs>
 
-  <text x="42" y="24" fill="#768390" font-size="12" letter-spacing="2">ONE PATH, EVERY TOOL</text>
+  <text x="42" y="24" fill="#768390" font-size="12" letter-spacing="2">ONE PACK, EVERY TOOL</text>
 
-  <!-- main spine -->
-  <g fill="none" stroke="url(#spine)" stroke-width="1.8">
-    <rect x="42"  y="44" width="104" height="42" rx="9"/>
-    <rect x="162" y="44" width="104" height="42" rx="9"/>
-    <rect x="282" y="44" width="104" height="42" rx="9"/>
-    <rect x="402" y="44" width="104" height="42" rx="9"/>
-    <rect x="522" y="44" width="104" height="42" rx="9"/>
-    <rect x="642" y="44" width="104" height="42" rx="9"/>
-    <rect x="762" y="44" width="104" height="42" rx="9"/>
-  </g>
-  <g fill="#1f6feb" font-size="15" font-weight="600" text-anchor="middle">
-    <text x="94"  y="70">orient</text>
-    <text x="214" y="70">plan</text>
-    <text x="334" y="70">build</text>
-    <text x="454" y="70">test</text>
-    <text x="574" y="70">review</text>
-    <text x="694" y="70">ship</text>
-    <text x="814" y="70">hand off</text>
-  </g>
+  <!-- the pack -->
+  <rect x="42" y="83" width="150" height="64" rx="10" fill="none" stroke="url(#spine)" stroke-width="1.8"/>
+  <text x="117" y="111" fill="#1f6feb" font-size="15" font-weight="600" text-anchor="middle">prompt pack</text>
+  <text x="117" y="131" fill="#768390" font-size="12" text-anchor="middle">prompts/core</text>
 
+  <!-- install: trunk, two buses, one arrow per tool -->
+  <g fill="none" stroke="#768390" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M194,115 H500"/>
+    <path d="M500,163 V44 Q500,38 506,38 H689 Q695,38 695,44 V163"/>
+  </g>
   <g stroke="#768390" stroke-width="1.5" marker-end="url(#arrow)">
-    <line x1="146" y1="65" x2="160" y2="65"/>
-    <line x1="266" y1="65" x2="280" y2="65"/>
-    <line x1="386" y1="65" x2="400" y2="65"/>
-    <line x1="506" y1="65" x2="520" y2="65"/>
-    <line x1="626" y1="65" x2="640" y2="65"/>
-    <line x1="746" y1="65" x2="760" y2="65"/>
+    <line x1="500" y1="67"  x2="538" y2="67"/>
+    <line x1="500" y1="115" x2="538" y2="115"/>
+    <line x1="500" y1="163" x2="538" y2="163"/>
+    <line x1="695" y1="67"  x2="718" y2="67"/>
+    <line x1="695" y1="115" x2="718" y2="115"/>
+    <line x1="695" y1="163" x2="718" y2="163"/>
+  </g>
+  <text x="204" y="108" fill="#1f6feb" font-size="13">install</text>
+
+  <!-- six tools, two columns of three -->
+  <g fill="none" stroke="url(#spine)" stroke-width="1.5">
+    <rect x="540" y="50"  width="130" height="34" rx="9"/>
+    <rect x="540" y="98"  width="130" height="34" rx="9"/>
+    <rect x="540" y="146" width="130" height="34" rx="9"/>
+    <rect x="720" y="50"  width="130" height="34" rx="9"/>
+    <rect x="720" y="98"  width="130" height="34" rx="9"/>
+    <rect x="720" y="146" width="130" height="34" rx="9"/>
+  </g>
+  <g fill="#1f6feb" font-size="14" font-weight="600" text-anchor="middle">
+    <text x="605" y="72">Claude Code</text>
+    <text x="605" y="120">Codex</text>
+    <text x="605" y="168">Cursor</text>
+    <text x="785" y="72">Copilot</text>
+    <text x="785" y="120">Windsurf</text>
+    <text x="785" y="168">Gemini CLI</text>
   </g>
 
-  <!-- branch steps under build and test -->
-  <g stroke="#768390" stroke-width="1.2" stroke-dasharray="4 3">
-    <line x1="334" y1="86" x2="334" y2="120"/>
-    <line x1="454" y1="86" x2="454" y2="120"/>
-    <rect x="282" y="122" width="104" height="30" rx="8" fill="none"/>
-    <rect x="402" y="122" width="104" height="30" rx="8" fill="none"/>
+  <!-- verify: dashed return from the tools to the pack -->
+  <g fill="none" stroke="#7a5cff" stroke-width="1.3" stroke-dasharray="4 3" stroke-linecap="round">
+    <path d="M605,180 V204"/>
+    <path d="M785,180 V198 Q785,204 779,204 H350"/>
+    <path d="M250,204 H123 Q117,204 117,198 V150" marker-end="url(#arrow-verify)"/>
   </g>
-  <g fill="#768390" font-size="13" text-anchor="middle">
-    <text x="334" y="141">debug-failure</text>
-    <text x="454" y="141">write-tests</text>
-  </g>
+  <text x="465" y="198" fill="#7a5cff" font-size="13" text-anchor="middle">verify</text>
+  <rect x="252" y="194" width="96" height="20" rx="10" fill="none" stroke="#7a5cff" stroke-width="1.3"/>
+  <text x="300" y="208" fill="#7a5cff" font-size="11" text-anchor="middle">drift caught</text>
 
-  <!-- converge under review -->
-  <g stroke="#768390" stroke-width="1.2" stroke-dasharray="4 3">
-    <line x1="574" y1="86" x2="574" y2="120"/>
-    <rect x="522" y="122" width="104" height="30" rx="8" fill="none"/>
-  </g>
-  <text x="574" y="141" fill="#768390" font-size="13" text-anchor="middle">converge</text>
-
-  <!-- scrutiny band -->
-  <rect x="42" y="176" width="824" height="34" rx="17" fill="none" stroke="#7a5cff" stroke-width="1.3" stroke-dasharray="4 3"/>
-  <text x="454" y="198" fill="#7a5cff" font-size="13" text-anchor="middle">pressure-test any step: interrogate / grill / self-refute / premortem / prove / panel</text>
-
-  <text x="42" y="232" fill="#768390" font-size="12">The prompt pack for Claude, Codex, Cursor, Copilot, Windsurf, and Gemini CLI; Claude installs the prompts as skills</text>
+  <text x="42" y="244" fill="#768390" font-size="12">Install once. Verify proves every copy still matches the source.</text>
 </svg>

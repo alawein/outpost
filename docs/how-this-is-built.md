@@ -19,6 +19,15 @@ match their source, the docs name the tools the adapters ship, no tracked file c
 secret or a personal trace, and the prose clears the house voice. CI runs it with the tests
 on Linux and Windows. A stranger's pull request meets the same gate as the maintainer's.
 
+## The benchmark
+
+`benchmarks/drift/` seeds five kinds of drift into a real install for each of the six tools
+and scores three detectors: the installer's `--verify`, `git status`, and copying by hand.
+`results.json` is the published table, and CI re-runs it with `--check`, so a changed number
+fails the build. The README's headline is rendered from those totals inside a marked span,
+and the `docs_sync` check fails when the README's claim and the results file disagree, so
+the claim cannot go stale by hand.
+
 ## Admission
 
 A new prompt needs one sentence in its pull request: the closest existing prompt and the gap

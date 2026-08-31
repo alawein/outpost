@@ -227,6 +227,30 @@ def test_docs_sync_catches_a_hand_edited_generated_span(repo_copy):
     assert "workflow.md" in detail
 
 
+def test_docs_sync_catches_a_flipped_benchmark_total(repo_copy):
+    # the README hero's headline is rendered from benchmarks/drift/results.json; a total that
+    # changes under it (a rerun with a different outcome) must fail docs_sync naming the README,
+    # not leave a stale claim on the front page
+    import json
+    from kit.checks import docs_sync
+    from kit.docs_build import _render_benchmark_headline
+    readme = repo_copy / "README.md"
+    text = readme.read_text(encoding="utf-8")
+    if "GENERATED:benchmark-headline" not in text:
+        # seed the span in sync so the failure below is the flipped total, not a missing marker
+        text += (f"\n<!-- GENERATED:benchmark-headline -->{_render_benchmark_headline(repo_copy)}"
+                 "<!-- /GENERATED:benchmark-headline -->\n")
+        readme.write_text(text, encoding="utf-8")
+    results = repo_copy / "benchmarks" / "drift" / "results.json"
+    data = json.loads(results.read_text(encoding="utf-8"))
+    caught, seeded = data["totals"]["verify"]
+    data["totals"]["verify"] = [caught - 1, seeded]
+    results.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    ok, detail = docs_sync.run(repo_copy)
+    assert not ok
+    assert "README.md" in detail and "drifted" in detail
+
+
 def test_docs_sync_catches_a_stripped_required_marker(repo_copy):
     from kit.checks import docs_sync
     p = repo_copy / "docs" / "workflow.md"
