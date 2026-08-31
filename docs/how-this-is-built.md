@@ -13,7 +13,7 @@ check or a benchmark proves.
 
 ## The gate
 
-`python validate.py` runs twenty-three checks on every change: the catalog matches the disk
+`python validate.py` runs twenty-four checks on every change: the catalog matches the disk
 both ways, every prompt has its five sections, the generated copies (plugin skills, doc spans)
 match their source, the docs name the tools the adapters ship, no tracked file carries a
 secret or a personal trace, and the prose clears the house voice. CI runs it with the tests
