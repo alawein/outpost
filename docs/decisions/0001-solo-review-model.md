@@ -11,7 +11,8 @@ second approval would block every change the maintainer makes.
 ## Decision
 
 An outside pull request gets the maintainer's review before merge. The maintainer's own pull
-requests merge on green CI (`python validate.py` and `pytest` on Linux and Windows) with no
+requests merge on green CI (`python validate.py`, `pytest`, and
+`python benchmarks/drift/run.py --check` on Linux and Windows) with no
 second approval. `.github/CODEOWNERS` names the maintainer so review requests route there;
 branch protection requires the four CI legs, linear history, and no force push.
 
