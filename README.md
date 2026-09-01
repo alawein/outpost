@@ -19,7 +19,8 @@ guide once, not six times. Unlike a hand-maintained rules file per tool, the ver
 a stale copy before it costs a wrong edit.
 
 It is not a process plugin: a plugin such as superpowers decides how a task gets done, Outpost
-decides what runs and proves the copies landed.
+decides what runs and proves the copies landed. It is not a sync tool for a rules file you
+already wrote: the checks cover only what the kit installed.
 
 - Lifecycle: active
 - Verification date: 2026-08-31
@@ -147,6 +148,8 @@ reads. Role boundaries and the generation flow (catalog to prompts, adapters, pl
 - [docs/decisions/](docs/decisions/README.md)
 - [docs/DEBT.md](docs/DEBT.md)
 - [docs/ROADMAP.md](docs/ROADMAP.md)
+- [docs/token-budget.md](docs/token-budget.md)
+- [docs/labels.md](docs/labels.md)
 - [AGENTS.md](AGENTS.md)
 - [CLAUDE.md](CLAUDE.md)
 
@@ -155,14 +158,14 @@ This repo has no `docs/README.md`, `SSOT.md`, or `LESSONS.md`; `docs/decisions/`
 
 ## Consumers
 
-- This repo installs its own prompts into itself (`.outpost/manifest.json`, `.claude/skills/`)
-  as its own first consumer and test.
-- Beyond that, adoption is unproven: no sibling repo in this workspace has installed it yet.
+- No sibling repo in this workspace has installed it yet. `.claude/` and `.outpost/` are
+  gitignored in this repo itself (see `.gitignore`): Outpost is not installed into its own
+  tree, so it is not its own consumer.
 
 ## Release and versioning
 
-- Version source: `kit/catalog/catalog.json`, `pyproject.toml`, and `kit/__init__.py`, which
-  must agree (`python validate.py` checks it).
+- Version source: `kit/catalog/catalog.json`, `pyproject.toml`, `kit/__init__.py`, and the
+  latest `CHANGELOG.md` heading, which must agree (`python validate.py` checks it).
 - SemVer, tracked in [CHANGELOG.md](CHANGELOG.md) (Keep a Changelog format). Current release:
   v1.0.0, tagged 2026-08-31.
 - Publish mode: clone and run, no PyPI package. Cut steps: [docs/releasing.md](docs/releasing.md).

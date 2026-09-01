@@ -12,6 +12,18 @@ Format follows Keep a Changelog (https://keepachangelog.com). The kit uses SemVe
 
 ## [Unreleased]
 
+### Changed
+
+- The README moved to the workspace's tooling doc template (Purpose, Install, Commands,
+  Architecture, Docs map, Consumers, Release and versioning). Corrected a Consumers claim that
+  the kit installs into its own tree, which `.gitignore` already rules out. Restored the
+  `docs/token-budget.md` and `docs/labels.md` docs-map links and the dropped Purpose scope
+  boundary. Added `CHANGELOG.md` to the version-source list.
+
+### Removed
+
+- `docs/brand/flow.svg`: unreferenced after the README restructure; no other doc linked it.
+
 ## [1.0.0] - 2026-08-31
 
 ### Added
