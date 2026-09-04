@@ -8,7 +8,6 @@ Category:    core
 Owner:       alawein
 Visibility:  public
 Purpose:     Installs one prompt pack into six coding agents and verifies every installed copy still matches the source.
-Next action: continue
 
 ## Purpose
 
