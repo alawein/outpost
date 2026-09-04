@@ -3,7 +3,7 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "outpost"
+name = "outpost-kit"
 version = "1.0.0"
 description = "A small personal kit that helps coding agents read a repo, plan, edit, test, review, prepare PRs, and hand off. Claude Code is the primary target; Codex, Cursor, GitHub Copilot, Windsurf, and Gemini CLI are adapters."
 readme = "README.md"
@@ -15,9 +15,10 @@ dependencies = []
 [project.optional-dependencies]
 dev = ["pytest>=7"]
 
-# No console-script entry point: the kit is used from a clone with `python install.py` and
-# `python validate.py`, not installed as a wheel. A packaged distribution is an idea-backlog item
-# (docs/ROADMAP.md), not a v0.1.0 promise.
+# No console-script entry point: primary usage is still `python install.py` /
+# `python validate.py` from a clone, or `npx skills add alawein/outpost`. PyPI as
+# "outpost-kit" (the name "outpost" is taken) is a secondary install path for
+# `pip install outpost-kit && python -m kit.installers...`-style use, not a CLI.
 
 [tool.setuptools]
 packages = ["kit", "kit.catalog", "kit.checks", "kit.installers", "kit.adapters", "kit.labels"]
