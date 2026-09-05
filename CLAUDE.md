@@ -3,7 +3,7 @@ type: canonical
 source: none
 sync: none
 sla: none
-last_updated: 2026-08-27
+last_updated: 2026-09-05
 ---
 
 # Outpost
@@ -26,7 +26,11 @@ Run `python validate.py` and `python -m pytest -q` from the repo root. A change 
 - Stage exact paths. Do not use blanket `git add`. Keep `.env` and secrets out of the tree.
 - `docs/superpowers/` and `.superpowers/` hold local planning scratch (plans, specs, handoffs,
   session ledgers). Both are gitignored; nothing under them is committed.
-- Commit one concern. Use an imperative subject under about 70 characters. Do not add emoji or a trailer line.
+- Commit one concern. New commits in this repository use `type(scope): imperative subject`,
+  with the scope optional and the full subject under about 70 characters. Types are `feat`,
+  `fix`, `docs`, `refactor`, `chore`, `ci`, and `test`. Do not add emoji or a trailer line.
+  This approved repository exception applies going forward; leave existing commit subjects
+  unchanged. Installing an Outpost prompt does not impose this exception on another repo.
 - Squash merge PRs.
 - This is a solo repo (see docs/decisions/0001-solo-review-model.md). An outside PR gets the owner's review before merge; the owner's own PRs merge on green CI (`python validate.py` and `pytest`) without a second approval. `.github/CODEOWNERS` names the owner and routes the review request.
 - Write a decision record only when at least two hold: the choice crosses a boundary (a tool,

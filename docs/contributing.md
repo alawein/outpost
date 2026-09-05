@@ -3,7 +3,7 @@ type: canonical
 source: none
 sync: none
 sla: none
-last_updated: 2026-08-27
+last_updated: 2026-09-05
 ---
 
 # Contributing
@@ -18,6 +18,8 @@ How to add to the kit without breaking it. The catalog lists what ships, and `py
 - One concern per pull request; target 400 changed lines and 20 files or fewer, and say why in
   the body when you exceed it. Delete the branch on merge.
 - Stage exact paths. Keep `.env` and secrets out of the tree.
+- Follow the repository's conventional commit format in [CLAUDE.md](../CLAUDE.md).
+  Keep existing history unchanged; the format applies to new commits.
 - A deliberate shortcut lands in `docs/DEBT.md` in the same PR.
 - Plain ASCII, no em dashes, none of the banned words in `docs/writing-standard.md`.
 
