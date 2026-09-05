@@ -3,7 +3,7 @@ type: canonical
 source: none
 sync: none
 sla: none
-last_updated: 2026-08-27
+last_updated: 2026-09-05
 ---
 
 # Changelog
@@ -14,6 +14,8 @@ Format follows Keep a Changelog (https://keepachangelog.com). The kit uses SemVe
 
 ### Changed
 
+- New repository commits use conventional prefixes with an imperative subject. Existing
+  history and the conventions of repositories that install the kit stay unchanged.
 - The README moved to the workspace's tooling doc template (Purpose, Install, Commands,
   Architecture, Docs map, Consumers, Release and versioning). Corrected a Consumers claim that
   the kit installs into its own tree, which `.gitignore` already rules out. Restored the
